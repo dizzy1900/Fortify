@@ -1,0 +1,1 @@
+ALTER TABLE "authentication_attempts" ADD COLUMN "invitation_id" text;

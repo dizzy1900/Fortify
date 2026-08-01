@@ -53,10 +53,18 @@ export async function migrateDemoSeedToProduction(
     environment: "sandbox",
     synthetic: true,
     actorSubject: SANDBOX_ACTOR,
+    authority: {
+      organizationId: SANDBOX_ORGANIZATION_ID,
+      actorSubject: SANDBOX_ACTOR,
+      principalType: "service_account",
+      grantedScopes: ["organization:bootstrap"],
+    },
   });
   const context: TenantContext = {
     organizationId: SANDBOX_ORGANIZATION_ID,
     actorSubject: SANDBOX_ACTOR,
+    principalType: "service_account",
+    grantedScopes: ["*"],
   };
   const requestHash = digest(state);
 

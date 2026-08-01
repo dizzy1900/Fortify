@@ -8,6 +8,27 @@
       "when": 1785606952279,
       "tag": "0000_normalized_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1785609730882,
+      "tag": "0001_clean_madrox",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785610236370,
+      "tag": "0002_lethal_solo",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785611046314,
+      "tag": "0003_chief_jack_flag",
+      "breakpoints": true
     }
   ]
 }

@@ -3,11 +3,13 @@ import type { PgDatabase } from "drizzle-orm/pg-core";
 import type { PgQueryResultHKT } from "drizzle-orm/pg-core/session";
 import { createHash, randomUUID } from "node:crypto";
 import * as schema from "@/db/production/schema";
+import {
+  assertAuthorized,
+  assertOrganizationBootstrap,
+  type AuthorizationContext,
+} from "@/lib/production/authorization";
 
-export interface TenantContext {
-  organizationId: string;
-  actorSubject: string;
-}
+export type TenantContext = AuthorizationContext;
 
 export interface OrganizationInput {
   id: string;
@@ -17,6 +19,7 @@ export interface OrganizationInput {
   environment: "sandbox" | "production";
   synthetic: boolean;
   actorSubject: string;
+  authority: AuthorizationContext;
 }
 
 export interface CommunityInput {
@@ -160,6 +163,7 @@ export class TenantRepository {
   constructor(readonly database: ProductionDatabaseLike) {}
 
   async bootstrapOrganization(input: OrganizationInput) {
+    assertOrganizationBootstrap(input.authority);
     if (input.environment === "sandbox" && !input.synthetic)
       throw new Error("Sandbox organizations must be explicitly synthetic.");
     if (input.environment === "production" && input.synthetic)
@@ -195,6 +199,11 @@ export class TenantRepository {
 
   async createCommunity(context: TenantContext, input: CommunityInput) {
     requireContext(context);
+    assertAuthorized(context, {
+      action: "create",
+      resource: "community",
+      resourceOrganizationId: context.organizationId,
+    });
     return this.database.transaction(async (transaction) => {
       const parent = await transaction
         .select({ id: schema.clients.id })
@@ -234,6 +243,11 @@ export class TenantRepository {
 
   async listCommunities(context: TenantContext) {
     requireContext(context);
+    assertAuthorized(context, {
+      action: "read",
+      resource: "community",
+      resourceOrganizationId: context.organizationId,
+    });
     return this.database
       .select()
       .from(schema.communities)
@@ -248,6 +262,11 @@ export class TenantRepository {
 
   async getCommunity(context: TenantContext, communityId: string) {
     requireContext(context);
+    assertAuthorized(context, {
+      action: "read",
+      resource: "community",
+      resourceOrganizationId: context.organizationId,
+    });
     const rows = await this.database
       .select()
       .from(schema.communities)
@@ -269,6 +288,11 @@ export class TenantRepository {
     summary: string,
   ) {
     requireContext(context);
+    assertAuthorized(context, {
+      action: "update",
+      resource: "community",
+      resourceOrganizationId: context.organizationId,
+    });
     return this.database.transaction(async (transaction) => {
       const existing = await transaction
         .select({ id: schema.communities.id })
@@ -316,6 +340,11 @@ export class TenantRepository {
     input: RenewalCaseInput,
   ) {
     requireContext(context);
+    assertAuthorized(context, {
+      action: "create",
+      resource: "renewal_case",
+      resourceOrganizationId: context.organizationId,
+    });
     if (!idempotencyKey.trim()) throw new IdempotencyConflictError();
     const requestHash = digest(input);
     return this.database.transaction(async (transaction) => {
@@ -389,6 +418,11 @@ export class TenantRepository {
 
   async listAuditEvents(context: TenantContext) {
     requireContext(context);
+    assertAuthorized(context, {
+      action: "read",
+      resource: "audit_event",
+      resourceOrganizationId: context.organizationId,
+    });
     return this.database
       .select()
       .from(schema.auditEvents)

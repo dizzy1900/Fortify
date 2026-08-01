@@ -5,6 +5,63 @@ import {
   type ProductionDatabaseLike,
   type TenantContext,
 } from "@/lib/production/repository";
+import type { OrganizationRole } from "@/lib/production/authorization";
+import type { VerifiedIdentityProfile } from "@/lib/production/identity-provider";
+
+export async function createActiveMembership(
+  database: ProductionDatabaseLike,
+  input: {
+    organizationId: string;
+    subject: string;
+    role?: OrganizationRole;
+    email?: string;
+  },
+) {
+  const at = "2026-08-01T12:00:00.000Z";
+  const identityId = `identity-record-${input.subject}`;
+  const membershipId = `membership-${input.subject}`;
+  const profile: VerifiedIdentityProfile = {
+    providerKey: "test-oidc",
+    providerSubject: input.subject,
+    email: input.email ?? `${input.subject}@example.test`,
+    emailVerified: true,
+    displayName: input.subject,
+    authenticationMethods: ["pwd", "mfa"],
+    mfaCapable: true,
+  };
+  await database.insert(schema.identities).values({
+    id: identityId,
+    providerKey: profile.providerKey,
+    providerSubject: profile.providerSubject,
+    email: profile.email,
+    emailVerified: true,
+    displayName: profile.displayName,
+    mfaCapable: true,
+    lastAuthenticatedAt: at,
+    createdAt: at,
+    updatedAt: at,
+    createdBy: input.subject,
+    updatedBy: input.subject,
+    revision: 1,
+    lifecycleStatus: "active",
+  });
+  await database.insert(schema.memberships).values({
+    id: membershipId,
+    organizationId: input.organizationId,
+    identityId,
+    identitySubject: input.subject,
+    role: input.role ?? "organization_owner",
+    status: "active",
+    acceptedAt: at,
+    createdAt: at,
+    updatedAt: at,
+    createdBy: input.subject,
+    updatedBy: input.subject,
+    revision: 1,
+    lifecycleStatus: "active",
+  });
+  return { identityId, membershipId, profile };
+}
 
 export async function createTenantFixture(
   database: ProductionDatabaseLike,
@@ -12,7 +69,13 @@ export async function createTenantFixture(
 ) {
   const organizationId = `org-${key}`;
   const actorSubject = `identity-${key}`;
-  const context: TenantContext = { organizationId, actorSubject };
+  const context: TenantContext = {
+    organizationId,
+    actorSubject,
+    principalType: "membership",
+    role: "organization_owner",
+    grantedScopes: [],
+  };
   const repository = new TenantRepository(database);
   await repository.bootstrapOrganization({
     id: organizationId,
@@ -22,6 +85,12 @@ export async function createTenantFixture(
     environment: "production",
     synthetic: false,
     actorSubject,
+    authority: {
+      organizationId,
+      actorSubject,
+      principalType: "service_account",
+      grantedScopes: ["organization:bootstrap"],
+    },
   });
   const owned = tenantRecord(context, "2026-08-01T12:00:00.000Z");
   const bookId = `book-${key}`;

@@ -17,6 +17,11 @@ An operator must explicitly set:
 ```bash
 FORTIFY_RUNTIME_MODE=production
 DATABASE_URL=postgresql://...
+FORTIFY_APP_ORIGIN=https://fortify.example.com
+FORTIFY_OIDC_PROVIDER_KEY=brokerage-oidc
+FORTIFY_OIDC_ISSUER=https://identity.example.com/
+FORTIFY_OIDC_CLIENT_ID=...
+FORTIFY_OIDC_CLIENT_SECRET=...
 ```
 
 Apply migrations before application rollout:
@@ -31,4 +36,8 @@ The fictional seed is never automatic. A deliberate non-customer sandbox import 
 npm run db:seed:production-sandbox
 ```
 
-Production mode does not fall back to SQLite or the legacy `DemoState`. Demo workspace and mutation routes are unavailable. A production deployment still requires managed identity/authorization, complete tenant attack coverage, encrypted S3-compatible storage, malware scanning, secrets, retention/legal hold, backups and restore, monitoring, incident response, and legal/accessibility review.
+Production mode does not fall back to SQLite or the legacy `DemoState`. Demo workspace and mutation routes are unavailable. OIDC, opaque sessions, invitations, scoped service/external credentials, and deny-by-default authorization are implemented locally, but the selected managed provider, MFA policy, production secrets, rate limits, and redirect registration must be validated in staging.
+
+`FORTIFY_LOCAL_IDENTITY_ENABLED=true` is a non-production development escape hatch only. The adapter rejects `NODE_ENV=production`; never configure it in staging or production.
+
+A production deployment still requires encrypted S3-compatible storage, malware scanning, retention/legal hold, backups and restore, monitoring, incident response, and legal/accessibility review.

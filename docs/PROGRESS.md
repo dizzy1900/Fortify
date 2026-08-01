@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M2 — Normalized PostgreSQL and sandbox isolation is locally implemented on August 1, 2026. Managed PostgreSQL validation is still external; M3 identity and authorization is the next code milestone.
+M3 — Identity, organizations, and authorization is locally implemented on August 1, 2026. Managed OIDC/MFA and PostgreSQL validation remain external; M4 secure object storage is the next code milestone.
 
 ## Completed baseline
 
@@ -32,12 +32,24 @@ M2 — Normalized PostgreSQL and sandbox isolation is locally implemented on Aug
 - Re-ran `npm run verify`: lint, strict typecheck, 6 test files/18 tests, 120-file secret scan, production build, 12/12 demo evaluation, and 4/4 serial Playwright scenarios passed.
 - Re-ran `npm audit --omit=dev --audit-level=high`: 0 vulnerabilities. Desktop and 390 px mobile guided-entry views were visually rechecked.
 
+## M3 completed this cycle
+
+- Expanded the production schema from 32 to 43 tables for identities, opaque sessions, OIDC attempts, invitations, team membership, case assignments, external principals/grants, service accounts/API credentials, and explicit support access.
+- Added an OIDC-compatible authorization-code adapter using discovery, PKCE S256, state, and nonce plus a local provider that fails closed in production.
+- Added one-time email-bound invitations, organization-selected sessions, session/invitation/membership expiry and revocation, and no production role switching.
+- Added a 39-resource deny-by-default role/scope/case policy and applied it to every existing production repository query/mutation boundary.
+- Added case-scoped external access, scoped API credentials, and customer-approved time-bounded support access with raw secrets returned once and only digests stored.
+- Added protected production community and membership-invitation routes plus a responsive sign-in surface clearly separating sandbox from organization identity.
+- Added 9 identity/authorization tests covering every resource class, direct cross-tenant auth-table references, role denial, OIDC attempt replay, expiry, revocation, service scopes, case scopes, and support controls.
+- `npm run verify` passed: lint, strict typecheck, 7 files/27 tests, 142-file secret scan, 16-page/16-API production build, 12/12 deterministic evaluation checks, and 4/4 serial desktop/mobile Playwright scenarios. `npm audit --omit=dev --audit-level=high` reported 0 vulnerabilities. Desktop and 390 px sign-in views were visually inspected with no observed collision or overflow.
+
 ## Next
 
-- Begin M3 with production identity, sessions, memberships, deny-by-default authorization, and resource-complete cross-tenant policy tests.
+- Begin M4 with tenant-prefixed private S3-compatible storage, signed operations, quarantine/scanning lifecycle, checksum/MIME enforcement, retention/legal-hold hooks, access audit, and restoreable fixture backup.
 - Validate the M2 migration and contract suite against the selected managed PostgreSQL service; PGlite is PostgreSQL-compatible local evidence, not production-provider evidence.
+- Configure and validate a managed OIDC provider, redirect registration, MFA policy, secrets, session behavior, and rate limits in staging.
 - Validate the new GitHub workflow and configure required checks after publication; owner-only settings remain listed in `docs/GITHUB_SETTINGS_CHECKLIST.md`.
-- Do not ingest live customer data. Production identity/resource authorization, secure object storage, malware scanning, retention, backups, incident controls, and managed PostgreSQL validation are not yet complete.
+- Do not ingest live customer data. Secure object storage, malware scanning, retention, backups, incident controls, managed PostgreSQL/OIDC validation, and the remaining production milestones are not yet complete.
 
 ## Status discipline
 

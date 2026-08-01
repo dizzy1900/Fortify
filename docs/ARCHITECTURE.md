@@ -7,15 +7,15 @@ Fortify is one Next.js application with two deliberately separate runtime modes:
 | Mode | Purpose | Database | Synthetic data | External use |
 |---|---|---|---|---|
 | `sandbox` | Deterministic offline demonstration and automated regression | Drizzle over local SQLite | Required and organization-scoped | Never for live customer data |
-| `production` | Multi-tenant application data plane | Drizzle over PostgreSQL through `pg` | Absent unless an administrator explicitly imports the isolated sandbox organization | Foundation implemented; identity and object storage gates remain |
+| `production` | Multi-tenant application data plane | Drizzle over PostgreSQL through `pg` | Absent unless an administrator explicitly imports the isolated sandbox organization | Data and identity foundations implemented locally; object storage and deployment gates remain |
 
 `FORTIFY_RUNTIME_MODE` is mandatory in a production Node environment. There is no automatic production fallback to SQLite or `app_state.state_json`. `DATABASE_URL` is additionally mandatory in production mode. Demo workspace routes and all legacy demo mutation/download/extraction routes return unavailable outside sandbox mode.
 
 ## Production request boundary
 
-The production database client lives in `db/production/client.ts`. It creates a bounded PostgreSQL pool and exposes migration, health, and close operations. Application services receive a `TenantContext` containing an explicit organization ID and actor subject; repository methods reject an empty context and include organization predicates in every query and mutation.
+The production database client lives in `db/production/client.ts`. It creates a bounded PostgreSQL pool and exposes migration, health, and close operations. Application services receive a session- or credential-derived `TenantContext` containing the organization, actor, principal type, role/scopes, and optional case assignments. Repository methods reject missing context, apply the deny-by-default resource policy, and include organization predicates in every query and mutation. Authenticated production community GET/PATCH routes demonstrate the complete HTTP-to-policy-to-repository boundary.
 
-Authentication and session-derived construction of `TenantContext` belong to M3. Until that exists, the production repository is not exposed through a public customer API.
+Production authentication uses an OIDC-compatible provider adapter with authorization-code flow, discovery, PKCE, state, and nonce. Opaque database sessions, one-time invitations, local development identity, service/API credentials, external case grants, and explicit support grants are implemented in `lib/production/identity-*`. See [AUTHORIZATION_MODEL.md](./AUTHORIZATION_MODEL.md).
 
 ## Transaction doctrine
 
@@ -40,7 +40,7 @@ Audit hashes bind the preceding tenant audit hash, organization, actor, action, 
 - Sandbox data is owned by `org-fortify-sandbox`, whose row is constrained to `environment=sandbox` and `synthetic=true`.
 - Cross-customer analytics opt-in defaults to false.
 
-M3 must add authenticated principals, memberships, deny-by-default authorization policies, database session scoping/RLS where appropriate, revocation, support-access controls, and resource-complete attack tests. M2 does not claim those controls.
+M3 adds authenticated principals, memberships, deny-by-default authorization policies, revocation, support-access controls, and resource-complete attack tests. Managed-provider configuration, MFA policy enforcement, defense-in-depth RLS evaluation, rate limiting, secrets infrastructure, and deployment validation remain external/operational gates rather than inferred passes.
 
 ## Persistence adapters
 
@@ -59,4 +59,4 @@ The contract suite uses PGlite as an embedded PostgreSQL-compatible engine becau
 
 ## Next architecture boundary
 
-M3 introduces identity, organization membership, authorization, invitations, sessions, external principals, service accounts, API credentials, support access, and tenant attack coverage. Production routes remain unavailable to customers until that boundary is implemented and tested.
+M4 introduces private S3-compatible object storage, signed operations, upload quarantine/scanning state, immutable evidence blobs, retention/legal-hold hooks, and restoreable fixture backup. Production remains closed to customer data until that boundary and the remaining security/deployment gates are validated.

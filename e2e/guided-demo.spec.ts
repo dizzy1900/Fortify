@@ -106,6 +106,7 @@ test("broker-to-underwriter guided demo", async ({ page }, testInfo) => {
 test("public page and all workspace routes are healthy", async ({ page }) => {
   const routes = [
     "/",
+    "/sign-in",
     "/demo",
     "/portfolio",
     "/community",

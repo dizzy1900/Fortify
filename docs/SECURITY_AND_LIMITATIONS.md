@@ -14,10 +14,14 @@
 - Explicit `sandbox` and `production` modes prevent the production runtime from silently serving the SQLite demo state.
 - The production data layer requires an organization-scoped tenant context, predicates every repository operation by organization, rejects cross-organization references with database triggers, and commits domain mutations with append-only audit events.
 - Production history records are immutable at the database layer; renewal-case creation supports replay-safe idempotency and optimistic revision checks.
+- Production OIDC uses discovery, authorization code, PKCE S256, state, and nonce through a maintained protocol library; no application JWT implementation was introduced.
+- Opaque sessions, invitation tokens, API credentials, and external grants are random and stored only as digests. Expiry and server-side revocation are enforced.
+- The production policy is deny by default across every registered resource class. Organization mismatch and external case mismatch fail closed before repository access.
+- Support has no standing customer access; customer-approved support grants require a reason, explicit scopes, expiry, and audit trail.
 
 ## Deliberate MVP limitations
 
-- Demo role switching is not production authentication. The normalized data layer is tenant-scoped, but there is no production identity binding, SSO, MFA, session revocation, user lifecycle, or row-level-security policy yet.
+- Demo role switching remains sandbox-only. Production OIDC/session/role infrastructure is implemented locally, but no managed provider, enforced MFA policy, production redirect registration, secret manager, rate limit, or provider-admin lifecycle has been deployment-validated.
 - SQLite and local filesystem storage target a single trusted local demo. A normalized `pg`/Drizzle adapter now exists, but no managed PostgreSQL provider or multi-instance production topology has been validated.
 - Operating-system permissions provide storage protection; application-level encryption at rest and customer-managed keys are not implemented.
 - Seeded exhibits contain only fictional demo content. No malware scanning, image metadata stripping, DLP, legal hold, retention automation, or backup exists.
@@ -30,6 +34,6 @@
 
 ## Production gates before live customer data
 
-Threat model and privacy review; production identity/authorization; managed PostgreSQL deployment validation and optional defense-in-depth RLS; S3-compatible encrypted storage; key and secret management; upload validation/malware scanning; retention/deletion/legal-hold policy; encrypted backups and restore exercises; centralized audit export; rate limits and CSRF review; dependency and container scanning; incident response; accessibility audit; legal review of references/templates; and a signed data-processing agreement.
+Threat model and privacy review; managed OIDC/MFA and PostgreSQL deployment validation; defense-in-depth RLS evaluation; S3-compatible encrypted storage; key and secret management; upload validation/malware scanning; retention/deletion/legal-hold policy; encrypted backups and restore exercises; centralized audit export; rate limits and CSRF review; dependency and container scanning; incident response; accessibility audit; legal review of references/templates; and a signed data-processing agreement.
 
 Carrier acceptance, renewal, insurability, discounts, appeal success, and pricing changes are not guaranteed.

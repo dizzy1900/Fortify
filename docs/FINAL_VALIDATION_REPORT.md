@@ -2,6 +2,18 @@
 
 Status: **customer-demo-ready MVP; local validation passed on August 1, 2026**. This is not a production-readiness, legal-correctness, carrier-acceptance, or market-validation claim.
 
+## Production transformation M3 addendum
+
+The identity, organizations, and authorization milestone was locally validated on August 1, 2026. `npm run verify` exited 0 after ESLint, strict TypeScript, 7 Vitest files/27 tests, a 142-file secret scan, the production build, 12/12 deterministic evaluation checks, and 4/4 serial Playwright scenarios on desktop Chromium and Pixel 7 profiles. `npm audit --omit=dev --audit-level=high` reported 0 vulnerabilities.
+
+The production schema now applies 43 normalized tables and 53 triggers across the M2-M3 migrations. M3 adds 11 organization roles; OIDC discovery/authorization-code/PKCE/state/nonce; an explicit non-production local provider; opaque organization-bound sessions; email-bound invitations; membership/session revocation; team and case assignments; scoped service/API credentials; case-scoped external access; and customer-approved support grants. Only token digests persist for sessions, invitations, API credentials, and external grants.
+
+The 9-test M3 suite iterates all 39 registered production resource classes and proves organization mismatch is denied. It also covers unknown/absent scope denial, direct database rejection for every new tenant-reference category, single-use OIDC attempts, safe return paths, invitation/session expiry, invitation replay, membership-triggered session revocation, API scope/revocation, external case scope/revocation, and support grant/revocation.
+
+The build compiled 16 page routes and 16 API routes, including sign-in, OIDC/local/session/logout endpoints, protected production community GET/PATCH, and invitation create/revoke routes. The sign-in surface was inspected at desktop and 390 by 844 mobile sizes. The sandbox/production distinction, access-control assurances, evidence-infrastructure boundary, and no-outcome-guarantee language were visible and legible with no observed collision or horizontal overflow.
+
+No live identity provider was configured. OIDC discovery, redirect registration, managed MFA enforcement, secrets, provider-admin lifecycle, staging rate limits, and defense-in-depth RLS remain deployment-validation gates. PGlite remains local PostgreSQL-compatible evidence rather than proof of the selected managed database. Secure object storage is M4 and is still absent, so live customer data remains prohibited.
+
 ## Production transformation M2 addendum
 
 The normalized PostgreSQL and sandbox-isolation milestone was locally validated on August 1, 2026. `npm run verify` exited 0 after ESLint, strict TypeScript, 6 Vitest files/18 tests, a 120-file secret scan, production build, 12/12 deterministic evaluation checks, and 4/4 serial Playwright scenarios on desktop Chromium and Pixel 7 profiles. `npm audit --omit=dev --audit-level=high` reported 0 vulnerabilities.

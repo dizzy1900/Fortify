@@ -32,6 +32,7 @@
     "lucide-react": "^1.28.0",
     "maplibre-gl": "^6.1.0",
     "next": "^16.2.12",
+    "openid-client": "^6.8.4",
     "pdf-lib": "^1.17.1",
     "pdf-parse": "^1.1.1",
     "pg": "^8.22.0",
