@@ -1,0 +1,2 @@
+ALTER TABLE "document_extraction_runs" ADD COLUMN "page_count" integer NOT NULL;--> statement-breakpoint
+ALTER TABLE "document_extraction_runs" ADD COLUMN "warnings" jsonb DEFAULT '[]'::jsonb NOT NULL;

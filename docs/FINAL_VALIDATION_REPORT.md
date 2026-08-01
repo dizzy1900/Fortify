@@ -2,6 +2,22 @@
 
 Status: **customer-demo-ready MVP; local validation passed on August 1, 2026**. This is not a production-readiness, legal-correctness, carrier-acceptance, or market-validation claim.
 
+## Production transformation M6 local-implementation addendum
+
+The durable document-processing milestone was locally validated on August 1, 2026. ESLint, strict TypeScript, 10 Vitest files/41 tests, a 192-file secret scan, the 18-page/32-API Next.js production build, 12/12 deterministic evaluation checks, and 8/8 serial Playwright scenarios on desktop Chromium and Pixel 7 profiles passed. `npm audit --omit=dev` reported 0 vulnerabilities, and production schema regeneration reported no drift.
+
+The production schema now applies 59 normalized tables and exactly 100 triggers. Six new tables retain durable jobs, immutable attempts, extraction runs, multiple candidate fields, append-only human reviews, and superseding fact versions. Source documents now bind clean storage objects, versions, supersession, and classifier evidence; source passages retain extraction run, page, segment, kind, and optional normalized region/rotation. The deny-by-default registry covers 55 resource classes, and direct database guards reject cross-tenant job, attempt, run, passage, candidate, review, and fact references.
+
+`DocumentPipelineService` admits only independently scanned clean objects, independently reads and verifies exact bytes and hashes, records idempotent source/job state, leases work to separately scoped service accounts, recovers stale leases, schedules bounded retries, and records dead-letter failures. Manual retry requires a human reason and adds only one bounded attempt. Attempts, runs, passages, candidates, reviews, and facts cannot be silently rewritten. Worker/service-account principals can extract candidates but cannot confirm facts.
+
+The provider/classifier/extractor framework stores stable keys and versions, classifies nine correspondence families, and extracts carrier/sender, policy, dates/deadlines, carrier-stated classifications, stated drivers, requested mitigation/evidence, appeal rights, communication history, and reason codes without creating a Fortify risk score. Multiple candidates, low confidence, conflicts, missing fields, unavailable geometry, and model-derived values remain explicit. Human confirmation creates a fact; correction creates a superseding fact version; rejection creates no fact.
+
+Four authenticated APIs expose workspace readback, intake, field review, and dead-letter retry. The responsive `/documents` workspace covers quarantine upload, clean-object selection, durable processing state, retries, document/candidate filters, pagination, exact source citation, model-derived disclosure, human confirmation/correction/rejection, and full fact/review history. The synthetic browser workflow confirmed and corrected a policy fact, confirmed a low-confidence model-derived candidate, retried a dead-letter job, queued a new job, and preserved the processed source for final desktop/mobile inspection. Both viewports passed without document overflow or observed clipping.
+
+The default production adapter is deliberately offline and deterministic: plain text and selectable PDFs only. It reports unavailable native PDF geometry instead of fabricating it. Scans, rotations, tables, images, conflicts, and model-derived extraction are covered by exact-hash fixtures and an injected provider boundary, not a live OCR service. No rights-cleared customer correspondence, managed worker, external provider credential, provider license/data right, live accuracy study, retention/egress review, latency/cost evidence, or staging operation has been validated. M6 is implemented locally but is neither deployment-validated nor externally validated.
+
+The deterministic artifact regression remained stable: the PDF is 6 Letter pages and 11,602 bytes; the ZIP has 17 entries and 51,723 bytes; its embedded PDF exactly matches the standalone PDF SHA-256 `6b8f29f6c8e41a725dfe37d79831f093c9c60c3c042306dd494856e8da5bea21`; and the manifest retains 14 evidence hashes, 2 mitigation actions, fictional-demo status, recorded human confirmation, and explicit non-score/non-outcome limitations. All six pages were rendered and visually inspected with no observed overlap, clipping, broken glyphs, or missing page/footer structure.
+
 ## Production transformation M5 local-implementation addendum
 
 The portfolio/SOV import milestone was locally validated on August 1, 2026. ESLint, strict TypeScript, 9 Vitest files/37 tests, a 177-file secret scan, the 17-page/28-API Next.js production build, 12/12 deterministic evaluation checks, and 6/6 serial Playwright scenarios on desktop Chromium and Pixel 7 profiles passed. `npm audit --omit=dev --audit-level=high` reported 0 vulnerabilities.
@@ -62,7 +78,7 @@ The new migration test applies the complete SQLite sandbox migration to a blank 
 
 The real application was inspected at 1440 px desktop, 768 px tablet, and 390 px mobile widths. There was no horizontal overflow and no browser console error. Inspection found a mobile top-bar collision between the route breadcrumb and role label; the label markup was corrected, rebuilt, and visually rechecked at 390 px.
 
-The GitHub CI, CodeQL, and Trivy jobs have not yet run remotely. GitHub branch protection and security settings also require owner action and readback. The product remains the local fictional sandbox described below; production database, identity, tenant isolation, secure object storage, durable jobs, external integrations, backup/restore, and external validation are still incomplete.
+GitHub checks subsequently ran on the stacked M5 PR. CodeQL/security passed. The container job fails before Trivy because `node:22-bookworm-slim` lacks the native build prerequisites required by `better-sqlite3`; the quality job reports three SQLite/Vitest workers exiting after test completion while PGlite tests pass. Those CI fixes require explicit approval and are not included in M6. GitHub branch protection and security settings still require owner action/readback. Production database/provider operation, identity/MFA, managed storage/scanning, managed document workers/providers, external integrations, backup/restore, and external validation remain incomplete.
 
 ## Measured gates
 

@@ -1,6 +1,6 @@
 # Production data model
 
-The PostgreSQL schema contains 53 normalized tables. It is a forward foundation for the Colorado wildfire renewal workflow, not a claim that every later workflow is implemented.
+The PostgreSQL schema contains 59 normalized tables. It is a forward foundation for the catastrophe-property renewal workflow, not a claim that every later workflow is implemented.
 
 ## Organizations and access foundation
 
@@ -49,11 +49,22 @@ An import never destroys rejected rows, prior receipts, or created-record histor
 
 ## Sources and requirements
 
-- `source_documents`: original document metadata, checksum, storage reference, source system, processing status, and synthetic flag.
-- `source_passages`: page/segment provenance, extractor version, confidence, and human confirmation.
+- `source_documents`: immutable original-version metadata, checksum, clean storage reference, source system, classification/version/confidence, supersession, processing status, and synthetic flag.
+- `source_passages`: immutable page/segment/region provenance, extraction run, passage kind, and extractor version.
 - `requirement_sets`: market/program scope plus source URL and verify-current state.
 - `requirements`: stable requirement identity, scope, importance, and blocking flag.
 - `requirement_versions`: immutable effective version, citation, content hash, and supersession.
+
+## Document processing and facts
+
+- `document_processing_jobs`: durable queue state, availability, lease, attempt budget, idempotency, terminal error, and dead-letter lifecycle.
+- `document_processing_attempts`: immutable attempt number, worker, provider/version, start/finish, and retryable/terminal error evidence; only the running-to-terminal transition is allowed.
+- `document_extraction_runs`: immutable provider/classifier/extractor versions, exact source hash, document classification, page count, model-derived flag, and warnings.
+- `extracted_fields`: immutable multiple candidates per field with ordinal, typed value, confidence, model-derived flag, and exact source passage.
+- `extracted_field_reviews`: append-only human confirmation, correction, or rejection with reviewer, value, note, and time.
+- `document_facts`: immutable human-confirmed value versions with source candidate/passage, correction reason, and supersession.
+
+Jobs can be retried but history cannot be rewritten. A service account can process bytes and create candidates; it cannot confirm facts. Missing candidates remain absent, and unavailable geometry, low confidence, conflicts, and model derivation remain explicit.
 
 ## Evidence
 
@@ -95,4 +106,4 @@ Audit events and requirement/evidence/submission versions cannot be updated or d
 
 ## Deliberately deferred entities
 
-The north star also names richer coverage, parcel/relationship/version, collaboration, checklist, delivery, reviewer-session, consent/data-right, export/deletion-request, integration, and durable-job entities. They are introduced with their owning milestones rather than represented by unused placeholder tables. `docs/IMPLEMENTATION_STATUS.md` remains authoritative about what is implemented.
+The north star also names richer coverage, parcel/relationship/version, collaboration, checklist, delivery, reviewer-session, consent/data-right, export/deletion-request, and integration entities. They are introduced with their owning milestones rather than represented by unused placeholder tables. `docs/IMPLEMENTATION_STATUS.md` remains authoritative about what is implemented.

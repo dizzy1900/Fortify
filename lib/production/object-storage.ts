@@ -15,6 +15,7 @@ export const ALLOWED_EVIDENCE_MIME_TYPES = new Set([
   "application/pdf",
   "image/jpeg",
   "image/png",
+  "text/plain",
   "text/csv",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ]);

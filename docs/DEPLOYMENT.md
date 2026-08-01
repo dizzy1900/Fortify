@@ -24,6 +24,7 @@ FORTIFY_OIDC_CLIENT_ID=...
 FORTIFY_OIDC_CLIENT_SECRET=...
 FORTIFY_STORAGE_BUCKET=private-evidence-bucket
 FORTIFY_STORAGE_REGION=us-west-2
+FORTIFY_DOCUMENT_PROVIDER=local-selectable-text
 # Optional: FORTIFY_STORAGE_ENDPOINT, FORTIFY_STORAGE_FORCE_PATH_STYLE,
 # FORTIFY_STORAGE_KMS_KEY_ID
 ```
@@ -34,13 +35,24 @@ Apply migrations before application rollout:
 npm run db:migrate:production
 ```
 
+Run document processing outside the web request path with an explicitly scoped service account:
+
+```bash
+FORTIFY_WORKER_ORGANIZATION_ID=org-replace-me \
+FORTIFY_WORKER_SUBJECT=document-worker \
+FORTIFY_WORKER_ID=document-worker-1 \
+npm run worker:documents:once
+```
+
+The checked-in `local-selectable-text` provider is deterministic and supports plain text and selectable PDFs. It is not OCR and does not provide native PDF region geometry. Any external OCR/document-intelligence adapter requires separate licensing/data rights, credentials, egress and retention review, redacted logs, and staging validation before selection.
+
 The fictional seed is never automatic. A deliberate non-customer sandbox import into PostgreSQL is available only through:
 
 ```bash
 npm run db:seed:production-sandbox
 ```
 
-Production mode does not fall back to SQLite, the legacy `DemoState`, or local evidence paths. Demo workspace and mutation routes are unavailable. OIDC, opaque sessions, invitations, scoped service/external credentials, deny-by-default authorization, and the private S3-compatible storage boundary are implemented locally, but the selected managed providers, private bucket policy, malware service, MFA policy, production secrets, rate limits, and redirect/CORS registration must be validated in staging.
+Production mode does not fall back to SQLite, the legacy `DemoState`, or local evidence paths. Demo workspace and mutation routes are unavailable. OIDC, opaque sessions, invitations, scoped service/external credentials, deny-by-default authorization, the private S3-compatible storage boundary, and durable document jobs are implemented locally, but the selected managed providers, private bucket policy, malware service, OCR/document-intelligence rights, managed worker, MFA policy, production secrets, rate limits, and redirect/CORS registration must be validated in staging.
 
 `FORTIFY_LOCAL_IDENTITY_ENABLED=true` is a non-production development escape hatch only. The adapter rejects `NODE_ENV=production`; never configure it in staging or production.
 

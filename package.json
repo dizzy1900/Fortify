@@ -20,6 +20,7 @@
     "db:generate:production": "drizzle-kit generate --config drizzle-production.config.ts",
     "db:migrate:production": "node --import tsx scripts/migrate-production.ts",
     "db:seed:production-sandbox": "node --import tsx scripts/seed-production-sandbox.ts",
+    "worker:documents:once": "node --import tsx scripts/run-document-worker.ts",
     "demo:reset": "node --import tsx scripts/reset-demo.ts",
     "demo:evaluate": "node --import tsx scripts/evaluate-demo.ts",
     "artifacts:generate": "node --import tsx scripts/generate-artifacts.ts",

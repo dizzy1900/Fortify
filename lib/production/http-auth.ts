@@ -1,6 +1,10 @@
 import type { NextRequest, NextResponse } from "next/server";
 import { getProductionDatabase } from "@/db/production/client";
 import {
+  DocumentPipelineStateError,
+  DocumentPipelineValidationError,
+} from "@/lib/production/document-pipeline-service";
+import {
   AuthenticationError,
   IdentityService,
   type ResolvedPrincipal,
@@ -90,6 +94,10 @@ export function authenticationFailure(error: unknown) {
   if (error instanceof PortfolioImportValidationError)
     return Response.json({ error: error.message }, { status: 400 });
   if (error instanceof PortfolioImportStateError)
+    return Response.json({ error: error.message }, { status: 409 });
+  if (error instanceof DocumentPipelineValidationError)
+    return Response.json({ error: error.message }, { status: 400 });
+  if (error instanceof DocumentPipelineStateError)
     return Response.json({ error: error.message }, { status: 409 });
   if (error instanceof StorageValidationError)
     return Response.json({ error: error.message }, { status: 400 });
