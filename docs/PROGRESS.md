@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M0 — Product doctrine and release-foundation reconciliation for the California Resilience Investment and Insurance Recognition OS is locally validated on August 1, 2026 and awaiting publication. The prior M1–M7 renewal implementation remains a locally validated reusable foundation and published stacked PR series; it is not evidence that profiles, interventions, capital plans, funding, verification, model mapping, recognition commitments, recognition submissions, programme administration, deployment, or external validation exist.
+M0 — Product doctrine and release-foundation reconciliation for the California Resilience Investment and Insurance Recognition OS is locally validated and published as draft PR #7 on August 1, 2026. The prior M1–M7 renewal implementation remains a locally validated reusable foundation and published stacked PR series; it is not evidence that profiles, interventions, capital plans, funding, verification, model mapping, recognition commitments, recognition submissions, programme administration, deployment, or external validation exist.
 
 ## Replacement north-star M0 locally validated
 
@@ -97,7 +97,7 @@ M0 — Product doctrine and release-foundation reconciliation for the California
 
 ## Next
 
-- Publish the locally validated M0 doctrine/release slice as a conflict-free stacked draft PR.
+- Keep draft PR #7 stacked on M7 until the predecessor is ready; local merge-tree and GitHub both report the exact M0 stack conflict-free at publication.
 - Begin M1 by closing the California property-graph and governance gaps on the existing normalized tenant foundation: parcel, unit summary, aliases/relationships/versions, source/effective/confidentiality/data-right fields, spatial-ready boundaries, a California fixture organization, RLS evaluation, and resource-complete attack coverage.
 - Validate rights-cleared brokerage exports and correspondence against the generic adapters; fixture compatibility is not certification. Validate any external OCR/document-intelligence provider only after licensing, egress, retention, credentials, security, latency, cost, and error behavior are approved.
 - Validate the M2 migration and contract suite against the selected managed PostgreSQL service; PGlite is PostgreSQL-compatible local evidence, not production-provider evidence.
