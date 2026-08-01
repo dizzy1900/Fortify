@@ -2,22 +2,31 @@
 
 ## Current milestone
 
-Customer-demo-ready MVP complete and locally validated on August 1, 2026.
+M1 — Repository, CI, and status foundation is locally complete on August 1, 2026. M2 — Normalized PostgreSQL and sandbox isolation is next.
 
-## Completed
+## Completed baseline
 
-- Persisted the operating contract, authoritative brief, product decisions, implementation plan, and customer-validation documents.
-- Built the full public, broker, community-manager, and read-only underwriter workflow across 16 product routes and 7 API surfaces.
-- Implemented the 30-table Drizzle/SQLite model, repository and storage adapters, deterministic seed/reset, actual text/PDF notice intake, evidence upload/provenance, six-component readiness, immutable audit controls, role permissions, real PDF/ZIP generation, and year-over-year maintenance reuse.
-- Seeded 3 fictional Colorado communities, 3 fictional carriers, 42 evidence records, 28 requirements, 6 mitigation actions, conflict/expiry/rejection/clarification/success/reuse edge cases, and a persistent nine-step guide.
-- Completed fresh-lockfile installation, consolidated validation, production-server Playwright on desktop/mobile, runtime dependency audit, claim/secret scans, ZIP inspection, and visual inspection of screenshots and all six PDF pages.
+- Preserved the deterministic fictional sandbox and 16-route guided notice-to-packet demo.
+- Preserved real PDF/ZIP generation, hashes and provenance, human confirmation gates, append-only demo audit controls, and explicit non-predictive product language.
+- The August 1 MVP validation recorded lint, strict typecheck, 9 tests, production build, deterministic 12-check evaluation, and 4 serial Playwright scenarios passing. That evidence describes the imported demo baseline, not the production transformation.
+
+## M1 completed this cycle
+
+- Persisted `docs/COMMERCIAL_NORTH_STAR.md` as the authoritative production brief.
+- Replaced the demo roadmap with the ordered M1–M14 production execution plan.
+- Added `docs/IMPLEMENTATION_STATUS.md` to separate implemented demo capabilities from production gaps and external validation.
+- Added CI and owner-action documentation for repository gates and branch protection.
+- Added a blank-database migration test and a deterministic tracked-file secret scan.
+- Repaired the 390 px workspace header after real desktop/tablet/mobile browser inspection exposed colliding role text.
+- Ran `npm run verify` successfully: lint, strict typecheck, 4 test files/10 tests, 101-file repository secret scan, production build, 12/12 deterministic evaluation checks, and 4/4 serial Playwright scenarios passed.
+- Ran `npm audit --omit=dev --audit-level=high`: 0 vulnerabilities.
 
 ## Next
 
-- Run discovery with specialist brokers and underwriters using the supplied guide.
-- Do not ingest live customer data until the production gates in `SECURITY_AND_LIMITATIONS.md` are complete.
-- Treat pilot pricing, product-market fit, live legal applicability, carrier adoption, and production readiness as unvalidated.
+- Begin M2 with the production PostgreSQL schema, repository contract, tenant-owned audit transaction, and isolated sandbox organization.
+- Validate the new GitHub workflow and configure required checks after publication; owner-only settings remain listed in `docs/GITHUB_SETTINGS_CHECKLIST.md`.
+- Do not ingest live customer data. Production identity, tenant isolation, secure object storage, malware scanning, retention, backups, and incident controls are not yet implemented.
 
 ## Status discipline
 
-The MVP implementation and local validation are complete. Production readiness, legal correctness, carrier acceptance, renewal, pricing, appeal success, and product-market fit are not claimed.
+The current product remains a customer-demo-ready local sandbox. Production readiness, deployment validation, external customer validation, legal correctness, carrier acceptance, renewal, pricing, appeal success, and product-market fit are not claimed.

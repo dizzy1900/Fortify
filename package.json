@@ -13,12 +13,14 @@
     "lint": "eslint . --ignore-pattern .next --ignore-pattern output --ignore-pattern test-results",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:migration": "vitest run tests/migration.test.ts",
     "test:e2e": "playwright test",
+    "security:secrets": "node scripts/scan-secrets.mjs",
     "db:generate": "drizzle-kit generate",
     "demo:reset": "node --import tsx scripts/reset-demo.ts",
     "demo:evaluate": "node --import tsx scripts/evaluate-demo.ts",
     "artifacts:generate": "node --import tsx scripts/generate-artifacts.ts",
-    "verify": "npm run lint && npm run typecheck && npm run test && npm run build && npm run demo:evaluate && npm run test:e2e"
+    "verify": "npm run lint && npm run typecheck && npm run test && npm run security:secrets && npm run build && npm run demo:evaluate && npm run test:e2e"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.2",

@@ -2,6 +2,16 @@
 
 Status: **customer-demo-ready MVP; local validation passed on August 1, 2026**. This is not a production-readiness, legal-correctness, carrier-acceptance, or market-validation claim.
 
+## Production transformation M1 addendum
+
+The repository/CI/status foundation was locally validated on August 1, 2026. `npm run verify` exited 0 after running ESLint, strict TypeScript, 4 Vitest files/10 tests, a 101-file repository secret scan, the production build, 12/12 deterministic evaluation checks, and 4/4 serial Playwright scenarios on desktop Chromium and Pixel 7 profiles. `npm audit --omit=dev --audit-level=high` reported 0 vulnerabilities.
+
+The new migration test applies the complete SQLite sandbox migration to a blank database and verifies 30 domain tables plus both audit immutability triggers. It is deliberately not evidence of the future production PostgreSQL migration.
+
+The real application was inspected at 1440 px desktop, 768 px tablet, and 390 px mobile widths. There was no horizontal overflow and no browser console error. Inspection found a mobile top-bar collision between the route breadcrumb and role label; the label markup was corrected, rebuilt, and visually rechecked at 390 px.
+
+The GitHub CI, CodeQL, and Trivy jobs have not yet run remotely. GitHub branch protection and security settings also require owner action and readback. The product remains the local fictional sandbox described below; production database, identity, tenant isolation, secure object storage, durable jobs, external integrations, backup/restore, and external validation are still incomplete.
+
 ## Measured gates
 
 | Gate | Exact result |
