@@ -1,0 +1,1 @@
+export default function Loading() { return <main className="route-state" role="status"><div className="state-mark"/><h1>Preparing the evidence workspace</h1><p>Loading the deterministic local record…</p></main>; }

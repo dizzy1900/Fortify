@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+data
+storage/evidence
+output/pdf
+output/packets
+test-results
+playwright-report
+artifacts/screenshots
+*.log

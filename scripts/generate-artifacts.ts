@@ -1,0 +1,4 @@
+import { closeDb } from "../db";
+import { generateCaseArtifacts } from "../lib/artifacts";
+import { applyAction, getState } from "../lib/repository";
+let state = await getState(); const caseId = process.argv[2] ?? state.currentCaseId; if (process.argv.includes("--confirm")) { const notice = state.notices.find((item) => item.caseId === caseId)!; await applyAction({ type: "confirm-notice", noticeId: notice.id, fields: Object.fromEntries(notice.fields.map((field) => [field.key, field.confirmed])) }); state = await getState(); const submission = state.submissions.find((item) => item.caseId === caseId)!; await applyAction({ type: "confirm-submission", submissionId: submission.id }); state = await getState(); } const result = await generateCaseArtifacts(state, caseId); console.log(JSON.stringify(result, null, 2)); closeDb();
