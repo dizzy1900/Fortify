@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
 import type { EvidenceRecord } from "@/lib/domain";
+import { sandboxRouteGuard } from "@/lib/http-runtime";
 import { applyAction, getState } from "@/lib/repository";
 import { LocalFileStorageAdapter } from "@/lib/storage";
 
@@ -21,6 +22,8 @@ function kindFor(mimeType: string): EvidenceRecord["kind"] {
 }
 
 export async function POST(request: Request) {
+  const unavailable = sandboxRouteGuard();
+  if (unavailable) return unavailable;
   try {
     const data = await request.formData();
     const file = data.get("file");

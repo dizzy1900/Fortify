@@ -17,7 +17,11 @@ export default defineConfig({
   ],
   webServer: {
     command: "node .next/standalone/server.js",
-    env: { HOSTNAME: "127.0.0.1", PORT: "3000" },
+    env: {
+      HOSTNAME: "127.0.0.1",
+      PORT: "3000",
+      FORTIFY_RUNTIME_MODE: "sandbox",
+    },
     url: "http://127.0.0.1:3000/api/health",
     reuseExistingServer: true,
     timeout: 120000,

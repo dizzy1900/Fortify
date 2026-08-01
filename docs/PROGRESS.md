@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M1 — Repository, CI, and status foundation is locally complete on August 1, 2026. M2 — Normalized PostgreSQL and sandbox isolation is next.
+M2 — Normalized PostgreSQL and sandbox isolation is locally implemented on August 1, 2026. Managed PostgreSQL validation is still external; M3 identity and authorization is the next code milestone.
 
 ## Completed baseline
 
@@ -21,11 +21,23 @@ M1 — Repository, CI, and status foundation is locally complete on August 1, 20
 - Ran `npm run verify` successfully: lint, strict typecheck, 4 test files/10 tests, 101-file repository secret scan, production build, 12/12 deterministic evaluation checks, and 4/4 serial Playwright scenarios passed.
 - Ran `npm audit --omit=dev --audit-level=high`: 0 vulnerabilities.
 
+## M2 completed this cycle
+
+- Added a 32-table normalized PostgreSQL schema for tenant, property, insurance, source, requirement, evidence, workflow, submission, outcome, maintenance, idempotency, and audit records.
+- Added database-enforced same-organization references and immutable audit/requirement/evidence/submission-version history.
+- Added explicit production runtime configuration, `pg`/Drizzle migration and health adapters, and fail-closed sandbox route boundaries.
+- Added a tenant-scoped repository with transactional audit writes, optimistic concurrency, idempotent case creation, and cross-tenant rejection.
+- Added a deterministic, replay-safe migration from the fictional sandbox seed into an isolated synthetic organization.
+- Added PostgreSQL contract tests using PGlite. The 6 new contract tests cover clean migration, direct and repository tenant isolation, immutable history, concurrency/audit atomicity, idempotency, deterministic seed/replay, and rollback.
+- Re-ran `npm run verify`: lint, strict typecheck, 6 test files/18 tests, 120-file secret scan, production build, 12/12 demo evaluation, and 4/4 serial Playwright scenarios passed.
+- Re-ran `npm audit --omit=dev --audit-level=high`: 0 vulnerabilities. Desktop and 390 px mobile guided-entry views were visually rechecked.
+
 ## Next
 
-- Begin M2 with the production PostgreSQL schema, repository contract, tenant-owned audit transaction, and isolated sandbox organization.
+- Begin M3 with production identity, sessions, memberships, deny-by-default authorization, and resource-complete cross-tenant policy tests.
+- Validate the M2 migration and contract suite against the selected managed PostgreSQL service; PGlite is PostgreSQL-compatible local evidence, not production-provider evidence.
 - Validate the new GitHub workflow and configure required checks after publication; owner-only settings remain listed in `docs/GITHUB_SETTINGS_CHECKLIST.md`.
-- Do not ingest live customer data. Production identity, tenant isolation, secure object storage, malware scanning, retention, backups, and incident controls are not yet implemented.
+- Do not ingest live customer data. Production identity/resource authorization, secure object storage, malware scanning, retention, backups, incident controls, and managed PostgreSQL validation are not yet complete.
 
 ## Status discipline
 

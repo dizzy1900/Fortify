@@ -7,6 +7,7 @@ services:
       FORTIFY_DATABASE_PATH: /app/data/fortify.sqlite
       FORTIFY_STORAGE_PATH: /app/storage/evidence
       FORTIFY_OUTPUT_PATH: /app/output
+      FORTIFY_RUNTIME_MODE: sandbox
       NEXT_PUBLIC_DEMO_MODE: "true"
     volumes:
       - ./data:/app/data

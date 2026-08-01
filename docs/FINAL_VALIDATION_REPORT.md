@@ -2,6 +2,18 @@
 
 Status: **customer-demo-ready MVP; local validation passed on August 1, 2026**. This is not a production-readiness, legal-correctness, carrier-acceptance, or market-validation claim.
 
+## Production transformation M2 addendum
+
+The normalized PostgreSQL and sandbox-isolation milestone was locally validated on August 1, 2026. `npm run verify` exited 0 after ESLint, strict TypeScript, 6 Vitest files/18 tests, a 120-file secret scan, production build, 12/12 deterministic evaluation checks, and 4/4 serial Playwright scenarios on desktop Chromium and Pixel 7 profiles. `npm audit --omit=dev --audit-level=high` reported 0 vulnerabilities.
+
+The generated PostgreSQL migration creates 32 normalized tables and 43 triggers. Contract tests prove clean migration without `app_state`, organization-scoped repository operations, direct cross-tenant reference rejection, immutable audit/evidence/version records, optimistic concurrency, audit/domain-write atomicity, idempotent renewal-case replay/conflict handling, deterministic sandbox seed replay, and transaction rollback on a corrupted seed.
+
+The production runtime requires an explicit mode and `DATABASE_URL`; production requests do not fall back to the SQLite `DemoState` routes. The existing fictional demo remains intentionally isolated as `org-fortify-sandbox`, synthetic, and not opted into cross-customer analytics.
+
+The PostgreSQL tests use PGlite because Docker and native PostgreSQL are unavailable in this validation environment. PGlite exercises PostgreSQL SQL and trigger semantics but does not prove compatibility with the eventual managed provider, network controls, pooling limits, backup/restore, monitoring, or a deployed topology. Those remain explicit external gates. Production identity/resource authorization and secure object storage are also still absent, so live customer data remains prohibited.
+
+The real guided-entry UI was re-inspected at 1440 by 720 and 390 by 844. The institutional layout, guided controls, fictional-data disclosure, role entry points, and demo manifest remained legible and usable with no observed responsive collision.
+
 ## Production transformation M1 addendum
 
 The repository/CI/status foundation was locally validated on August 1, 2026. `npm run verify` exited 0 after running ESLint, strict TypeScript, 4 Vitest files/10 tests, a 101-file repository secret scan, the production build, 12/12 deterministic evaluation checks, and 4/4 serial Playwright scenarios on desktop Chromium and Pixel 7 profiles. `npm audit --omit=dev --audit-level=high` reported 0 vulnerabilities.

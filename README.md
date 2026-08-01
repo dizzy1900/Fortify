@@ -39,7 +39,9 @@ Final files appear under `output/pdf/` and `output/packets/`. The deterministic 
 ## Architecture
 
 - Next.js App Router, strict TypeScript, Tailwind CSS, and accessible native controls.
-- Drizzle schema over file-backed SQLite; data access stays behind `lib/repository.ts` for a future Postgres adapter.
+- Explicit `sandbox` and `production` runtime modes; production fails closed without PostgreSQL configuration and never falls back to the demo blob.
+- Normalized 32-table Drizzle/PostgreSQL production schema with tenant-scoped repositories, transaction/audit coupling, optimistic concurrency, idempotency, immutable versions, cross-tenant database guards, and an explicit seed migration.
+- Drizzle/SQLite remains only for the deterministic organization-scoped sandbox and local regression story.
 - `LocalFileStorageAdapter` stores evidence and exports locally; the interface supports a future S3-compatible adapter without configuring one.
 - Deterministic local text and text-based-PDF intake; no OCR or model dependency.
 - MapLibre renders local GeoJSON with no tile server or token.
@@ -55,4 +57,4 @@ The compose file mounts `data/`, `storage/`, and `output/` as local volumes. See
 
 ## Product direction and validation documents
 
-Start with `docs/COMMERCIAL_NORTH_STAR.md`, `docs/NORTH_STAR_IMPLEMENTATION_PLAN.md`, and `docs/IMPLEMENTATION_STATUS.md`. `DEMO_SCRIPT.md` and `docs/FINAL_VALIDATION_REPORT.md` describe the preserved deterministic sandbox. Security and product limitations are explicit in `docs/SECURITY_AND_LIMITATIONS.md`; repository-owner controls are listed in `docs/GITHUB_SETTINGS_CHECKLIST.md`.
+Start with `docs/COMMERCIAL_NORTH_STAR.md`, `docs/NORTH_STAR_IMPLEMENTATION_PLAN.md`, and `docs/IMPLEMENTATION_STATUS.md`. `docs/ARCHITECTURE.md` and `docs/DATA_MODEL.md` describe the production foundation. `DEMO_SCRIPT.md` and `docs/FINAL_VALIDATION_REPORT.md` describe the preserved deterministic sandbox. Security and product limitations are explicit in `docs/SECURITY_AND_LIMITATIONS.md`; repository-owner controls are listed in `docs/GITHUB_SETTINGS_CHECKLIST.md`.

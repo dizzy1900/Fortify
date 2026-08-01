@@ -1,6 +1,6 @@
 # Data dictionary
 
-All identifiers are application-generated text values suitable for UUID migration. Dates are ISO 8601 strings. Amounts are stored as integer cents. Demo records are explicitly fictional.
+All identifiers are application-generated text values. The production schema uses PostgreSQL timestamps, integer cents, explicit organization ownership, actor metadata, revisions, and lifecycle fields. Demo records are explicitly fictional. See [DATA_MODEL.md](./DATA_MODEL.md) for the normalized production model.
 
 | Entity | Purpose | Critical fields and invariants |
 |---|---|---|
@@ -33,7 +33,7 @@ All identifiers are application-generated text values suitable for UUID migratio
 | MaintenanceEvent | Evidence refresh reminder | community, due date, recurrence, evidence, status |
 | Comment | Case collaboration | case, author, body, timestamp |
 | AuditEvent | Append-only case event | actor, action, detail, previous hash, event hash, timestamp |
-| AppState | Deterministic demo snapshot | version, JSON state, update time; MVP repository implementation detail |
+| AppState | Deterministic sandbox-only snapshot | organization, version, JSON state, update time; prohibited as a production fallback |
 
 ## Evidence readiness
 
