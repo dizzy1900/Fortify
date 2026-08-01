@@ -1,0 +1,2 @@
+CustomerNumber,CustomerName,Community ID,Community Name,LocationID,Property Name,Property Class,Address1,City,State,ZipCode,BuildingID,Construction Year,UnitCount,Building Count,PolicyNumber,Effective Date,PolicyExpirationDate,CurrencyCode
+AMS-201,Fictional Foothills Brokerage Client,AMS-COM-201,Foothills Community,AMS-LOC-201,Foothills Community,HOA,720 Foothills Road,Colorado Springs,CO,80903,A,2014,52,1,AMS-POL-201,2026-07-01,2027-07-01,USD

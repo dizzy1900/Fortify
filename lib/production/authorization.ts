@@ -59,6 +59,11 @@ export const resourceClasses = [
   "malware_scan_result",
   "backup_manifest",
   "backup_manifest_item",
+  "import_mapping",
+  "import_mapping_version",
+  "portfolio_import",
+  "import_row",
+  "import_receipt",
 ] as const;
 
 export type ResourceClass = (typeof resourceClasses)[number];
@@ -146,13 +151,14 @@ const roleScopes: Record<OrganizationRole, ReadonlySet<string>> = {
   practice_leader: new Set([
     ...readScopes(...resourceClasses),
     ...writeScopes(...commonCaseResources),
-    ...writeScopes("book", "client", "market", "program", "requirement_set", "requirement", "requirement_version"),
+    ...writeScopes("book", "client", "market", "program", "requirement_set", "requirement", "requirement_version", "import_mapping", "import_mapping_version", "portfolio_import", "import_row", "import_receipt"),
     "case_assignment:manage",
     "team:manage",
   ]),
   broker: new Set([
     ...readScopes(...resourceClasses),
     ...writeScopes(...commonCaseResources),
+    ...writeScopes("portfolio_import", "import_row", "import_receipt"),
     "case_assignment:manage",
   ]),
   marketer: new Set([
@@ -161,7 +167,8 @@ const roleScopes: Record<OrganizationRole, ReadonlySet<string>> = {
   ]),
   assistant: new Set([
     ...readScopes(...commonCaseResources, "requirement", "requirement_version"),
-    ...writeScopes("source_document", "source_passage", "evidence_item", "evidence_version", "storage_object", "storage_access_grant", "task", "maintenance_event"),
+    ...readScopes("import_mapping", "import_mapping_version"),
+    ...writeScopes("source_document", "source_passage", "evidence_item", "evidence_version", "storage_object", "storage_access_grant", "portfolio_import", "import_row", "import_receipt", "task", "maintenance_event"),
   ]),
   client_property_manager: new Set([
     ...readScopes("community", "property", "property_identifier", "location", "building", "policy", "renewal_case", "requirement", "requirement_version", "evidence_item", "evidence_version", "task", "maintenance_event"),

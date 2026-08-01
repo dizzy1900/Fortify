@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M4 — Secure object storage and evidence upload is locally implemented on August 1, 2026. Managed PostgreSQL, OIDC/MFA, private object storage, malware scanning, and operational restore validation remain external; M5 portfolio/SOV import is the next code milestone.
+M5 — Portfolio/SOV import backend foundation is locally implemented on August 1, 2026. The authenticated broker UI and rights-cleared external export validation remain incomplete. Managed PostgreSQL, OIDC/MFA, private object storage, malware scanning, and operational restore validation also remain external.
 
 ## Completed baseline
 
@@ -53,9 +53,19 @@ M4 — Secure object storage and evidence upload is locally implemented on Augus
 - Added `docs/OBJECT_STORAGE.md` and production configuration/validation gates. This is local adapter evidence, not a claim that a managed bucket, KMS key, malware provider, retention policy, or restore exercise has run.
 - `npm run verify` passed: lint, strict typecheck, 8 files/31 tests, 155-file secret scan, 16-page/21-API production build, 12/12 deterministic evaluation, and 4/4 serial desktop/mobile Playwright scenarios. `npm audit --omit=dev --audit-level=high` reported 0 vulnerabilities.
 
+## M5 backend foundation completed this cycle
+
+- Expanded the production schema from 48 to 53 tables and from 61 to 72 tenant/immutability triggers for saved import mappings and immutable versions, import runs, quarantined rows, and append-only preview/commit/rollback receipts.
+- Added real CSV and XLSX parsing with configurable sheet/header rows, typed spreadsheet values, limits, deterministic normalization, ISO currency/unit/year/date validation, stable external identifiers, and explicit row numbers.
+- Added generic AMS CSV mapping plus Applied Epic-compatible and AMS360-compatible fixture boundaries. These fixtures are not customer exports, vendor certifications, or live integrations.
+- Added dry-run duplicate/ambiguity review, address and building reconciliation, explicit human confirmation, AMS-authoritative stable-ID matching, idempotent reruns, normalized client/community/property/location/building/policy output, immutable receipts, and non-destructive transactional rollback.
+- Authored and visually inspected the XLSX fixture at `tests/fixtures/import/fortify-sov-fixture.xlsx`; formula/error inspection found no workbook errors. Added edge-case CSV fixtures and 5 service/contract tests.
+- Full local validation passed: ESLint, strict TypeScript, 9 files/36 tests, 167-file secret scan, production build, 12/12 deterministic evaluation, 4/4 serial desktop/mobile Playwright scenarios, and `npm audit --omit=dev --audit-level=high` with 0 vulnerabilities.
+
 ## Next
 
-- Begin M5 with secure CSV/XLSX/SOV upload, saved mapping, dry-run preview, stable identifiers, ambiguity/quarantine review, idempotent reruns, receipts, and rollback.
+- Complete M5 with authenticated route orchestration and a broker-visible import UI covering populated, loading, error, empty, ambiguity-review, confirmation, receipt, and rollback states.
+- Validate one rights-cleared real brokerage export against the generic adapter and validate vendor-specific boundaries only with appropriate rights and current vendor documentation; fixture compatibility is not certification.
 - Validate the M2 migration and contract suite against the selected managed PostgreSQL service; PGlite is PostgreSQL-compatible local evidence, not production-provider evidence.
 - Configure and validate a managed OIDC provider, redirect registration, MFA policy, secrets, session behavior, and rate limits in staging.
 - Validate the new GitHub workflow and configure required checks after publication; owner-only settings remain listed in `docs/GITHUB_SETTINGS_CHECKLIST.md`.

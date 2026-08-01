@@ -559,6 +559,209 @@ export const backupManifestItems = pgTable(
   ],
 );
 
+export const importMappings = pgTable(
+  "import_mappings",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    name: text("name").notNull(),
+    sourceSystem: text("source_system").notNull(),
+    currentVersionId: text("current_version_id"),
+  },
+  (table) => [
+    uniqueIndex("import_mappings_org_name_unique").on(
+      table.organizationId,
+      table.name,
+    ),
+    check("import_mappings_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const importMappingVersions = pgTable(
+  "import_mapping_versions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    importMappingId: text("import_mapping_id")
+      .notNull()
+      .references(() => importMappings.id, { onDelete: "restrict" }),
+    versionNumber: integer("version_number").notNull(),
+    schemaVersion: text("schema_version").notNull(),
+    fileFormat: text("file_format").notNull(),
+    sheetName: text("sheet_name"),
+    headerRow: integer("header_row").notNull().default(1),
+    columnMapping: jsonb("column_mapping")
+      .$type<Record<string, string>>()
+      .notNull(),
+    constants: jsonb("constants")
+      .$type<Record<string, string>>()
+      .notNull()
+      .default({}),
+    contentHash: text("content_hash").notNull(),
+  },
+  (table) => [
+    uniqueIndex("import_mapping_versions_org_mapping_version_unique").on(
+      table.organizationId,
+      table.importMappingId,
+      table.versionNumber,
+    ),
+    check(
+      "import_mapping_versions_format_check",
+      sql`${table.fileFormat} in ('csv', 'xlsx')`,
+    ),
+    check(
+      "import_mapping_versions_header_check",
+      sql`${table.headerRow} > 0`,
+    ),
+    check("import_mapping_versions_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const portfolioImports = pgTable(
+  "portfolio_imports",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    bookId: text("book_id")
+      .notNull()
+      .references(() => books.id, { onDelete: "restrict" }),
+    storageObjectId: text("storage_object_id")
+      .notNull()
+      .references(() => storageObjects.id, { onDelete: "restrict" }),
+    mappingVersionId: text("mapping_version_id")
+      .notNull()
+      .references(() => importMappingVersions.id, { onDelete: "restrict" }),
+    sourceSystem: text("source_system").notNull(),
+    fileFormat: text("file_format").notNull(),
+    originalFilename: text("original_filename").notNull(),
+    contentHash: text("content_hash").notNull(),
+    idempotencyKey: text("idempotency_key").notNull(),
+    requestHash: text("request_hash").notNull(),
+    status: text("status").notNull().default("previewed"),
+    totalRows: integer("total_rows").notNull().default(0),
+    acceptedRows: integer("accepted_rows").notNull().default(0),
+    rejectedRows: integer("rejected_rows").notNull().default(0),
+    ambiguousRows: integer("ambiguous_rows").notNull().default(0),
+    committedRows: integer("committed_rows").notNull().default(0),
+    createdEntities: jsonb("created_entities")
+      .$type<Array<{ entityType: string; entityId: string }>>()
+      .notNull()
+      .default([]),
+    committedAt: timestamp("committed_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    rolledBackAt: timestamp("rolled_back_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+  },
+  (table) => [
+    uniqueIndex("portfolio_imports_org_idempotency_unique").on(
+      table.organizationId,
+      table.sourceSystem,
+      table.idempotencyKey,
+    ),
+    index("portfolio_imports_org_status_idx").on(
+      table.organizationId,
+      table.status,
+      table.createdAt,
+    ),
+    check(
+      "portfolio_imports_format_check",
+      sql`${table.fileFormat} in ('csv', 'xlsx')`,
+    ),
+    check(
+      "portfolio_imports_status_check",
+      sql`${table.status} in ('previewed', 'committed', 'rolled_back', 'failed')`,
+    ),
+    check(
+      "portfolio_imports_count_check",
+      sql`${table.totalRows} >= 0 and ${table.acceptedRows} >= 0 and ${table.rejectedRows} >= 0 and ${table.ambiguousRows} >= 0 and ${table.committedRows} >= 0`,
+    ),
+    check("portfolio_imports_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const importRows = pgTable(
+  "import_rows",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    portfolioImportId: text("portfolio_import_id")
+      .notNull()
+      .references(() => portfolioImports.id, { onDelete: "restrict" }),
+    rowNumber: integer("row_number").notNull(),
+    rawData: jsonb("raw_data").$type<Record<string, unknown>>().notNull(),
+    normalizedData: jsonb("normalized_data")
+      .$type<Record<string, unknown>>()
+      .notNull(),
+    status: text("status").notNull(),
+    errors: jsonb("errors").$type<string[]>().notNull().default([]),
+    warnings: jsonb("warnings").$type<string[]>().notNull().default([]),
+    matchCandidateIds: jsonb("match_candidate_ids")
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+    appliedEntities: jsonb("applied_entities")
+      .$type<Array<{ entityType: string; entityId: string }>>()
+      .notNull()
+      .default([]),
+  },
+  (table) => [
+    uniqueIndex("import_rows_org_import_row_unique").on(
+      table.organizationId,
+      table.portfolioImportId,
+      table.rowNumber,
+    ),
+    index("import_rows_org_status_idx").on(
+      table.organizationId,
+      table.portfolioImportId,
+      table.status,
+    ),
+    check("import_rows_row_check", sql`${table.rowNumber} > 0`),
+    check(
+      "import_rows_status_check",
+      sql`${table.status} in ('accepted', 'rejected', 'ambiguous', 'committed', 'rolled_back')`,
+    ),
+    check("import_rows_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const importReceipts = pgTable(
+  "import_receipts",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    portfolioImportId: text("portfolio_import_id")
+      .notNull()
+      .references(() => portfolioImports.id, { onDelete: "restrict" }),
+    receiptType: text("receipt_type").notNull(),
+    summary: jsonb("summary").$type<Record<string, unknown>>().notNull(),
+    receiptHash: text("receipt_hash").notNull(),
+    occurredAt: timestamp("occurred_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("import_receipts_org_hash_unique").on(
+      table.organizationId,
+      table.receiptHash,
+    ),
+    index("import_receipts_org_import_idx").on(
+      table.organizationId,
+      table.portfolioImportId,
+      table.occurredAt,
+    ),
+    check(
+      "import_receipts_type_check",
+      sql`${table.receiptType} in ('preview', 'commit', 'rollback')`,
+    ),
+    check("import_receipts_lifecycle_check", lifecycleValues),
+  ],
+);
+
 export const books = pgTable(
   "books",
   {
@@ -692,6 +895,7 @@ export const locations = pgTable(
     postalCode: text("postal_code"),
     county: text("county"),
     countryCode: text("country_code").notNull().default("US"),
+    normalizedAddress: text("normalized_address").notNull().default(""),
     latitude: numeric("latitude", { precision: 10, scale: 7 }),
     longitude: numeric("longitude", { precision: 10, scale: 7 }),
     normalizationStatus: text("normalization_status")
@@ -702,6 +906,10 @@ export const locations = pgTable(
     index("locations_org_property_idx").on(
       table.organizationId,
       table.propertyId,
+    ),
+    index("locations_org_normalized_address_idx").on(
+      table.organizationId,
+      table.normalizedAddress,
     ),
     check("locations_lifecycle_check", lifecycleValues),
   ],

@@ -2,6 +2,16 @@
 
 Status: **customer-demo-ready MVP; local validation passed on August 1, 2026**. This is not a production-readiness, legal-correctness, carrier-acceptance, or market-validation claim.
 
+## Production transformation M5 backend-foundation addendum
+
+The portfolio/SOV import backend foundation was locally validated on August 1, 2026. ESLint, strict TypeScript, 9 Vitest files/36 tests, a 167-file secret scan, the Next.js production build, 12/12 deterministic evaluation checks, and 4/4 serial Playwright scenarios on desktop Chromium and Pixel 7 profiles passed. `npm audit --omit=dev --audit-level=high` reported 0 vulnerabilities.
+
+The production schema now applies 53 normalized tables and exactly 72 triggers. Five new tables retain saved mappings, immutable mapping versions, import runs, row-level raw/normalized quarantine, and immutable preview/commit/rollback receipts. The deny-by-default registry covers 49 resource classes. Direct database guards reject cross-tenant mapping, clean-object, book, row, and receipt references.
+
+The parser reads actual CSV bytes and XLSX workbooks with named sheets, non-default header rows, spreadsheet dates, quoted CSV fields, blank-row handling, file/row/column limits, address normalization, stable external identifiers, and explicit unit, year, date, and ISO-currency validation. The commit service does not merge solely by name: conflicting identifiers and normalized-address collisions remain ambiguous, rejected rows remain retained, and only explicitly human-confirmed accepted rows create normalized client, community, property, identifier, location, building, and policy records. Exact request/content hashes provide idempotent replay, and rollback marks only import-owned records while retaining history.
+
+The XLSX fixture was authored through the repository spreadsheet workflow, inspected for typed values and formula errors, rendered, and visually checked at both worksheet tabs. Applied Epic-compatible and AMS360-compatible CSVs are synthetic fixture boundaries only. No rights-cleared customer export, vendor certification, vendor API, screen scraping, managed storage/scanner/database path, or authenticated broker UI has been validated. M5 therefore remains incomplete despite the passing backend foundation.
+
 ## Production transformation M4 addendum
 
 The secure object-storage and evidence-upload milestone was locally validated on August 1, 2026. `npm run verify` exited 0 after ESLint, strict TypeScript, 8 Vitest files/31 tests, a 155-file secret scan, the production build, 12/12 deterministic evaluation checks, and 4/4 serial Playwright scenarios on desktop Chromium and Pixel 7 profiles. `npm audit --omit=dev --audit-level=high` reported 0 vulnerabilities.
