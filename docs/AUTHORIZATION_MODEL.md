@@ -40,9 +40,9 @@ The executable matrix is `lib/production/authorization.ts`. An absent role, abse
 ## Enforcement layers
 
 1. Route handlers resolve an opaque session, API credential, or external grant on the server.
-2. Repository and identity-service boundaries call the deny-by-default policy for the requested resource and action.
+2. Repository, identity, and storage-service boundaries call the deny-by-default policy for the requested resource and action.
 3. Every tenant query includes `organization_id`; case-scoped principals also require an assigned case ID.
 4. PostgreSQL same-organization triggers reject cross-tenant parent references even when repository code is bypassed.
 5. Consequential identity/permission mutations and audit events commit in the same transaction.
 
-The local PGlite attack suite covers every registered production resource class, direct cross-tenant references for new identity tables, role denial, case scope, invitation/session expiry, membership revocation, API credential scopes, external grant revocation, and support grant revocation. A managed identity provider, MFA policy, managed PostgreSQL deployment, production secrets, rate limiting, and operational incident controls still require deployment validation.
+The local PGlite attack suite covers all 44 registered production resource classes, direct cross-tenant identity/storage references, storage-key traversal, role denial, case scope, invitation/session expiry, membership revocation, API credential scopes, external grant revocation, support grant revocation, and storage-grant expiry/revocation. A managed identity provider, MFA policy, managed PostgreSQL and object-storage deployment, production secrets, rate limiting, and operational incident controls still require deployment validation.

@@ -29,6 +29,13 @@
       "when": 1785611046314,
       "tag": "0003_chief_jack_flag",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785612740543,
+      "tag": "0004_tidy_scourge",
+      "breakpoints": true
     }
   ]
 }

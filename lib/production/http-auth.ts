@@ -10,6 +10,11 @@ import {
   OptimisticConcurrencyError,
   TenantResourceNotFoundError,
 } from "@/lib/production/repository";
+import {
+  StorageDeletionBlockedError,
+  StorageGrantError,
+  StorageValidationError,
+} from "@/lib/production/storage-service";
 
 export const SESSION_COOKIE_NAME =
   process.env.NODE_ENV === "production"
@@ -74,6 +79,12 @@ export function authenticationFailure(error: unknown) {
   if (error instanceof TenantResourceNotFoundError)
     return Response.json({ error: error.message }, { status: 404 });
   if (error instanceof OptimisticConcurrencyError)
+    return Response.json({ error: error.message }, { status: 409 });
+  if (error instanceof StorageValidationError)
+    return Response.json({ error: error.message }, { status: 400 });
+  if (error instanceof StorageGrantError)
+    return Response.json({ error: error.message }, { status: 403 });
+  if (error instanceof StorageDeletionBlockedError)
     return Response.json({ error: error.message }, { status: 409 });
   const message =
     error instanceof AuthenticationError

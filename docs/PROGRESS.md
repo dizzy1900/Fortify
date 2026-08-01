@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M3 — Identity, organizations, and authorization is locally implemented on August 1, 2026. Managed OIDC/MFA and PostgreSQL validation remain external; M4 secure object storage is the next code milestone.
+M4 — Secure object storage and evidence upload is locally implemented on August 1, 2026. Managed PostgreSQL, OIDC/MFA, private object storage, malware scanning, and operational restore validation remain external; M5 portfolio/SOV import is the next code milestone.
 
 ## Completed baseline
 
@@ -43,13 +43,23 @@ M3 — Identity, organizations, and authorization is locally implemented on Augu
 - Added 9 identity/authorization tests covering every resource class, direct cross-tenant auth-table references, role denial, OIDC attempt replay, expiry, revocation, service scopes, case scopes, and support controls.
 - `npm run verify` passed: lint, strict typecheck, 7 files/27 tests, 142-file secret scan, 16-page/16-API production build, 12/12 deterministic evaluation checks, and 4/4 serial desktop/mobile Playwright scenarios. `npm audit --omit=dev --audit-level=high` reported 0 vulnerabilities. Desktop and 390 px sign-in views were visually inspected with no observed collision or overflow.
 
+## M4 completed this cycle
+
+- Expanded the production schema from 43 to 48 tables with tenant-owned storage objects, expiring access grants, immutable malware-scan results, and immutable backup manifests/items. The migration adds database tenant guards and immutable-history triggers.
+- Added a private S3-compatible AWS SDK v3 adapter with explicit region, tenant-prefix validation, provider-compatible endpoint/path settings, short-lived signed PUT/GET commands, SHA-256 binding, exact metadata readback, server-side AES256/KMS settings, and no embedded credentials.
+- Added an authorization-enforced storage service for filename normalization, size/MIME/checksum limits, quarantine, byte-signature validation, fail-closed malware results, clean-only evidence registration, one-use download grants, audit, retention/legal holds, retry-safe deletion state, and exact-byte backup/restore readback.
+- Added protected production upload/finalize and download-grant issue/redeem/revoke routes. The deterministic local adapter and scanner remain test-only; the sandbox local-file path is not a production fallback.
+- Added 4 storage contract tests covering S3 command configuration, traversal and cross-tenant attacks, metadata/content spoofing, infected/error rejection, immutable evidence and backup records, grant expiry/revocation/exhaustion, deletion blocks, and exact-byte restore.
+- Added `docs/OBJECT_STORAGE.md` and production configuration/validation gates. This is local adapter evidence, not a claim that a managed bucket, KMS key, malware provider, retention policy, or restore exercise has run.
+- `npm run verify` passed: lint, strict typecheck, 8 files/31 tests, 155-file secret scan, 16-page/21-API production build, 12/12 deterministic evaluation, and 4/4 serial desktop/mobile Playwright scenarios. `npm audit --omit=dev --audit-level=high` reported 0 vulnerabilities.
+
 ## Next
 
-- Begin M4 with tenant-prefixed private S3-compatible storage, signed operations, quarantine/scanning lifecycle, checksum/MIME enforcement, retention/legal-hold hooks, access audit, and restoreable fixture backup.
+- Begin M5 with secure CSV/XLSX/SOV upload, saved mapping, dry-run preview, stable identifiers, ambiguity/quarantine review, idempotent reruns, receipts, and rollback.
 - Validate the M2 migration and contract suite against the selected managed PostgreSQL service; PGlite is PostgreSQL-compatible local evidence, not production-provider evidence.
 - Configure and validate a managed OIDC provider, redirect registration, MFA policy, secrets, session behavior, and rate limits in staging.
 - Validate the new GitHub workflow and configure required checks after publication; owner-only settings remain listed in `docs/GITHUB_SETTINGS_CHECKLIST.md`.
-- Do not ingest live customer data. Secure object storage, malware scanning, retention, backups, incident controls, managed PostgreSQL/OIDC validation, and the remaining production milestones are not yet complete.
+- Do not ingest live customer data. Managed object storage/malware/retention/restore validation, incident controls, managed PostgreSQL/OIDC validation, and the remaining production milestones are not yet complete.
 
 ## Status discipline
 

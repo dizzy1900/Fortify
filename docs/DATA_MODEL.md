@@ -1,6 +1,6 @@
 # Production data model
 
-The PostgreSQL schema contains 43 normalized tables. It is a forward foundation for the Colorado wildfire renewal workflow, not a claim that every later workflow is implemented.
+The PostgreSQL schema contains 48 normalized tables. It is a forward foundation for the Colorado wildfire renewal workflow, not a claim that every later workflow is implemented.
 
 ## Organizations and access foundation
 
@@ -47,6 +47,10 @@ Ambiguous records are not merged by name. Future import reconciliation must crea
 
 ## Evidence
 
+- `storage_objects`: private tenant-prefixed key, exact metadata/checksum/encryption, quarantine/scan state, retention, legal hold, backup, and deletion state.
+- `storage_access_grants`: purpose-labelled upload/download operation, principal, expiry, revocation, and bounded use count.
+- `malware_scan_results`: immutable scanner/version/status/findings history.
+- `backup_manifests` and `backup_manifest_items`: tenant-scoped exact-byte backup inventory and immutable readback checks.
 - `evidence_items`: stable evidence identity and current-version pointer.
 - `evidence_versions`: immutable file/source/scope/freshness/review record with checksum and supersession.
 - `evidence_requirement_links`: case-specific version-to-version scope, freshness, review, and disposition state.
@@ -81,4 +85,4 @@ Audit events and requirement/evidence/submission versions cannot be updated or d
 
 ## Deliberately deferred entities
 
-The north star also names richer coverage, parcel/relationship/version, collaboration, checklist, delivery, reviewer-session, consent/data-right, retention/legal-hold, export/deletion, integration, and durable-job entities. They are introduced with their owning milestones rather than represented by unused placeholder tables. `docs/IMPLEMENTATION_STATUS.md` remains authoritative about what is implemented.
+The north star also names richer coverage, parcel/relationship/version, collaboration, checklist, delivery, reviewer-session, consent/data-right, export/deletion-request, integration, and durable-job entities. They are introduced with their owning milestones rather than represented by unused placeholder tables. `docs/IMPLEMENTATION_STATUS.md` remains authoritative about what is implemented.

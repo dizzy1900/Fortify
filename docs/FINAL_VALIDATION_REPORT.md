@@ -2,6 +2,18 @@
 
 Status: **customer-demo-ready MVP; local validation passed on August 1, 2026**. This is not a production-readiness, legal-correctness, carrier-acceptance, or market-validation claim.
 
+## Production transformation M4 addendum
+
+The secure object-storage and evidence-upload milestone was locally validated on August 1, 2026. `npm run verify` exited 0 after ESLint, strict TypeScript, 8 Vitest files/31 tests, a 155-file secret scan, the production build, 12/12 deterministic evaluation checks, and 4/4 serial Playwright scenarios on desktop Chromium and Pixel 7 profiles. `npm audit --omit=dev --audit-level=high` reported 0 vulnerabilities.
+
+The production schema now applies 48 normalized tables and exactly 61 triggers. M4 adds tenant-owned storage objects, expiring/revocable access grants, immutable malware-scan results, and immutable backup manifests/items. The deny-by-default registry now covers 44 resource classes. Direct database guards reject cross-tenant storage references, and service tests reject path traversal and cross-tenant object access.
+
+The S3-compatible AWS SDK v3 adapter binds a private bucket key, explicit region, short expiry, size, MIME type, SHA-256, and AES256 or KMS settings into signed operations. Finalization independently reads checksum/metadata before quarantine. Byte checksum/size and basic content signatures are rechecked before a scanner result can promote an object; infected, scanner-error, and MIME-spoofed content fail closed. Only clean objects can create immutable evidence versions or download grants. Tests also prove grant revocation/expiry/one-time use, legal-hold and retention deletion blocks, exact-byte backup readback, and restore verification.
+
+The build compiled the preserved 16 product pages and 21 API routes, including five protected production storage endpoints. M4 adds no new visible sandbox control; the unchanged sign-in and complete guided workspace were regression-tested across desktop and mobile, with all public/workspace routes healthy. The deterministic PDF/ZIP story remains byte-identical at 11,602 and 51,723 bytes, with manifest hash `47c5de9b8c2da8dfc040951b57697a2081fec8f1b3817e5148480aefaf9aef9a`.
+
+No managed object-storage account or malware provider was configured. Private bucket and CORS policy, provider checksum semantics, KMS/credential scope, live malware behavior, lifecycle/object-lock enforcement, deletion operations, an independent backup destination, and a monitored disaster-recovery restore remain deployment-validation gates. The local exact-byte fixture backup is not evidence of managed backup or recovery. Live customer data remains prohibited.
+
 ## Production transformation M3 addendum
 
 The identity, organizations, and authorization milestone was locally validated on August 1, 2026. `npm run verify` exited 0 after ESLint, strict TypeScript, 7 Vitest files/27 tests, a 142-file secret scan, the production build, 12/12 deterministic evaluation checks, and 4/4 serial Playwright scenarios on desktop Chromium and Pixel 7 profiles. `npm audit --omit=dev --audit-level=high` reported 0 vulnerabilities.

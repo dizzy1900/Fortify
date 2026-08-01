@@ -18,15 +18,18 @@
 - Opaque sessions, invitation tokens, API credentials, and external grants are random and stored only as digests. Expiry and server-side revocation are enforced.
 - The production policy is deny by default across every registered resource class. Organization mismatch and external case mismatch fail closed before repository access.
 - Support has no standing customer access; customer-approved support grants require a reason, explicit scopes, expiry, and audit trail.
+- Production object keys are tenant-prefixed and traversal-checked. Signed uploads bind MIME, size, checksum, encryption, and a short expiry; finalization independently reads metadata before quarantine.
+- Quarantined bytes are rechecked for exact size/checksum and basic content signature before a malware-provider result can promote them. Only clean objects can back immutable evidence versions or downloads.
+- Purpose-labelled download grants expire, are revocable before redemption, and are single-use. Legal holds and future retention dates block deletion. Fixture backup copies are independently read and SHA-256 checked before manifest acceptance.
 
 ## Deliberate MVP limitations
 
 - Demo role switching remains sandbox-only. Production OIDC/session/role infrastructure is implemented locally, but no managed provider, enforced MFA policy, production redirect registration, secret manager, rate limit, or provider-admin lifecycle has been deployment-validated.
 - SQLite and local filesystem storage target a single trusted local demo. A normalized `pg`/Drizzle adapter now exists, but no managed PostgreSQL provider or multi-instance production topology has been validated.
-- Operating-system permissions provide storage protection; application-level encryption at rest and customer-managed keys are not implemented.
-- Seeded exhibits contain only fictional demo content. No malware scanning, image metadata stripping, DLP, legal hold, retention automation, or backup exists.
+- The private S3-compatible adapter, AES256/KMS settings, quarantine states, scanner interface, legal-hold/retention hooks, deletion state, and fixture backup contract are implemented locally. No managed bucket policy, KMS rotation, live malware provider, DLP/content disarm, provider object lock, lifecycle automation, independent backup account, or monitored restore drill has been validated.
+- A signed provider URL already minted cannot be revoked before its short expiry; database revocation prevents future redemption, and the residual URL lifetime is capped at 60 seconds.
 - Notice intake supports uploaded text and text-based PDFs through deterministic local heuristics with a 2 MB limit. It does not do OCR, signature verification, or general legal interpretation.
-- Evidence upload accepts PDF, JPEG, PNG, and plain text with a 5 MB limit and path normalization. File-signature validation, malware scanning, and content disarm are production gates, not MVP claims.
+- Sandbox evidence upload accepts its original deterministic formats and limits. Production upload accepts PDF, JPEG, PNG, CSV, and XLSX up to 25 MiB with normalized names, exact metadata, content signatures, and a scanner-provider gate; live malware performance and content disarm remain production-validation gates.
 - Reference content is selected, versioned, and non-exhaustive. “Verify current requirements” is mandatory. Fortify is not legal advice and has no official IBHS or carrier affiliation.
 - MapLibre uses local GeoJSON without external tiles. Parcel/building geometry is illustrative, not survey-grade.
 - PDF accessibility tagging is not implemented. The packet is visually reviewed but should undergo production accessibility remediation.
@@ -34,6 +37,6 @@
 
 ## Production gates before live customer data
 
-Threat model and privacy review; managed OIDC/MFA and PostgreSQL deployment validation; defense-in-depth RLS evaluation; S3-compatible encrypted storage; key and secret management; upload validation/malware scanning; retention/deletion/legal-hold policy; encrypted backups and restore exercises; centralized audit export; rate limits and CSRF review; dependency and container scanning; incident response; accessibility audit; legal review of references/templates; and a signed data-processing agreement.
+Threat model and privacy review; managed OIDC/MFA and PostgreSQL deployment validation; defense-in-depth RLS evaluation; private S3-compatible bucket and CORS validation; key and secret management; live malware provider; retention/deletion/legal-hold policy validation; encrypted independent backups and restore exercises; centralized audit export; rate limits and CSRF review; dependency and container scanning; incident response; accessibility audit; legal review of references/templates; and a signed data-processing agreement.
 
 Carrier acceptance, renewal, insurability, discounts, appeal success, and pricing changes are not guaranteed.

@@ -380,6 +380,185 @@ export const supportAccessGrants = pgTable(
   ],
 );
 
+export const storageObjects = pgTable(
+  "storage_objects",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    provider: text("provider").notNull(),
+    bucket: text("bucket").notNull(),
+    objectKey: text("object_key").notNull(),
+    originalFilename: text("original_filename").notNull(),
+    mimeType: text("mime_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    sha256: text("sha256").notNull(),
+    checksumAlgorithm: text("checksum_algorithm").notNull().default("sha256"),
+    encryptionMode: text("encryption_mode").notNull(),
+    encryptionKeyId: text("encryption_key_id"),
+    state: text("state").notNull().default("pending_upload"),
+    scanStatus: text("scan_status").notNull().default("pending"),
+    retentionUntil: timestamp("retention_until", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    legalHold: boolean("legal_hold").notNull().default(false),
+    legalHoldReason: text("legal_hold_reason"),
+    backedUpAt: timestamp("backed_up_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    deletedReason: text("deleted_reason"),
+  },
+  (table) => [
+    uniqueIndex("storage_objects_org_key_unique").on(
+      table.organizationId,
+      table.objectKey,
+    ),
+    index("storage_objects_org_state_idx").on(
+      table.organizationId,
+      table.state,
+      table.scanStatus,
+    ),
+    check("storage_objects_size_check", sql`${table.sizeBytes} > 0`),
+    check(
+      "storage_objects_state_check",
+      sql`${table.state} in ('pending_upload', 'quarantined', 'scanning', 'clean', 'rejected', 'pending_deletion', 'deleted')`,
+    ),
+    check(
+      "storage_objects_scan_check",
+      sql`${table.scanStatus} in ('pending', 'scanning', 'clean', 'infected', 'error')`,
+    ),
+    check(
+      "storage_objects_encryption_check",
+      sql`${table.encryptionMode} in ('AES256', 'aws:kms')`,
+    ),
+    check("storage_objects_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const storageAccessGrants = pgTable(
+  "storage_access_grants",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    storageObjectId: text("storage_object_id")
+      .notNull()
+      .references(() => storageObjects.id, { onDelete: "restrict" }),
+    operation: text("operation").notNull(),
+    purpose: text("purpose").notNull(),
+    principalSubject: text("principal_subject").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" })
+      .notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "string" }),
+    usedAt: timestamp("used_at", { withTimezone: true, mode: "string" }),
+    maxUses: integer("max_uses").notNull().default(1),
+    useCount: integer("use_count").notNull().default(0),
+  },
+  (table) => [
+    index("storage_access_grants_org_object_idx").on(
+      table.organizationId,
+      table.storageObjectId,
+      table.expiresAt,
+    ),
+    check(
+      "storage_access_grants_operation_check",
+      sql`${table.operation} in ('upload', 'download')`,
+    ),
+    check(
+      "storage_access_grants_use_check",
+      sql`${table.maxUses} > 0 and ${table.useCount} >= 0 and ${table.useCount} <= ${table.maxUses}`,
+    ),
+    check("storage_access_grants_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const malwareScanResults = pgTable(
+  "malware_scan_results",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    storageObjectId: text("storage_object_id")
+      .notNull()
+      .references(() => storageObjects.id, { onDelete: "restrict" }),
+    scanner: text("scanner").notNull(),
+    engineVersion: text("engine_version").notNull(),
+    status: text("status").notNull(),
+    findings: jsonb("findings").$type<string[]>().notNull().default([]),
+    scannedAt: timestamp("scanned_at", { withTimezone: true, mode: "string" })
+      .notNull(),
+    supersedesId: text("supersedes_id"),
+  },
+  (table) => [
+    index("malware_scan_results_org_object_idx").on(
+      table.organizationId,
+      table.storageObjectId,
+      table.scannedAt,
+    ),
+    check(
+      "malware_scan_results_status_check",
+      sql`${table.status} in ('clean', 'infected', 'error')`,
+    ),
+    check("malware_scan_results_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const backupManifests = pgTable(
+  "backup_manifests",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    provider: text("provider").notNull(),
+    status: text("status").notNull().default("building"),
+    objectCount: integer("object_count").notNull().default(0),
+    totalBytes: integer("total_bytes").notNull().default(0),
+    manifestHash: text("manifest_hash"),
+    storageKey: text("storage_key"),
+    completedAt: timestamp("completed_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+  },
+  (table) => [
+    index("backup_manifests_org_status_idx").on(
+      table.organizationId,
+      table.status,
+      table.createdAt,
+    ),
+    check(
+      "backup_manifests_status_check",
+      sql`${table.status} in ('building', 'complete', 'failed')`,
+    ),
+    check("backup_manifests_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const backupManifestItems = pgTable(
+  "backup_manifest_items",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    backupManifestId: text("backup_manifest_id")
+      .notNull()
+      .references(() => backupManifests.id, { onDelete: "restrict" }),
+    storageObjectId: text("storage_object_id")
+      .notNull()
+      .references(() => storageObjects.id, { onDelete: "restrict" }),
+    sourceKey: text("source_key").notNull(),
+    backupKey: text("backup_key").notNull(),
+    sha256: text("sha256").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+  },
+  (table) => [
+    uniqueIndex("backup_manifest_items_org_manifest_object_unique").on(
+      table.organizationId,
+      table.backupManifestId,
+      table.storageObjectId,
+    ),
+    check("backup_manifest_items_size_check", sql`${table.sizeBytes} > 0`),
+    check("backup_manifest_items_lifecycle_check", lifecycleValues),
+  ],
+);
+
 export const books = pgTable(
   "books",
   {

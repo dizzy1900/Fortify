@@ -54,6 +54,11 @@ export const resourceClasses = [
   "service_account",
   "api_credential",
   "support_access_grant",
+  "storage_object",
+  "storage_access_grant",
+  "malware_scan_result",
+  "backup_manifest",
+  "backup_manifest_item",
 ] as const;
 
 export type ResourceClass = (typeof resourceClasses)[number];
@@ -118,6 +123,9 @@ const commonCaseResources: ResourceClass[] = [
   "source_passage",
   "evidence_item",
   "evidence_version",
+  "storage_object",
+  "storage_access_grant",
+  "malware_scan_result",
   "evidence_requirement_link",
   "contradiction",
   "task",
@@ -153,19 +161,19 @@ const roleScopes: Record<OrganizationRole, ReadonlySet<string>> = {
   ]),
   assistant: new Set([
     ...readScopes(...commonCaseResources, "requirement", "requirement_version"),
-    ...writeScopes("source_document", "source_passage", "evidence_item", "evidence_version", "task", "maintenance_event"),
+    ...writeScopes("source_document", "source_passage", "evidence_item", "evidence_version", "storage_object", "storage_access_grant", "task", "maintenance_event"),
   ]),
   client_property_manager: new Set([
     ...readScopes("community", "property", "property_identifier", "location", "building", "policy", "renewal_case", "requirement", "requirement_version", "evidence_item", "evidence_version", "task", "maintenance_event"),
-    ...writeScopes("evidence_item", "evidence_version", "task", "maintenance_event"),
+    ...writeScopes("evidence_item", "evidence_version", "storage_object", "storage_access_grant", "task", "maintenance_event"),
   ]),
   board_contributor: new Set([
     ...readScopes("community", "property", "policy", "renewal_case", "requirement", "evidence_item", "evidence_version", "task"),
-    ...writeScopes("evidence_item", "evidence_version", "task"),
+    ...writeScopes("evidence_item", "evidence_version", "storage_object", "storage_access_grant", "task"),
   ]),
   evidence_contributor: new Set([
     ...readScopes("community", "property", "renewal_case", "requirement", "requirement_version", "evidence_item", "evidence_version", "task"),
-    ...writeScopes("evidence_item", "evidence_version", "task"),
+    ...writeScopes("evidence_item", "evidence_version", "storage_object", "storage_access_grant", "task"),
   ]),
   underwriter_reviewer: new Set([
     ...readScopes("community", "property", "policy", "renewal_case", "source_document", "source_passage", "requirement", "requirement_version", "evidence_item", "evidence_version", "evidence_requirement_link", "contradiction", "submission", "submission_version", "submission_item"),
