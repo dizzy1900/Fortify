@@ -1,0 +1,2 @@
+ALTER TABLE "playbook_applicability_rules" ADD CONSTRAINT "playbook_applicability_rules_values_check" CHECK (jsonb_typeof("playbook_applicability_rules"."expected_values") = 'array' and jsonb_array_length("playbook_applicability_rules"."expected_values") >= 1);--> statement-breakpoint
+ALTER TABLE "playbook_requirements" ADD CONSTRAINT "playbook_requirements_blocking_check" CHECK ("playbook_requirements"."blocking" = false or "playbook_requirements"."importance" = 'required');

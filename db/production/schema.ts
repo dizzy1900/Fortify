@@ -1536,6 +1536,267 @@ export const requirementVersions = pgTable(
   ],
 );
 
+export const marketPlaybooks = pgTable(
+  "market_playbooks",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    name: text("name").notNull(),
+    description: text("description").notNull().default(""),
+  },
+  (table) => [
+    uniqueIndex("market_playbooks_org_name_unique").on(
+      table.organizationId,
+      table.name,
+    ),
+    check("market_playbooks_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const playbookVersions = pgTable(
+  "playbook_versions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    playbookId: text("playbook_id")
+      .notNull()
+      .references(() => marketPlaybooks.id, { onDelete: "restrict" }),
+    versionNumber: integer("version_number").notNull(),
+    marketId: text("market_id")
+      .notNull()
+      .references(() => markets.id, { onDelete: "restrict" }),
+    programId: text("program_id").references(() => programs.id, {
+      onDelete: "restrict",
+    }),
+    jurisdiction: text("jurisdiction").notNull(),
+    peril: text("peril").notNull(),
+    propertyClass: text("property_class").notNull(),
+    policyForm: text("policy_form"),
+    effectiveFrom: date("effective_from", { mode: "string" }).notNull(),
+    effectiveTo: date("effective_to", { mode: "string" }),
+    sourceName: text("source_name").notNull(),
+    sourceUrl: text("source_url").notNull(),
+    sourceVersion: text("source_version").notNull(),
+    sourceCitation: text("source_citation").notNull(),
+    verifyCurrent: boolean("verify_current").notNull().default(true),
+    changeSummary: text("change_summary").notNull(),
+    contentHash: text("content_hash").notNull(),
+    authorSubject: text("author_subject").notNull(),
+    supersedesVersionId: text("supersedes_version_id").references(
+      (): AnyPgColumn => playbookVersions.id,
+      { onDelete: "restrict" },
+    ),
+  },
+  (table) => [
+    uniqueIndex("playbook_versions_org_playbook_number_unique").on(
+      table.organizationId,
+      table.playbookId,
+      table.versionNumber,
+    ),
+    index("playbook_versions_org_scope_effective_idx").on(
+      table.organizationId,
+      table.marketId,
+      table.programId,
+      table.jurisdiction,
+      table.peril,
+      table.propertyClass,
+      table.effectiveFrom,
+    ),
+    check("playbook_versions_number_check", sql`${table.versionNumber} >= 1`),
+    check(
+      "playbook_versions_hash_check",
+      sql`char_length(${table.contentHash}) = 64`,
+    ),
+    check(
+      "playbook_versions_effective_period_check",
+      sql`${table.effectiveTo} is null or ${table.effectiveTo} >= ${table.effectiveFrom}`,
+    ),
+    check("playbook_versions_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const playbookRequirements = pgTable(
+  "playbook_requirements",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    playbookVersionId: text("playbook_version_id")
+      .notNull()
+      .references(() => playbookVersions.id, { onDelete: "restrict" }),
+    requirementVersionId: text("requirement_version_id")
+      .notNull()
+      .references(() => requirementVersions.id, { onDelete: "restrict" }),
+    position: integer("position").notNull(),
+    importance: text("importance").notNull(),
+    blocking: boolean("blocking").notNull().default(false),
+    acceptedEvidenceTypes: jsonb("accepted_evidence_types")
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+    freshnessDays: integer("freshness_days"),
+    requiredScopeType: text("required_scope_type").notNull(),
+    acceptedSourceTypes: jsonb("accepted_source_types")
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+    requiredReviewStatus: text("required_review_status")
+      .notNull()
+      .default("human_confirmed"),
+    deadlineDaysBefore: integer("deadline_days_before"),
+    templateKey: text("template_key"),
+    deliveryRequirement: text("delivery_requirement"),
+    caveat: text("caveat"),
+  },
+  (table) => [
+    uniqueIndex("playbook_requirements_org_version_requirement_unique").on(
+      table.organizationId,
+      table.playbookVersionId,
+      table.requirementVersionId,
+    ),
+    uniqueIndex("playbook_requirements_org_version_position_unique").on(
+      table.organizationId,
+      table.playbookVersionId,
+      table.position,
+    ),
+    check(
+      "playbook_requirements_importance_check",
+      sql`${table.importance} in ('required', 'recommended')`,
+    ),
+    check(
+      "playbook_requirements_position_check",
+      sql`${table.position} >= 1`,
+    ),
+    check(
+      "playbook_requirements_blocking_check",
+      sql`${table.blocking} = false or ${table.importance} = 'required'`,
+    ),
+    check(
+      "playbook_requirements_freshness_check",
+      sql`${table.freshnessDays} is null or ${table.freshnessDays} >= 0`,
+    ),
+    check(
+      "playbook_requirements_deadline_check",
+      sql`${table.deadlineDaysBefore} is null or ${table.deadlineDaysBefore} >= 0`,
+    ),
+    check(
+      "playbook_requirements_review_status_check",
+      sql`${table.requiredReviewStatus} in ('human_confirmed', 'confirmed', 'approved')`,
+    ),
+    check("playbook_requirements_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const playbookApplicabilityRules = pgTable(
+  "playbook_applicability_rules",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    playbookRequirementId: text("playbook_requirement_id")
+      .notNull()
+      .references(() => playbookRequirements.id, { onDelete: "restrict" }),
+    position: integer("position").notNull(),
+    field: text("field").notNull(),
+    operator: text("operator").notNull(),
+    expectedValues: jsonb("expected_values")
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+  },
+  (table) => [
+    uniqueIndex("playbook_applicability_rules_org_requirement_position_unique").on(
+      table.organizationId,
+      table.playbookRequirementId,
+      table.position,
+    ),
+    check(
+      "playbook_applicability_rules_field_check",
+      sql`${table.field} in ('market_id', 'program_id', 'jurisdiction', 'peril', 'property_class', 'policy_form')`,
+    ),
+    check(
+      "playbook_applicability_rules_position_check",
+      sql`${table.position} >= 1`,
+    ),
+    check(
+      "playbook_applicability_rules_operator_check",
+      sql`${table.operator} in ('equals', 'not_equals', 'one_of', 'not_one_of')`,
+    ),
+    check(
+      "playbook_applicability_rules_values_check",
+      sql`jsonb_typeof(${table.expectedValues}) = 'array' and jsonb_array_length(${table.expectedValues}) >= 1`,
+    ),
+    check("playbook_applicability_rules_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const playbookVersionReviews = pgTable(
+  "playbook_version_reviews",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    playbookVersionId: text("playbook_version_id")
+      .notNull()
+      .references(() => playbookVersions.id, { onDelete: "restrict" }),
+    decision: text("decision").notNull(),
+    reviewerSubject: text("reviewer_subject").notNull(),
+    note: text("note").notNull(),
+    reviewedAt: timestamp("reviewed_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("playbook_version_reviews_org_version_unique").on(
+      table.organizationId,
+      table.playbookVersionId,
+    ),
+    check(
+      "playbook_version_reviews_decision_check",
+      sql`${table.decision} in ('approved', 'changes_requested')`,
+    ),
+    check("playbook_version_reviews_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const casePlaybookLinks = pgTable(
+  "case_playbook_links",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    caseId: text("case_id")
+      .notNull()
+      .references(() => renewalCases.id, { onDelete: "restrict" }),
+    playbookVersionId: text("playbook_version_id")
+      .notNull()
+      .references(() => playbookVersions.id, { onDelete: "restrict" }),
+    destinationMarketId: text("destination_market_id")
+      .notNull()
+      .references(() => markets.id, { onDelete: "restrict" }),
+    destinationProgramId: text("destination_program_id").references(
+      () => programs.id,
+      { onDelete: "restrict" },
+    ),
+    linkedAt: timestamp("linked_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    linkedBy: text("linked_by").notNull(),
+    supersedesLinkId: text("supersedes_link_id").references(
+      (): AnyPgColumn => casePlaybookLinks.id,
+      { onDelete: "restrict" },
+    ),
+  },
+  (table) => [
+    index("case_playbook_links_org_case_destination_idx").on(
+      table.organizationId,
+      table.caseId,
+      table.destinationMarketId,
+      table.destinationProgramId,
+      table.linkedAt,
+    ),
+    check("case_playbook_links_lifecycle_check", lifecycleValues),
+  ],
+);
+
 export const evidenceItems = pgTable(
   "evidence_items",
   {

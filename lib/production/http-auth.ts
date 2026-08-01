@@ -20,6 +20,11 @@ import {
   PortfolioImportValidationError,
 } from "@/lib/production/portfolio-import-service";
 import {
+  PlaybookApplicabilityError,
+  PlaybookStateError,
+  PlaybookValidationError,
+} from "@/lib/production/market-playbook-service";
+import {
   StorageDeletionBlockedError,
   StorageGrantError,
   StorageValidationError,
@@ -99,6 +104,15 @@ export function authenticationFailure(error: unknown) {
     return Response.json({ error: error.message }, { status: 400 });
   if (error instanceof DocumentPipelineStateError)
     return Response.json({ error: error.message }, { status: 409 });
+  if (error instanceof PlaybookValidationError)
+    return Response.json({ error: error.message }, { status: 400 });
+  if (error instanceof PlaybookStateError)
+    return Response.json({ error: error.message }, { status: 409 });
+  if (error instanceof PlaybookApplicabilityError)
+    return Response.json(
+      { error: error.message, code: error.code },
+      { status: error.code === "no_match" ? 404 : 409 },
+    );
   if (error instanceof StorageValidationError)
     return Response.json({ error: error.message }, { status: 400 });
   if (error instanceof StorageGrantError)

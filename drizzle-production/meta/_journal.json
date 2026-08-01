@@ -64,6 +64,27 @@
       "when": 1785618989435,
       "tag": "0008_complete_sleeper",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1785622389969,
+      "tag": "0009_huge_old_lace",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1785623926983,
+      "tag": "0010_curvy_rocket_racer",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1785624473615,
+      "tag": "0011_exotic_ultron",
+      "breakpoints": true
     }
   ]
 }
