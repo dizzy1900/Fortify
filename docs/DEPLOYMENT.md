@@ -10,4 +10,25 @@ Copy `.env.example`, install with `npm ci`, run `npm run demo:reset`, then `npm 
 
 ## Production boundary
 
-The Docker image is a reproducibility aid, not a production-readiness claim. A production deployment requires the gates in `SECURITY_AND_LIMITATIONS.md`, especially managed identity, tenant isolation, Postgres, encrypted S3-compatible storage, malware scanning, backups, retention, monitoring, and legal/accessibility review.
+The Docker image is a reproducibility aid, not a production-readiness claim. The production PostgreSQL data-plane adapter and migrations are implemented, but no managed database or production deployment has been validated.
+
+An operator must explicitly set:
+
+```bash
+FORTIFY_RUNTIME_MODE=production
+DATABASE_URL=postgresql://...
+```
+
+Apply migrations before application rollout:
+
+```bash
+npm run db:migrate:production
+```
+
+The fictional seed is never automatic. A deliberate non-customer sandbox import into PostgreSQL is available only through:
+
+```bash
+npm run db:seed:production-sandbox
+```
+
+Production mode does not fall back to SQLite or the legacy `DemoState`. Demo workspace and mutation routes are unavailable. A production deployment still requires managed identity/authorization, complete tenant attack coverage, encrypted S3-compatible storage, malware scanning, secrets, retention/legal hold, backups and restore, monitoring, incident response, and legal/accessibility review.

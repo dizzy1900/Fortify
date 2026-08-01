@@ -1,11 +1,14 @@
 import pdf from "pdf-parse/lib/pdf-parse.js";
 import { extractNoticeFields } from "@/lib/extraction";
+import { sandboxRouteGuard } from "@/lib/http-runtime";
 
 export const runtime = "nodejs";
 
 const MAX_NOTICE_BYTES = 2 * 1024 * 1024;
 
 export async function POST(request: Request) {
+  const unavailable = sandboxRouteGuard();
+  if (unavailable) return unavailable;
   try {
     const data = await request.formData();
     const file = data.get("file");

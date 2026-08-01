@@ -1,13 +1,15 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { createHash, randomUUID } from "node:crypto";
 import { getDb } from "@/db";
-import { appState } from "@/db/schema";
+import { appState, auditEvents, organizations } from "@/db/schema";
 import type { AuditRecord, DemoAction, DemoRole, DemoState } from "./domain";
 import { buildSeedState } from "./seed";
 import { LocalFileStorageAdapter } from "./storage";
+import { requireSandboxRuntime } from "./runtime";
 import sharp from "sharp";
 
-const STATE_ID = "demo";
+const SANDBOX_ORGANIZATION_ID = "org-fortify-sandbox";
+const STATE_ID = "sandbox-state";
 const now = () => new Date().toISOString();
 const hash = (value: string | Uint8Array) =>
   createHash("sha256").update(value).digest("hex");
@@ -45,28 +47,76 @@ async function seedExhibits(state: DemoState) {
 }
 
 export async function getState(): Promise<DemoState> {
+  requireSandboxRuntime();
   const db = getDb();
-  const row = db.select().from(appState).where(eq(appState.id, STATE_ID)).get();
+  const row = db
+    .select()
+    .from(appState)
+    .where(
+      and(
+        eq(appState.id, STATE_ID),
+        eq(appState.organizationId, SANDBOX_ORGANIZATION_ID),
+      ),
+    )
+    .get();
   if (row) return JSON.parse(row.stateJson) as DemoState;
   return resetState();
 }
 
 export async function resetState(): Promise<DemoState> {
+  requireSandboxRuntime();
   const state = buildSeedState();
   await seedExhibits(state);
   const db = getDb();
-  db.insert(appState)
-    .values({
-      id: STATE_ID,
-      version: 1,
-      stateJson: JSON.stringify(state),
-      updatedAt: now(),
-    })
-    .onConflictDoUpdate({
-      target: appState.id,
-      set: { version: 1, stateJson: JSON.stringify(state), updatedAt: now() },
-    })
-    .run();
+  db.transaction((transaction) => {
+    transaction
+      .insert(organizations)
+      .values({
+        id: SANDBOX_ORGANIZATION_ID,
+        name: "Fortify Fictional Sandbox",
+        kind: "brokerage",
+        fictional: true,
+        createdAt: `${state.demoDate}T12:00:00.000Z`,
+      })
+      .onConflictDoNothing({ target: organizations.id })
+      .run();
+    transaction
+      .insert(appState)
+      .values({
+        id: STATE_ID,
+        organizationId: SANDBOX_ORGANIZATION_ID,
+        version: 1,
+        stateJson: JSON.stringify(state),
+        updatedAt: now(),
+      })
+      .onConflictDoUpdate({
+        target: appState.id,
+        set: {
+          organizationId: SANDBOX_ORGANIZATION_ID,
+          version: 1,
+          stateJson: JSON.stringify(state),
+          updatedAt: now(),
+        },
+      })
+      .run();
+    for (const event of state.audit) {
+      transaction
+        .insert(auditEvents)
+        .values({
+          id: event.id,
+          organizationId: SANDBOX_ORGANIZATION_ID,
+          caseId: event.caseId,
+          actorId: event.actor,
+          action: event.action,
+          detailJson: JSON.stringify({ message: event.detail, synthetic: true }),
+          previousHash: event.previousHash,
+          eventHash: event.hash,
+          createdAt: event.at,
+        })
+        .onConflictDoNothing({ target: auditEvents.id })
+        .run();
+    }
+  });
   return state;
 }
 
@@ -107,7 +157,9 @@ function appendAudit(
 }
 
 export async function applyAction(action: DemoAction): Promise<DemoState> {
+  requireSandboxRuntime();
   const state = await getState();
+  const auditStart = state.audit.length;
   if (!allowed(state.currentRole, action.type))
     throw new Error(`Role ${state.currentRole} cannot perform ${action.type}`);
   const actor =
@@ -249,6 +301,13 @@ export async function applyAction(action: DemoAction): Promise<DemoState> {
       );
       if (!submission) throw new Error("Submission not found");
       submission.letter = action.letter;
+      appendAudit(
+        state,
+        submission.caseId,
+        actor,
+        "Submission letter draft updated",
+        `Submission ${submission.id} draft updated; generation still requires explicit confirmation.`,
+      );
       break;
     }
     case "confirm-submission": {
@@ -374,15 +433,49 @@ export async function applyAction(action: DemoAction): Promise<DemoState> {
   const current = db
     .select()
     .from(appState)
-    .where(eq(appState.id, STATE_ID))
+    .where(
+      and(
+        eq(appState.id, STATE_ID),
+        eq(appState.organizationId, SANDBOX_ORGANIZATION_ID),
+      ),
+    )
     .get();
-  db.update(appState)
-    .set({
-      version: (current?.version ?? 0) + 1,
-      stateJson: JSON.stringify(state),
-      updatedAt: now(),
-    })
-    .where(eq(appState.id, STATE_ID))
-    .run();
+  if (!current) throw new Error("Sandbox state is not initialized");
+  const newAuditEvents = state.audit.slice(auditStart);
+  db.transaction((transaction) => {
+    const update = transaction
+      .update(appState)
+      .set({
+        version: current.version + 1,
+        stateJson: JSON.stringify(state),
+        updatedAt: now(),
+      })
+      .where(
+        and(
+          eq(appState.id, STATE_ID),
+          eq(appState.organizationId, SANDBOX_ORGANIZATION_ID),
+          eq(appState.version, current.version),
+        ),
+      )
+      .run();
+    if (update.changes !== 1)
+      throw new Error("The sandbox record changed; refresh before retrying");
+    for (const event of newAuditEvents) {
+      transaction
+        .insert(auditEvents)
+        .values({
+          id: event.id,
+          organizationId: SANDBOX_ORGANIZATION_ID,
+          caseId: event.caseId,
+          actorId: event.actor,
+          action: event.action,
+          detailJson: JSON.stringify({ message: event.detail, synthetic: true }),
+          previousHash: event.previousHash,
+          eventHash: event.hash,
+          createdAt: event.at,
+        })
+        .run();
+    }
+  });
   return state;
 }

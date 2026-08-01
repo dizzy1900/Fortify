@@ -1,0 +1,2 @@
+ALTER TABLE `app_state` ADD `organization_id` text DEFAULT 'org-fortify-sandbox' NOT NULL;--> statement-breakpoint
+ALTER TABLE `audit_events` ADD `organization_id` text DEFAULT 'org-fortify-sandbox' NOT NULL;
