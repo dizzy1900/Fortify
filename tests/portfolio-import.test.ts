@@ -19,7 +19,10 @@ import {
   PortfolioImportStateError,
   PortfolioImportValidationError,
 } from "@/lib/production/portfolio-import-service";
-import type { ProductionDatabaseLike } from "@/lib/production/repository";
+import {
+  TenantResourceNotFoundError,
+  type ProductionDatabaseLike,
+} from "@/lib/production/repository";
 import {
   DeterministicMalwareScanner,
   ProductionStorageService,
@@ -126,6 +129,38 @@ describe("portfolio and SOV import", () => {
       filename: "generic-sov.csv",
       mimeType: "text/csv",
     });
+    const storedSuggestion = await service.suggestMappingFromStorage(
+      fixture.context,
+      {
+        storageObjectId,
+        sourceSystem: genericAmsCsvAdapter.sourceSystem,
+      },
+    );
+    expect(storedSuggestion).toMatchObject({
+      storageObjectId,
+      filename: "generic-sov.csv",
+      format: "csv",
+      rowCount: 3,
+    });
+    const workspace = await service.getWorkspace(fixture.context);
+    expect(workspace.adapters).toHaveLength(3);
+    expect(workspace.books).toContainEqual({
+      id: fixture.bookId,
+      name: "Book portfolio",
+    });
+    expect(workspace.storageObjects).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: storageObjectId, state: "clean" }),
+      ]),
+    );
+    expect(workspace.mappings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ versionId: saved.version.id }),
+      ]),
+    );
+    await expect(
+      service.getWorkspace({ ...fixture.context, role: "assistant" }),
+    ).resolves.toMatchObject({ books: [{ id: fixture.bookId }] });
     const preview = await service.preview(fixture.context, {
       bookId: fixture.bookId,
       storageObjectId,
@@ -336,6 +371,53 @@ describe("portfolio and SOV import", () => {
     });
   });
 
+  test("fails mapping suggestion closed for quarantined and cross-tenant storage objects", async () => {
+    const alpha = await createTenantFixture(productionDatabase(), "suggest-alpha");
+    const beta = await createTenantFixture(productionDatabase(), "suggest-beta");
+    const adapter = new DeterministicObjectStorageAdapter();
+    const service = new PortfolioImportService(
+      productionDatabase(),
+      adapter,
+      () => currentTime,
+    );
+    const storage = new ProductionStorageService(
+      productionDatabase(),
+      adapter,
+      { mode: "AES256" },
+      () => currentTime,
+    );
+    const body = new Uint8Array(await readFile(fixturePath("generic-sov.csv")));
+    const upload = await storage.requestUpload(alpha.context, {
+      filename: "quarantined.csv",
+      mimeType: "text/csv",
+      sizeBytes: body.byteLength,
+      sha256: sha256(body),
+    });
+    await adapter.put({
+      key: upload.objectKey,
+      body,
+      mimeType: "text/csv",
+      sha256: sha256(body),
+    });
+    await storage.finalizeUpload(
+      alpha.context,
+      upload.storageObjectId,
+      upload.grantId,
+    );
+    await expect(
+      service.suggestMappingFromStorage(alpha.context, {
+        storageObjectId: upload.storageObjectId,
+        sourceSystem: genericAmsCsvAdapter.sourceSystem,
+      }),
+    ).rejects.toBeInstanceOf(PortfolioImportValidationError);
+    await expect(
+      service.suggestMappingFromStorage(beta.context, {
+        storageObjectId: upload.storageObjectId,
+        sourceSystem: genericAmsCsvAdapter.sourceSystem,
+      }),
+    ).rejects.toBeInstanceOf(TenantResourceNotFoundError);
+  });
+
   test("keeps Applied Epic and AMS360 boundaries fixture-backed and rejects cross-tenant mapping references", async () => {
     const alpha = await createTenantFixture(productionDatabase(), "adapter-alpha");
     const beta = await createTenantFixture(productionDatabase(), "adapter-beta");
@@ -345,6 +427,15 @@ describe("portfolio and SOV import", () => {
       adapter,
       () => currentTime,
     );
+    await expect(
+      service.suggestMapping({
+        body: new Uint8Array(
+          await readFile(fixturePath("applied-epic-compatible-fixture.csv")),
+        ),
+        format: "csv",
+        sourceSystem: "unregistered_vendor",
+      }),
+    ).rejects.toBeInstanceOf(PortfolioImportValidationError);
     for (const input of [
       {
         file: "applied-epic-compatible-fixture.csv",

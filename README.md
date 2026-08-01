@@ -17,6 +17,8 @@ npm run dev
 
 Open `http://localhost:3000`, choose **Enter fictional demo**, and follow the persistent guided control. The demo uses local SQLite, local evidence storage, token-free GeoJSON, deterministic notice parsing, and no API keys or paid services.
 
+Open `/imports` for the clearly labeled synthetic portfolio-import walkthrough. In production mode the same route requires an organization session and operates only on tenant-scoped books, saved mappings, and clean scanned storage objects.
+
 ## Validation
 
 ```bash
@@ -44,6 +46,7 @@ Final files appear under `output/pdf/` and `output/packets/`. The deterministic 
 - OIDC-compatible production identity, opaque server-side sessions, invitations, organization roles, service/API credentials, external case grants, explicit support access, and deny-by-default policy checks.
 - Private S3-compatible production storage with tenant prefixes, short-lived signed operations, exact checksum/MIME/size/encryption checks, quarantine/scanning state, immutable clean evidence registration, retention/legal-hold deletion controls, access audit, and an exact-byte fixture backup contract.
 - Portfolio/SOV import foundation for clean scanned CSV/XLSX objects: immutable saved mappings, stable external identifiers, address/building reconciliation, dry-run quarantine, idempotent commit, append-only receipts, and non-destructive rollback. Generic AMS, Applied Epic-compatible, and AMS360-compatible boundaries are fixture-backed only.
+- Authenticated portfolio-import APIs and a responsive broker workspace cover secure upload-to-quarantine, clean-object selection, mapping review/versioning, dry-run row filters, explicit human confirmation, receipts, history, and rollback without bypassing malware scanning.
 - Drizzle/SQLite remains only for the deterministic organization-scoped sandbox and local regression story.
 - `LocalFileStorageAdapter` remains sandbox-only; production storage uses the S3-compatible adapter and fails closed without explicit bucket configuration.
 - Deterministic local text and text-based-PDF intake; no OCR or model dependency.

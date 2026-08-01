@@ -7,9 +7,14 @@ import {
 } from "@/lib/production/identity-service";
 import { AuthorizationDeniedError } from "@/lib/production/authorization";
 import {
+  IdempotencyConflictError,
   OptimisticConcurrencyError,
   TenantResourceNotFoundError,
 } from "@/lib/production/repository";
+import {
+  PortfolioImportStateError,
+  PortfolioImportValidationError,
+} from "@/lib/production/portfolio-import-service";
 import {
   StorageDeletionBlockedError,
   StorageGrantError,
@@ -79,6 +84,12 @@ export function authenticationFailure(error: unknown) {
   if (error instanceof TenantResourceNotFoundError)
     return Response.json({ error: error.message }, { status: 404 });
   if (error instanceof OptimisticConcurrencyError)
+    return Response.json({ error: error.message }, { status: 409 });
+  if (error instanceof IdempotencyConflictError)
+    return Response.json({ error: error.message }, { status: 409 });
+  if (error instanceof PortfolioImportValidationError)
+    return Response.json({ error: error.message }, { status: 400 });
+  if (error instanceof PortfolioImportStateError)
     return Response.json({ error: error.message }, { status: 409 });
   if (error instanceof StorageValidationError)
     return Response.json({ error: error.message }, { status: 400 });

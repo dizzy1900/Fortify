@@ -167,7 +167,7 @@ const roleScopes: Record<OrganizationRole, ReadonlySet<string>> = {
   ]),
   assistant: new Set([
     ...readScopes(...commonCaseResources, "requirement", "requirement_version"),
-    ...readScopes("import_mapping", "import_mapping_version"),
+    ...readScopes("book", "import_mapping", "import_mapping_version"),
     ...writeScopes("source_document", "source_passage", "evidence_item", "evidence_version", "storage_object", "storage_access_grant", "portfolio_import", "import_row", "import_receipt", "task", "maintenance_event"),
   ]),
   client_property_manager: new Set([

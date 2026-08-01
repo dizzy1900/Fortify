@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { createHash, randomUUID } from "node:crypto";
 import * as schema from "@/db/production/schema";
 import { assertAuthorized } from "@/lib/production/authorization";
@@ -8,6 +8,7 @@ import {
   importSchemaVersion,
   normalizePortfolioRow,
   parseTabularFile,
+  portfolioImportAdapters,
   type CanonicalImportField,
   type ImportColumnMapping,
   type ImportConstants,
@@ -134,6 +135,16 @@ function validateMapping(
   }
 }
 
+function requireImportAdapter(sourceSystem: string) {
+  try {
+    return getPortfolioImportAdapter(sourceSystem);
+  } catch {
+    throw new PortfolioImportValidationError(
+      "The requested portfolio import adapter is not registered.",
+    );
+  }
+}
+
 async function insertReceipt(
   database: ProductionDatabaseLike,
   context: TenantContext,
@@ -170,6 +181,178 @@ export class PortfolioImportService {
     private readonly clock: () => Date = () => new Date(),
   ) {}
 
+  async getWorkspace(context: TenantContext) {
+    for (const resource of [
+      "book",
+      "storage_object",
+      "import_mapping",
+      "import_mapping_version",
+      "portfolio_import",
+    ] as const)
+      assertAuthorized(context, {
+        action: "read",
+        resource,
+        resourceOrganizationId: context.organizationId,
+      });
+    const [books, storageObjects, mappings, recentImports] = await Promise.all([
+      this.database
+        .select({ id: schema.books.id, name: schema.books.name })
+        .from(schema.books)
+        .where(
+          and(
+            eq(schema.books.organizationId, context.organizationId),
+            eq(schema.books.lifecycleStatus, "active"),
+          ),
+        )
+        .orderBy(schema.books.name),
+      this.database
+        .select({
+          id: schema.storageObjects.id,
+          filename: schema.storageObjects.originalFilename,
+          mimeType: schema.storageObjects.mimeType,
+          sizeBytes: schema.storageObjects.sizeBytes,
+          sha256: schema.storageObjects.sha256,
+          state: schema.storageObjects.state,
+          scanStatus: schema.storageObjects.scanStatus,
+          createdAt: schema.storageObjects.createdAt,
+        })
+        .from(schema.storageObjects)
+        .where(
+          and(
+            eq(schema.storageObjects.organizationId, context.organizationId),
+            inArray(schema.storageObjects.mimeType, [
+              "text/csv",
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ]),
+          ),
+        )
+        .orderBy(desc(schema.storageObjects.createdAt))
+        .limit(50),
+      this.database
+        .select({
+          id: schema.importMappings.id,
+          name: schema.importMappings.name,
+          sourceSystem: schema.importMappings.sourceSystem,
+          versionId: schema.importMappingVersions.id,
+          versionNumber: schema.importMappingVersions.versionNumber,
+          fileFormat: schema.importMappingVersions.fileFormat,
+          sheetName: schema.importMappingVersions.sheetName,
+          headerRow: schema.importMappingVersions.headerRow,
+          columnMapping: schema.importMappingVersions.columnMapping,
+          constants: schema.importMappingVersions.constants,
+        })
+        .from(schema.importMappings)
+        .innerJoin(
+          schema.importMappingVersions,
+          eq(
+            schema.importMappings.currentVersionId,
+            schema.importMappingVersions.id,
+          ),
+        )
+        .where(
+          and(
+            eq(schema.importMappings.organizationId, context.organizationId),
+            eq(
+              schema.importMappingVersions.organizationId,
+              context.organizationId,
+            ),
+            eq(schema.importMappings.lifecycleStatus, "active"),
+          ),
+        )
+        .orderBy(schema.importMappings.name),
+      this.database
+        .select({
+          id: schema.portfolioImports.id,
+          filename: schema.portfolioImports.originalFilename,
+          sourceSystem: schema.portfolioImports.sourceSystem,
+          status: schema.portfolioImports.status,
+          totalRows: schema.portfolioImports.totalRows,
+          acceptedRows: schema.portfolioImports.acceptedRows,
+          rejectedRows: schema.portfolioImports.rejectedRows,
+          ambiguousRows: schema.portfolioImports.ambiguousRows,
+          committedRows: schema.portfolioImports.committedRows,
+          createdAt: schema.portfolioImports.createdAt,
+        })
+        .from(schema.portfolioImports)
+        .where(eq(schema.portfolioImports.organizationId, context.organizationId))
+        .orderBy(desc(schema.portfolioImports.createdAt))
+        .limit(20),
+    ]);
+    return {
+      adapters: portfolioImportAdapters.map((adapter) => ({
+        sourceSystem: adapter.sourceSystem,
+        displayName: adapter.displayName,
+        externalValidationGate: adapter.externalValidationGate,
+      })),
+      books,
+      storageObjects,
+      mappings,
+      recentImports,
+    };
+  }
+
+  async suggestMappingFromStorage(
+    context: TenantContext,
+    input: {
+      storageObjectId: string;
+      sourceSystem: string;
+      headerRow?: number;
+      sheetName?: string;
+    },
+  ) {
+    assertAuthorized(context, {
+      action: "read",
+      resource: "storage_object",
+      resourceOrganizationId: context.organizationId,
+    });
+    const objects = await this.database
+      .select()
+      .from(schema.storageObjects)
+      .where(
+        and(
+          eq(schema.storageObjects.id, input.storageObjectId),
+          eq(schema.storageObjects.organizationId, context.organizationId),
+        ),
+      )
+      .limit(1);
+    const object = objects[0];
+    if (!object) throw new TenantResourceNotFoundError("Storage object");
+    if (object.state !== "clean" || object.scanStatus !== "clean")
+      throw new PortfolioImportValidationError(
+        "Mapping suggestions require a clean scanned storage object.",
+      );
+    const format =
+      object.mimeType === "text/csv"
+        ? "csv"
+        : object.mimeType ===
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          ? "xlsx"
+          : undefined;
+    if (!format)
+      throw new PortfolioImportValidationError(
+        "Portfolio mapping supports CSV or XLSX objects only.",
+      );
+    const body = await this.storage.read(object.objectKey);
+    const actualHash = createHash("sha256").update(body).digest("hex");
+    if (actualHash !== object.sha256 || body.byteLength !== object.sizeBytes)
+      throw new PortfolioImportValidationError(
+        "Stored import bytes no longer match their clean-object metadata.",
+      );
+    return {
+      ...(await this.suggestMapping({
+        body,
+        format,
+        sourceSystem: input.sourceSystem,
+        headerRow: input.headerRow,
+        sheetName: input.sheetName,
+      })),
+      storageObjectId: object.id,
+      filename: object.originalFilename,
+      format,
+      sha256: object.sha256,
+    };
+  }
+
   async saveMapping(
     context: TenantContext,
     input: {
@@ -194,7 +377,7 @@ export class PortfolioImportService {
     });
     const name = input.name.normalize("NFKC").trim();
     if (!name) throw new PortfolioImportValidationError("A mapping name is required.");
-    getPortfolioImportAdapter(input.sourceSystem);
+    requireImportAdapter(input.sourceSystem);
     const constants = input.constants ?? {};
     validateMapping(input.columnMapping, constants);
     const headerRow = input.headerRow ?? 1;
@@ -316,8 +499,15 @@ export class PortfolioImportService {
     headerRow?: number;
     sheetName?: string;
   }) {
-    const parsed = await parseTabularFile(input);
-    const adapter = getPortfolioImportAdapter(input.sourceSystem);
+    let parsed: Awaited<ReturnType<typeof parseTabularFile>>;
+    try {
+      parsed = await parseTabularFile(input);
+    } catch (error) {
+      throw new PortfolioImportValidationError(
+        error instanceof Error ? error.message : "The tabular file is invalid.",
+      );
+    }
+    const adapter = requireImportAdapter(input.sourceSystem);
     return {
       headers: parsed.headers,
       mapping: adapter.suggestMapping(parsed.headers),
@@ -491,12 +681,19 @@ export class PortfolioImportService {
       throw new PortfolioImportValidationError(
         "Stored import bytes no longer match their clean-object metadata.",
       );
-    const parsed = await parseTabularFile({
-      body,
-      format,
-      headerRow: mappingRecord.version.headerRow,
-      sheetName: mappingRecord.version.sheetName ?? undefined,
-    });
+    let parsed: Awaited<ReturnType<typeof parseTabularFile>>;
+    try {
+      parsed = await parseTabularFile({
+        body,
+        format,
+        headerRow: mappingRecord.version.headerRow,
+        sheetName: mappingRecord.version.sheetName ?? undefined,
+      });
+    } catch (error) {
+      throw new PortfolioImportValidationError(
+        error instanceof Error ? error.message : "The tabular file is invalid.",
+      );
+    }
     const mapping = mappingRecord.version.columnMapping as ImportColumnMapping;
     const constants = mappingRecord.version.constants as ImportConstants;
     validateMapping(mapping, constants, parsed.headers);
