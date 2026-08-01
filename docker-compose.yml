@@ -1,0 +1,14 @@
+services:
+  fortify:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      FORTIFY_DATABASE_PATH: /app/data/fortify.sqlite
+      FORTIFY_STORAGE_PATH: /app/storage/evidence
+      FORTIFY_OUTPUT_PATH: /app/output
+      NEXT_PUBLIC_DEMO_MODE: "true"
+    volumes:
+      - ./data:/app/data
+      - ./storage:/app/storage
+      - ./output:/app/output

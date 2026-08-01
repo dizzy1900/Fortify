@@ -1,0 +1,2 @@
+export function Status({ value }: { value: string }) { const key = value.toLowerCase().replaceAll(" ", "-"); return <span className={`status status-${key}`}>{value}</span>; }
+export function Metric({ label, value, note, tone = "default" }: { label: string; value: string | number; note: string; tone?: "default" | "warning" | "good" }) { return <div className={`metric metric-${tone}`}><span>{label}</span><strong>{value}</strong><small>{note}</small></div>; }

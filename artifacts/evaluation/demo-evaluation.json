@@ -1,0 +1,74 @@
+{
+  "generatedAt": "2026-08-01T09:32:27.013Z",
+  "seedVersion": "fortify-demo-2026.08.01-v1",
+  "status": "pass",
+  "checks": [
+    {
+      "name": "seed-counts",
+      "ok": true,
+      "detail": "3 communities, 42 evidence, 28 requirements"
+    },
+    {
+      "name": "deterministic-reset",
+      "ok": true,
+      "detail": "db9db21485615453 == db9db21485615453"
+    },
+    {
+      "name": "fictional-labels",
+      "ok": true,
+      "detail": "All seeded communities and carriers are visibly fictional"
+    },
+    {
+      "name": "edge-cases",
+      "ok": true,
+      "detail": "Conflict, expiry, and year-over-year reuse present"
+    },
+    {
+      "name": "mitigation-register",
+      "ok": true,
+      "detail": "6 broker-entered actions with mixed status"
+    },
+    {
+      "name": "readiness-components",
+      "ok": true,
+      "detail": "87, 75, 99"
+    },
+    {
+      "name": "source-traceability",
+      "ok": true,
+      "detail": "Every requirement has source, version, URL, and verify-current flag"
+    },
+    {
+      "name": "notice-human-gate",
+      "ok": true,
+      "detail": "Open notices remain provisional"
+    },
+    {
+      "name": "audit-chain",
+      "ok": true,
+      "detail": "4 hash-linked events"
+    },
+    {
+      "name": "real-pdf",
+      "ok": true,
+      "detail": "11602 bytes"
+    },
+    {
+      "name": "real-zip",
+      "ok": true,
+      "detail": "17 entries with confirmation gates and action register"
+    },
+    {
+      "name": "prohibited-claims",
+      "ok": true,
+      "detail": "No prohibited promise or affiliation phrases in seeded UI source"
+    }
+  ],
+  "artifacts": {
+    "pdfPath": "/Users/david/Documents/Fortify/output/pdf/case-jefferson-submission-v1.pdf",
+    "zipPath": "/Users/david/Documents/Fortify/output/packets/case-jefferson-submission-v1.zip",
+    "pdfBytes": 11602,
+    "zipBytes": 51723,
+    "manifestHash": "47c5de9b8c2da8dfc040951b57697a2081fec8f1b3817e5148480aefaf9aef9a"
+  }
+}

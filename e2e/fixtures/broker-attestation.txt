@@ -1,0 +1,3 @@
+FICTIONAL BROKER ATTESTATION
+Shared-property scope reviewed for the Fortify guided demo.
+This is not an inspection, certification, or compliance statement.
