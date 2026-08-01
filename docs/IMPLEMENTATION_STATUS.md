@@ -1,82 +1,81 @@
 # Implementation status
 
-Measured on August 1, 2026 against [COMMERCIAL_NORTH_STAR.md](./COMMERCIAL_NORTH_STAR.md). This is the authoritative status ledger for the production transformation. A passing demo test does not prove a production capability.
+Measured on August 1, 2026 against [COMMERCIAL_NORTH_STAR.md](./COMMERCIAL_NORTH_STAR.md). This ledger separates reusable renewal foundations from the broader California Resilience Investment and Insurance Recognition OS. A passing legacy demo or M1–M7 renewal test does not prove profiles, interventions, funding, verification, model mapping, recognition, deployment, or external acceptance.
 
 ## Current state
 
-Fortify now has two explicit runtime modes. `sandbox` preserves the deterministic fictional demo in a tenant-marked SQLite `DemoState`; `production` requires PostgreSQL and uses normalized tenant records, OIDC-compatible identity, opaque server sessions, deny-by-default authorization, a private S3-compatible evidence boundary, clean-object-only portfolio imports, durable document processing, and immutable destination playbooks with deterministic evidence-readiness states without falling back to sandbox routes, local blob paths, or role switching. Managed storage, malware scanning, managed workers, live OCR/document-intelligence rights, rights-cleared destination guidance, backup/restore, and deployment validation have not been exercised, so Fortify is still not a customer-data-ready system.
+Fortify preserves a deterministic fictional Colorado renewal sandbox and has a substantial locally validated production foundation: normalized tenant-scoped PostgreSQL, OIDC-compatible identity, deny-by-default authorization, private S3-compatible storage contracts, portfolio import, durable document processing, immutable market playbooks, and destination-specific evidence readiness. The current production schema has 65 tables, 126 database guards/triggers, and 61 authorization resource classes at commit `2e92041` / draft PR #6.
+
+The replacement north star makes California the initial production jurisdiction and expands the product into governed resilience investment, funding, independent verification, external-model mapping, explicit market commitments, and insurance-recognition outcomes. Those expanded capabilities are not implied by the existing renewal implementation. No managed deployment, rights-cleared California portfolio, authoritative California source register, real verifier, funding sponsor, model provider, insurer reviewer, backup restore, or paid pilot has been validated.
 
 ## Milestone ledger
 
-| Milestone | State | Current evidence | Required before complete |
+| Milestone | State | Current evidence | Required next evidence |
 |---|---|---|---|
-| M1 Repository, CI, status | Complete locally; remote CI remediation and owner settings pending | Commercial brief, production plan, status ledger, CI workflow, blank-SQLite migration test, repository secret scan, GitHub settings checklist, and responsive-header repair; CodeQL/security checks passed remotely; quality/container jobs exposed reproducible infrastructure issues | With explicit approval, repair the Node container native-build toolchain and isolate the SQLite/Vitest worker-shutdown issue; apply/read back owner settings. These are repository/CI operations, not evidence that later production milestones pass |
-| M2 PostgreSQL and sandbox isolation | Implemented locally; managed PostgreSQL validation pending | 32-table normalized PostgreSQL schema; 43 database triggers; explicit tenant context; transactional audit/idempotency/concurrency controls; deterministic sandbox migration; production routes do not fall back to `DemoState`; 6 PostgreSQL contract tests pass in PGlite | Run the migration and isolation suite against the selected managed PostgreSQL service and record provider-specific backup/restore and operational evidence |
-| M3 Identity and authorization | Implemented locally; managed OIDC validation pending | 11 organization roles; OIDC/PKCE/state/nonce adapter; explicit local provider; opaque sessions; invitations; membership/session revocation; service/API, external-case, and support principals; 61-resource deny-by-default registry after M7; direct tenant guards; protected production routes; attack tests pass | Configure the selected managed provider in staging, register redirects, enforce/test its MFA policy, validate secret handling/rate limits, and decide/validate defense-in-depth RLS |
-| M4 Object storage | Implemented locally; managed providers and restore drill pending | Private tenant-prefixed S3-compatible adapter; signed PUT/GET; exact size/MIME/SHA-256/encryption checks; quarantine/content-signature/malware lifecycle; clean-only immutable evidence; expiring/revocable grants; retention/legal hold/deletion; audit; exact-byte fixture backup and restore; 4 storage contract tests pass | Validate a selected private bucket, credentials/CORS/KMS, live malware provider, retention/object-lock/lifecycle, operational deletion, independent backup destination, monitored restore drill, and redacted logging in staging |
-| M5 Portfolio/SOV import | Implemented locally; managed-provider and rights-cleared external validation pending | Clean-object CSV/XLSX parsing; immutable saved mappings; generic AMS plus Applied Epic-compatible and AMS360-compatible fixture boundaries; stable-ID/address/building reconciliation; dry-run rejected/ambiguous quarantine; explicit human commit; idempotent reruns; immutable receipts; non-destructive transactional rollback; 7 authenticated production APIs; responsive broker workspace with loading/error/empty/populated/review/receipt/rollback states; 6 contract tests and 2 viewport workflow scenarios pass | Exercise a rights-cleared real brokerage export and selected managed storage/scanner/database path; do not represent fixture schemas as certified vendor integrations; production data remains prohibited until the separate deployment/security gates pass |
-| M6 Document pipeline | Implemented locally; managed worker/provider and rights-cleared validation pending | Clean-object intake; PostgreSQL leases, retries, stale-lease recovery and dead letter; versioned provider/classifier/extractors; immutable page/segment/region passages and multiple candidates; confidence/model-derived disclosure; human confirmation/correction/rejection; superseding fact versions; 4 authenticated APIs; separately scoped worker; 4 matrix/contract tests and 2 viewport workflows pass | Validate a rights-cleared correspondence matrix and selected managed worker/OCR provider; verify licensing, egress, retention, redaction, credentials, cost/latency/error behavior, rotations/tables/images, and human-review accuracy. The offline provider supports only text and selectable PDFs |
-| M7 Playbooks/readiness | Implemented locally; rights-cleared destination validation pending | Six normalized playbook/version/rule/review/link tables; bounded conditions; exact scope/effective-date applicability; source/version/citation/verify-current; author-reviewer separation; immutable successors/diffs; append-only case pins; explicit missing/stale/scope/contradiction/unreviewed/insufficient/not-applicable states; blocker-preserving no-average result; 5 authenticated APIs; responsive administrator workspace; 3 contract tests and 2 viewport workflows pass | Validate tenant-authored playbooks against rights-cleared brokerage/market guidance and a managed database deployment; confirm operational author/reviewer governance and destination mapping with a design partner. No carrier acceptance is inferred |
-| M8 Renewal/external evidence | Partial demo only | Guided local workflow, tasks, and demo roles | Production assignments, communications, bulk workflow, scoped contributor access, expiry/revocation/consent |
-| M9 Submission/reviewer | Partial demo only | Real deterministic PDF/ZIP, manifest, exhibits, human gates, local read-only underwriter role | Tenant/market templates, immutable versions, secure delivery, scoped reviewer session and receipts |
-| M10 Response/outcomes | Partial demo only | Fictional seeded clarification and outcomes | Normalized live event taxonomy, original language, correction/supersession and destination graph |
-| M11 Analytics/moat | Not started | Fictional demo reports | Tenant-only measured analytics, consent/data rights, de-identification and disclosure controls |
-| M12 Email/AMS | Not started | No production integrations | Microsoft Graph and AMS boundaries, contracts, fixtures, administration, health and credential-gated validation |
-| M13 Security/deployment/restore | Not started | Reproducible local Dockerfile and `/api/health`; no production topology | Hardening, staging/production, observability, retention, incident response, encrypted backup and tested restore |
-| M14 Design-partner acceptance | Blocked on future external evidence | Discovery materials exist; no rights-cleared production dataset or reviewer evidence | Rights-cleared brokerage import, 10 redacted cases, external reviewer, pilot metrics, discrepancies resolved, paid continuation |
+| M0 Product doctrine/release foundation | Locally validated; publication pending | Authoritative brief and operating contract; reconciled architecture/data/status/validation docs; nine-level evidence hierarchy; external-gate register; empty governed California source register; public California direction with isolated Colorado sandbox; 18-pattern claims gate; full local release baseline | Publish the coherent doctrine PR; keep deployment, customer, market, programme, and other external validation separate |
+| M1 Production data plane/sandbox | In progress; renewal foundation locally validated | Explicit sandbox/production modes; normalized PostgreSQL source of truth; tenant repositories; migrations; idempotency/concurrency/audit; PGlite contracts; no production fallback to `DemoState` | Add California fixture organization and property graph gaps including parcel, unit summary, aliases/relationships/versions, confidentiality/data-right fields, and spatial-ready boundaries; validate selected managed PostgreSQL/PostGIS and RLS |
+| M2 Identity/secure evidence | In progress; renewal foundation locally validated | OIDC/PKCE/state/nonce boundary, local provider, opaque sessions, memberships, teams, assignments, external principals/grants, service/API credentials, support grants, private storage, quarantine/scanning, retention/legal hold, exact-byte fixture restore | Add resilience roles (operator, contractor, verifier, programme, lender/funder), portfolio assignment, data-access log, scoped purpose-specific experiences, managed OIDC/MFA, private bucket/KMS/scanner, and operational restore |
+| M3 Live brokerage wedge | In progress | CSV/XLSX import with mapping/quarantine/rollback, persistent client/community/property/building/policy/case records, durable document pipeline, human-confirmed facts, current PDF/ZIP sandbox artifacts | Make California fixtures and production routes cover the live renewal/appeal case, external evidence workflow, production-architecture submission bytes, and full non-`DemoState` brokerage journey; rights-cleared import remains external |
+| M4 California source/playbooks | In progress | Immutable market playbooks, source URL/version/citation/verify-current, bounded applicability, independent author/reviewer lifecycle, exact case pins, deterministic blocker-preserving readiness | Build governed California policy/programme/model/insurer source register, approved snapshots/rights, publication, supersession/change alerts, impact analysis, and target-profile-aware recognition playbooks using primary/authorised sources |
+| M5 Profiles/interventions/capital planning | Not started | No governed target-profile or intervention registry; existing requirements and evidence types are only adjacent primitives | Versioned profiles, intervention specifications, evidence hierarchy, baseline/gap assessment, projects, transparent capital scenarios, maintenance, and real browser workflow |
+| M6 Funding/project execution | Not started | Generic tasks and maintenance events are adjacent only | Funding programmes/versions, eligibility, blended commitments, costs, milestones/dependencies, human approvals, export boundary, stakeholder benefit ledger, and scoped collaborator workflows |
+| M7 Independent verification | Not started | Human evidence review is not independent-verifier governance | Verifier organizations/credentials/conflicts, assignments, methods, findings/exceptions/corrective action, certificates/revocation, maintenance and provenance-complete conclusions |
+| M8 Model mapping/commitments | Not started | Existing market/playbook source fields do not model external models, inputs, acceptance, or commitments | External model/version/input registry, rights/limitations, proposed-to-accepted mapping history, explicit commitment registry, and evidence hierarchy enforcement |
+| M9 Recognition submission/outcomes | Partial sandbox only | Deterministic sandbox PDF/ZIP, confirmation, clarification, and fictional outcomes | Production immutable recognition submissions, exact bytes/hash, scoped reviewer, delivery receipts, separate evidence/model/rating/underwriting/placement/funding taxonomies, corrections, and maintenance roll-forward |
+| M10 Programme administration/analytics | Not started | Fictional demo reports only | Sponsor cohorts, benefit ledger, recognition graph, tenant analytics, ROI/programme reports, opt-in/cohort/de-identification/suppression controls |
+| M11 Production integrations | Not started | Generic AMS-compatible fixtures and provider boundaries; no live connection | Graph email, Gmail/drive, AMS/property/model/verifier adapters, signed webhooks, health, pagination/rate limits, sync receipts, replay/dead-letter, credential gates |
+| M12 Operational hardening/launch | Not started | Local Dockerfile, health route, CI workflow, dependency/secret/CodeQL evidence | Security/privacy/data-flow documents, CSP/CSRF/rate limits/RLS/log redaction, accessibility/visual gates, staging/production release, observability, encrypted backup/PITR, measured restore, full 33-step fixture flow, and launch report |
 
-## Critical architecture gaps
+## Architecture truth table
 
-| Requirement | Current implementation | Status |
+| Requirement | Current evidence | Status |
 |---|---|---|
-| Tenant source of truth | Normalized tenant-owned PostgreSQL records in production; `DemoState` retained only in explicit sandbox mode | Implemented locally; deployment validation pending |
-| Production database | `pg`/Drizzle adapter, generated migration, health query, and deterministic seed migration | Implemented locally; managed PostgreSQL validation pending |
-| Authentication | Sandbox role switch is isolated; production uses OIDC-compatible identity and opaque server-side sessions | Implemented locally; managed-provider/MFA validation pending |
-| Server authorization | Session/credential-derived principals and deny-by-default role/scope/case policy at route, service, and repository boundaries | Implemented locally; staging attack/rate-limit validation pending |
-| Tenant isolation | Required authorized `TenantContext`, organization predicates, 126 same-organization/immutability/governance triggers, and 61-resource cross-tenant policy tests | Implemented locally; managed PostgreSQL/RLS evaluation pending |
-| Object storage | Sandbox local adapter is isolated; production uses a private tenant-prefixed S3-compatible adapter and normalized storage lifecycle | Implemented locally; managed provider/scanner/restore validation pending |
-| Durable jobs | PostgreSQL queue with service-account claims, leases, stale recovery, bounded retries, dead letter, manual +1 retry, and immutable attempts | Implemented locally; managed-worker operations pending |
-| Notice intelligence | Production provider/classifier/extractor contracts with immutable citations, multiple candidates, confidence/model-derived disclosure, and human-confirmed fact versions; legacy hard-coded parser remains sandbox-only | Implemented locally; live OCR/provider rights and external accuracy validation pending |
-| Readiness | Production uses exact approved destination versions and named deterministic requirement states; any unresolved blocker makes the result blocked and `averageUsed=false`. The legacy percentage remains isolated to the fictional sandbox/artifact regression | Implemented locally; rights-cleared configuration and external workflow validation pending |
-| Import | Clean-object CSV/XLSX parser, saved mappings, dry-run row quarantine, stable-ID reconciliation, human-confirmed commit, receipts, rollback service, authenticated API orchestration, and broker workspace | Implemented locally; managed deployment and rights-cleared external validation pending |
-| External collaboration | Shared local demo views | Not implemented |
-| Delivery | Local generated files | Not implemented |
-| Outcome feedback graph | Fictional in-memory-shaped records | Not implemented |
-| Backup/restore | Exact-byte fixture backup/readback contract | Implemented locally; independent managed destination and monitored restore drill pending |
+| Production source of truth | Normalized PostgreSQL; SQLite `DemoState` isolated to sandbox | Renewal foundation locally validated; expanded domain incomplete |
+| Tenant isolation | Tenant context, organization predicates, database guards, deny-by-default policy, cross-tenant tests | Locally validated for 61 current resource classes; every new resource still requires attack coverage |
+| Authentication | OIDC-compatible interface and local provider; opaque server sessions | Locally validated interface; managed provider/MFA deployment pending |
+| Secure evidence | S3-compatible signed operations, hash/MIME/size/encryption checks, quarantine/scanning, retention/legal hold, access grants | Local adapter/contract evidence only |
+| Portfolio and property | CSV/XLSX mapping, stable IDs, address/building reconciliation, normalized core records | California/spatial and expanded graph incomplete |
+| Document intelligence | Durable jobs, provider/classifier/extractor versions, citations, multiple candidates, human correction/supersession | Offline selectable-text adapter only; live rights/provider validation pending |
+| Market readiness | Exact approved destination version; missing/stale/scope/contradiction/review states; blockers fail closed; no average | Locally validated renewal capability; profile/model/funding/verification readiness absent |
+| Evidence hierarchy | No typed nine-level resilience evidence separation | Not started |
+| Capital/funding | No governed profiles, interventions, projects, capital plans, programmes, commitments, approvals, or exports | Not started |
+| Verification | No independent verifier credential/assignment/finding/certificate model | Not started |
+| Model/commitment recognition | No external model-input mapping or explicit market/funder commitment registry | Not started |
+| Recognition delivery/outcomes | Sandbox artifacts and fictional outcomes only | Production implementation incomplete |
+| Analytics/data rights | Organization opt-in flag only | Governance, rights taxonomy, cohort/de-identification/suppression incomplete |
+| Deployment/restore | Local build and exact-byte fixture backup/readback | Managed deployment/PITR/restore not validated |
 
 ## Preserved regression surface
 
-The production rewrite must continue to prove:
+The transformation must continue to prove:
 
-- deterministic sandbox reset and fictional-data labeling;
-- current guided notice-to-packet route story or a superior production route;
-- human confirmation of extracted fields and every submission;
-- real PDF and ZIP generation, evidence hashes, manifest, provenance, caveats, and exhibits;
-- append-only audit behavior and evidence supersession;
-- explicit missing, stale, contradictory, scoped, and unreviewed evidence states;
-- non-predictive language with no Fortify risk score or outcome guarantee;
-- institutional light-theme UI with populated, loading, error, and empty states.
+- deterministic Colorado sandbox reset and synthetic labeling;
+- guided notice-to-packet story, provenance, contradiction resolution, clarification, outcomes, and next-cycle reuse;
+- real PDF/ZIP artifacts, hashes, manifests, caveats, and exhibits;
+- human confirmation of extracted facts and every market submission;
+- append-only audit and explicit supersession;
+- explicit missing, stale, unsupported, contradictory, scoped, unreviewed, unverified, expired, and unaccepted states;
+- no Fortify risk score or unsupported insurance, resilience, funding, verification, model, rating, underwriting, performance, or claims claim;
+- calm institutional UI with functional populated, loading, error, empty, insufficient-evidence, and permission-denied states.
 
-## Validation evidence
+## Last confirmed local evidence
 
-Current M1-M7 local evidence from August 1, 2026:
+The M0 doctrine tree stacked on M7 passed one consolidated `npm run verify` invocation on August 1, 2026 with approved localhost binding:
 
-| Gate | Measured result |
-|---|---|
-| Consolidated local gate | `npm run verify` exited 0 against the M7 tree with approved localhost-bind permission; no remote status is counted as local evidence |
-| ESLint | Passed |
-| Strict TypeScript | Passed |
-| Unit/integration/migration | 11 files, 44 tests passed; M7 adds exact applicability, author/reviewer separation, source-current approval gate, immutable versions/rules/reviews/links, successor diffs, cross-tenant links, all eight requirement states, and proof a ready recommendation cannot offset a missing blocker |
-| Repository secret guard | Passed across 209 tracked and untracked, non-ignored files |
-| Production build | Next.js 16.2.12 webpack build passed; 19 product page routes and 37 API routes compiled |
-| Deterministic evaluation | 12/12 checks passed; reset digest `db9db21485615453`; PDF 11,602 bytes; ZIP 51,723 bytes; manifest hash `47c5de9b8c2da8dfc040951b57697a2081fec8f1b3817e5148480aefaf9aef9a` |
-| Guided browser suite | 10/10 passed serially on desktop Chromium and Pixel 7 profiles, including portfolio, document, and playbook author/review/version-history/blocker workflows |
-| Real UI inspection | Playbook readiness, builder, approved successor history, source/hash/reviewer evidence, and desktop/mobile layouts were inspected; mobile tabs were tightened after inspection; no document-width overflow remained and all public/workspace routes were healthy |
-| Production dependency audit | `npm audit --omit=dev`: 0 vulnerabilities |
-| Diff hygiene | `git diff --check` passed after the final documentation update |
+- ESLint and strict TypeScript passed.
+- Vitest: 12 files / 45 tests.
+- Repository secret scan: 214 non-ignored files.
+- Next.js build: 19 product pages / 37 API routes.
+- Deterministic sandbox evaluation: 12/12.
+- Prohibited-claims scan: 18 direct patterns across runtime source and generated text artifacts.
+- Playwright: 12/12 desktop Chromium and Pixel 7 scenarios, including explicit desktop/tablet/mobile public-doctrine inspection.
+- Production schema regeneration: 65 tables, no drift.
+- `npm audit --omit=dev`: 0 vulnerabilities.
+- All six deterministic PDF pages were rendered and inspected; the 17-entry ZIP passed integrity/content review and contains the exact standalone PDF bytes.
+- `git diff --check` passed.
 
-GitHub checks have now executed on the stacked M5 PR. CodeQL/security passed; the container job fails before Trivy because the slim Node image lacks the native build toolchain required by `better-sqlite3`, and the quality job reports three SQLite/Vitest workers exiting after their tests while the PGlite suites pass. Those CI fixes require explicit approval and are not included in M6 or M7. Branch protection and repository security settings still require owner configuration/readback under `GITHUB_SETTINGS_CHECKLIST.md`. PGlite, fictional playbooks, injected storage/provider fixtures, and the local selectable-text adapter are not proof of a selected managed database, private bucket, malware service, OCR provider, rights-cleared destination guidance, worker topology, monitoring, or production deployment. Accessibility automation and the remaining operational checks are future gates.
+This validates M0 locally and preserves reusable renewal-foundation evidence. It is not proof that the M1–M12 expanded California capabilities or any external gate have been met.
 
-## External gates
+## External validation gates
 
-No rights-cleared brokerage data, ten-case production run, external market-reviewer use, pilot metrics, or paid continuation evidence is present. These remain separate external-validation gates and do not prevent implementation of adapters, fixtures, administration, or other unblocked milestones.
+No rights-cleared California portfolio, ten-case production run, target-profile technical review, independent-verifier use, insurer/MGA review, real programme sponsor/funding rule/milestone decision, model-provider acceptance, managed deployment, restore exercise, paid continuation, or cross-customer data right is present. Each remains external or future deployment evidence and must never be inferred from fixtures.

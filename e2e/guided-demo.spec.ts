@@ -135,6 +135,55 @@ test("public page and all workspace routes are healthy", async ({ page }) => {
   }
 });
 
+test("public doctrine is explicit and responsive", async ({ page }, testInfo) => {
+  await page.goto("/");
+  await expect(
+    page.getByRole("heading", {
+      name: "Turn verified resilience work into a submission a market can evaluate.",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      "California wildfire resilience · specialist property-risk practices",
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Colorado renewal foundation · fictional sandbox"),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/not a wildfire model, verifier, insurer, lender/),
+  ).toBeVisible();
+
+  const assertNoOverflow = async () => {
+    const overflow = await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth >
+        document.documentElement.clientWidth,
+    );
+    expect(overflow).toBe(false);
+  };
+
+  await assertNoOverflow();
+  if (testInfo.project.name === "chromium") {
+    await page.screenshot({
+      path: "test-results/visual-inspection/public-resilience-desktop.png",
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 834, height: 1112 });
+    await page.reload();
+    await assertNoOverflow();
+    await page.screenshot({
+      path: "test-results/visual-inspection/public-resilience-tablet.png",
+      fullPage: true,
+    });
+  } else {
+    await page.screenshot({
+      path: "test-results/visual-inspection/public-resilience-mobile.png",
+      fullPage: true,
+    });
+  }
+});
+
 test("portfolio import walkthrough preserves quarantine, confirmation, receipts, and rollback", async ({ page }, testInfo) => {
   await page.goto("/imports");
   await expect(

@@ -1,6 +1,6 @@
 # Integration roadmap
 
-No integration below is active or implied in the MVP.
+This phase list is retained as historical renewal-foundation context and is superseded for execution order by [NORTH_STAR_IMPLEMENTATION_PLAN.md](./NORTH_STAR_IMPLEMENTATION_PLAN.md). New provider work follows M11 only after the California brokerage, source, profile/intervention, funding, verification, model-mapping/commitment, recognition, and programme boundaries exist. No integration below is active, validated, or implied.
 
 ## Phase 1 - Production data plane
 

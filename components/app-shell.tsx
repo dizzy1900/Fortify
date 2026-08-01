@@ -20,7 +20,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return <div className="app-frame">
     <a className="skip-link" href="#main">Skip to main content</a>
     <aside className={`sidebar ${mobile ? "sidebar-open" : ""}`}>
-      <div className="brand"><div className="brand-mark">F</div><div><strong>Fortify</strong><span>Renewal evidence OS</span></div><button className="icon-button mobile-only" onClick={() => setMobile(false)} aria-label="Close navigation"><X size={18}/></button></div>
+      <div className="brand"><div className="brand-mark">F</div><div><strong>Fortify</strong><span>Colorado renewal sandbox</span></div><button className="icon-button mobile-only" onClick={() => setMobile(false)} aria-label="Close navigation"><X size={18}/></button></div>
       <div className="fictional-label"><span/>Fictional demo workspace</div>
       <nav aria-label="Workspace navigation">{nav.map(([label, href, Icon]) => <Link key={href} href={href} className={pathname === href ? "active" : ""} onClick={() => setMobile(false)}><Icon size={16}/>{label}</Link>)}</nav>
       <div className="sidebar-foot"><div className="avatar">MC</div><div><strong>Maya Chen</strong><span>Renewal executive</span></div></div>

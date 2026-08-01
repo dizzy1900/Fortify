@@ -1,5 +1,11 @@
 # Architecture
 
+## North-star alignment
+
+The target system is a California-first Resilience Investment and Insurance Recognition OS. The existing normalized renewal data plane is a reusable foundation, not the completed domain. Future bounded contexts must add governed California sources, target profiles, intervention specifications, capital plans, funding commitments and milestones, independent verification, evidence levels, external-model mappings, explicit recognition commitments, market submissions, separate response taxonomies, maintenance, programme administration, and recognition-graph events without collapsing their authority.
+
+The deterministic Colorado workflow remains an isolated sandbox and second-jurisdiction regression. Production jurisdiction, hazard, source, profile, model, market, programme, property class, and effective-period logic must remain first-class. PostGIS is introduced only when parcel, building, landscape, route, or shared-infrastructure spatial relationships materially require it; no map or coordinate is treated as fabricated risk intelligence.
+
 ## Current topology
 
 Fortify is one Next.js application with two deliberately separate runtime modes:
@@ -69,4 +75,4 @@ The contract suite uses PGlite as an embedded PostgreSQL-compatible engine becau
 
 ## Next architecture boundary
 
-M7 is implemented locally, with rights-cleared destination guidance, managed-provider operation, and external workflow validation still outstanding. M8 introduces production renewal workflow and scoped external evidence collection. Production remains closed to customer data until managed PostgreSQL, OIDC, private object storage, malware scanning, backup/restore, and the remaining security/deployment gates are validated.
+The published M7 renewal/playbook tree is locally validated reusable foundation. The replacement milestone sequence restarts at M0 doctrine/release reconciliation, then fills the production property graph and California brokerage wedge before adding the governed California source register. Profiles, interventions, capital planning, funding, independent verification, model mapping, market commitments, recognition delivery/outcomes, programme analytics, and operational hardening remain unimplemented or incomplete. Production remains closed to customer data until managed PostgreSQL/PostGIS, OIDC, private storage/scanning, deployment, backup/restore, security, and rights-cleared external gates are validated.

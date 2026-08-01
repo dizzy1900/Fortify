@@ -1,6 +1,8 @@
 # Production data model
 
-The PostgreSQL schema contains 65 normalized tables. It is a forward foundation for the catastrophe-property renewal workflow, not a claim that every later workflow is implemented.
+The PostgreSQL schema contains 65 normalized tables at the published M7 baseline. It is a reusable tenant, property, renewal, evidence, storage, document, and market-playbook foundation for the Resilience Investment and Insurance Recognition OS—not a claim that the expanded domain is implemented.
+
+California production work must extend this model with parcel/unit/alias/relationship/property versions; governed policy/programme/model sources; typed evidence levels; target profiles; intervention specifications; baseline conditions; resilience projects and capital plans; funding programmes/commitments/milestones; independent verifiers/findings/certificates; external models and input mappings; explicit market/funder commitments; recognition submissions and separate evidence/model/rating/underwriting/placement/funding responses; longitudinal maintenance/outcomes; programme cohorts; data rights; and recognition-graph events. Each new customer-controlled resource requires tenant columns, authorization, database guards, audit coupling, and attack tests before it counts as implemented.
 
 ## Organizations and access foundation
 
