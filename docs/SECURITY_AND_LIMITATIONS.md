@@ -23,6 +23,8 @@ These controls describe the current sandbox and reusable renewal foundation. The
 - Production object keys are tenant-prefixed and traversal-checked. Signed uploads bind MIME, size, checksum, encryption, and a short expiry; finalization independently reads metadata before quarantine.
 - Quarantined bytes are rechecked for exact size/checksum and basic content signature before a malware-provider result can promote them. Only clean objects can back immutable evidence versions or downloads.
 - Purpose-labelled download grants expire, are revocable before redemption, and are single-use. Legal holds and future retention dates block deletion. Fixture backup copies are independently read and SHA-256 checked before manifest acceptance.
+- Governed source identities, versions, independent reviews, publication decisions, reliance records, and successor alerts are tenant-owned. Exact-byte/approved-snapshot versions must reference an in-tenant clean object with the same SHA-256. Database guards enforce immediate lineage, author/reviewer separation, human confirmation, source/rights comparison, published-current playbook pins, typed consumer ownership, and immutable history.
+- Model-assisted or deterministic extraction records provenance only. It cannot publish a source, activate a playbook, mutate a relied-on case, or fill unavailable impact categories.
 
 ## Deliberate MVP limitations
 
@@ -35,7 +37,8 @@ These controls describe the current sandbox and reusable renewal foundation. The
 - Reference content is selected, versioned, and non-exhaustive. “Verify current requirements” is mandatory. Fortify is not legal advice and has no official IBHS or carrier affiliation.
 - MapLibre uses local GeoJSON without external tiles. Parcel/building geometry is illustrative, not survey-grade.
 - PDF accessibility tagging is not implemented. The packet is visually reviewed but should undergo production accessibility remediation.
-- No governed California source register, target profile, intervention/capital plan, funding programme, independent-verifier workflow, external-model mapping, recognition commitment, production recognition delivery, programme administration, live email/model/verifier integration, contractor marketplace, billing, remote sensing, or production legal template is implemented.
+- The governed California source-register workflow is implemented locally, but no rights-cleared live source snapshot, legal-currentness determination, insurer/MGA-supplied rule, or customer-approved operative default has been validated. The three sandbox entries are metadata-only fixtures linked to primary publisher pages; one is intentionally blocked.
+- No target profile, intervention/capital plan, funding programme, independent-verifier workflow, external-model mapping, recognition commitment, production recognition delivery, programme administration, live email/model/verifier integration, contractor marketplace, billing, remote sensing, or production legal template is implemented.
 
 ## Production gates before live customer data
 

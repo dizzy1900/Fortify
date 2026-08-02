@@ -1970,6 +1970,264 @@ export const requirementVersions = pgTable(
   ],
 );
 
+export const governedSources = pgTable(
+  "governed_sources",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    canonicalKey: text("canonical_key").notNull(),
+    sourceClass: text("source_class").notNull(),
+    issuingAuthority: text("issuing_authority").notNull(),
+    title: text("title").notNull(),
+    jurisdiction: text("jurisdiction").notNull(),
+    officialUrl: text("official_url").notNull(),
+    authorityTier: text("authority_tier").notNull(),
+    reviewOwnerSubject: text("review_owner_subject").notNull(),
+  },
+  (table) => [
+    uniqueIndex("governed_sources_org_key_unique").on(
+      table.organizationId,
+      table.canonicalKey,
+    ),
+    check(
+      "governed_sources_class_check",
+      sql`${table.sourceClass} in ('statute_regulation', 'regulator_guidance', 'cal_fire_programme', 'fair_plan_rule_form', 'insurer_mga_material', 'third_party_standard', 'funding_programme', 'local_authority_requirement', 'external_model_documentation')`,
+    ),
+    check(
+      "governed_sources_authority_tier_check",
+      sql`${table.authorityTier} in ('primary', 'officially_authorized', 'customer_supplied', 'recognized_third_party')`,
+    ),
+    check("governed_sources_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const governedSourceVersions = pgTable(
+  "governed_source_versions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    sourceId: text("source_id")
+      .notNull()
+      .references(() => governedSources.id, { onDelete: "restrict" }),
+    versionNumber: integer("version_number").notNull(),
+    versionLabel: text("version_label").notNull(),
+    publicationDate: date("publication_date", { mode: "string" }),
+    effectiveFrom: date("effective_from", { mode: "string" }),
+    effectiveTo: date("effective_to", { mode: "string" }),
+    retrievalDate: date("retrieval_date", { mode: "string" }).notNull(),
+    sourceHash: text("source_hash").notNull(),
+    snapshotState: text("snapshot_state").notNull(),
+    storageObjectId: text("storage_object_id").references(
+      () => storageObjects.id,
+      { onDelete: "restrict" },
+    ),
+    rightsStatus: text("rights_status").notNull(),
+    redistributionAllowed: boolean("redistribution_allowed")
+      .notNull()
+      .default(false),
+    useRestrictions: text("use_restrictions").notNull(),
+    structuredSummary: jsonb("structured_summary")
+      .$type<Record<string, string>>()
+      .notNull()
+      .default({}),
+    verifyCurrentStatus: text("verify_current_status").notNull(),
+    nextReviewDate: date("next_review_date", { mode: "string" }).notNull(),
+    extractionMethod: text("extraction_method").notNull(),
+    humanConfirmed: boolean("human_confirmed").notNull().default(false),
+    authorSubject: text("author_subject").notNull(),
+    changeSummary: text("change_summary").notNull(),
+    supersedesVersionId: text("supersedes_version_id").references(
+      (): AnyPgColumn => governedSourceVersions.id,
+      { onDelete: "restrict" },
+    ),
+  },
+  (table) => [
+    uniqueIndex("governed_source_versions_org_source_number_unique").on(
+      table.organizationId,
+      table.sourceId,
+      table.versionNumber,
+    ),
+    index("governed_source_versions_org_review_idx").on(
+      table.organizationId,
+      table.verifyCurrentStatus,
+      table.nextReviewDate,
+    ),
+    check(
+      "governed_source_versions_number_check",
+      sql`${table.versionNumber} >= 1`,
+    ),
+    check(
+      "governed_source_versions_hash_check",
+      sql`char_length(${table.sourceHash}) = 64`,
+    ),
+    check(
+      "governed_source_versions_effective_period_check",
+      sql`${table.effectiveTo} is null or ${table.effectiveFrom} is null or ${table.effectiveTo} >= ${table.effectiveFrom}`,
+    ),
+    check(
+      "governed_source_versions_snapshot_check",
+      sql`${table.snapshotState} in ('exact_bytes', 'approved_snapshot', 'metadata_only_restricted')`,
+    ),
+    check(
+      "governed_source_versions_snapshot_object_check",
+      sql`${table.snapshotState} = 'metadata_only_restricted' or ${table.storageObjectId} is not null`,
+    ),
+    check(
+      "governed_source_versions_rights_check",
+      sql`${table.rightsStatus} in ('approved', 'restricted', 'pending')`,
+    ),
+    check(
+      "governed_source_versions_verify_check",
+      sql`${table.verifyCurrentStatus} in ('verified_current', 'verification_due', 'unverified', 'withdrawn')`,
+    ),
+    check(
+      "governed_source_versions_extraction_check",
+      sql`${table.extractionMethod} in ('human_authored', 'deterministic_extraction', 'model_assisted')`,
+    ),
+    check("governed_source_versions_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const governedSourceReviews = pgTable(
+  "governed_source_reviews",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    sourceVersionId: text("source_version_id")
+      .notNull()
+      .references(() => governedSourceVersions.id, { onDelete: "restrict" }),
+    decision: text("decision").notNull(),
+    reviewerSubject: text("reviewer_subject").notNull(),
+    note: text("note").notNull(),
+    sourceCompared: boolean("source_compared").notNull().default(false),
+    rightsConfirmed: boolean("rights_confirmed").notNull().default(false),
+    reviewedAt: timestamp("reviewed_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("governed_source_reviews_org_version_unique").on(
+      table.organizationId,
+      table.sourceVersionId,
+    ),
+    check(
+      "governed_source_reviews_decision_check",
+      sql`${table.decision} in ('approved', 'changes_requested')`,
+    ),
+    check("governed_source_reviews_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const governedSourcePublications = pgTable(
+  "governed_source_publications",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    sourceVersionId: text("source_version_id")
+      .notNull()
+      .references(() => governedSourceVersions.id, { onDelete: "restrict" }),
+    decision: text("decision").notNull(),
+    publisherSubject: text("publisher_subject").notNull(),
+    note: text("note").notNull(),
+    publishedAt: timestamp("published_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("governed_source_publications_org_version_unique").on(
+      table.organizationId,
+      table.sourceVersionId,
+    ),
+    check(
+      "governed_source_publications_decision_check",
+      sql`${table.decision} in ('published', 'rejected')`,
+    ),
+    check("governed_source_publications_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const governedSourceDependencies = pgTable(
+  "governed_source_dependencies",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    sourceVersionId: text("source_version_id")
+      .notNull()
+      .references(() => governedSourceVersions.id, { onDelete: "restrict" }),
+    consumerType: text("consumer_type").notNull(),
+    consumerId: text("consumer_id").notNull(),
+    relationship: text("relationship").notNull(),
+    rationale: text("rationale").notNull(),
+    pinnedAt: timestamp("pinned_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    pinnedBy: text("pinned_by").notNull(),
+  },
+  (table) => [
+    uniqueIndex("governed_source_dependencies_org_consumer_unique").on(
+      table.organizationId,
+      table.sourceVersionId,
+      table.consumerType,
+      table.consumerId,
+    ),
+    index("governed_source_dependencies_org_source_idx").on(
+      table.organizationId,
+      table.sourceVersionId,
+    ),
+    check(
+      "governed_source_dependencies_consumer_check",
+      sql`${table.consumerType} in ('playbook_version', 'renewal_case')`,
+    ),
+    check(
+      "governed_source_dependencies_relationship_check",
+      sql`${table.relationship} in ('relied_on', 'reference_only')`,
+    ),
+    check("governed_source_dependencies_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const sourceChangeAlerts = pgTable(
+  "source_change_alerts",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    sourceId: text("source_id")
+      .notNull()
+      .references(() => governedSources.id, { onDelete: "restrict" }),
+    fromVersionId: text("from_version_id")
+      .notNull()
+      .references(() => governedSourceVersions.id, { onDelete: "restrict" }),
+    toVersionId: text("to_version_id")
+      .notNull()
+      .references(() => governedSourceVersions.id, { onDelete: "restrict" }),
+    impactSnapshot: jsonb("impact_snapshot")
+      .$type<Record<string, unknown>>()
+      .notNull(),
+    ownerSubject: text("owner_subject").notNull(),
+    createdAtEvent: timestamp("created_at_event", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("source_change_alerts_org_versions_unique").on(
+      table.organizationId,
+      table.fromVersionId,
+      table.toVersionId,
+    ),
+    index("source_change_alerts_org_owner_idx").on(
+      table.organizationId,
+      table.ownerSubject,
+      table.createdAtEvent,
+    ),
+    check("source_change_alerts_distinct_versions_check", sql`${table.fromVersionId} <> ${table.toVersionId}`),
+    check("source_change_alerts_lifecycle_check", lifecycleValues),
+  ],
+);
+
 export const marketPlaybooks = pgTable(
   "market_playbooks",
   {
@@ -2008,6 +2266,10 @@ export const playbookVersions = pgTable(
     policyForm: text("policy_form"),
     effectiveFrom: date("effective_from", { mode: "string" }).notNull(),
     effectiveTo: date("effective_to", { mode: "string" }),
+    governedSourceVersionId: text("governed_source_version_id").references(
+      () => governedSourceVersions.id,
+      { onDelete: "restrict" },
+    ),
     sourceName: text("source_name").notNull(),
     sourceUrl: text("source_url").notNull(),
     sourceVersion: text("source_version").notNull(),

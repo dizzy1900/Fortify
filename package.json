@@ -10,7 +10,7 @@
     "build": "next build --webpack",
     "postbuild": "node scripts/prepare-standalone.mjs",
     "start": "next start",
-    "lint": "eslint . --ignore-pattern .next --ignore-pattern output --ignore-pattern test-results",
+    "lint": "eslint . --ignore-pattern .next --ignore-pattern output --ignore-pattern test-results --ignore-pattern playwright-report",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:migration": "vitest run tests/migration.test.ts",

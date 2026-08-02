@@ -100,11 +100,12 @@ export type CreatePlaybookVersionInput = {
   policyForm?: string;
   effectiveFrom: string;
   effectiveTo?: string;
-  sourceName: string;
-  sourceUrl: string;
-  sourceVersion: string;
-  sourceCitation: string;
-  verifyCurrent: boolean;
+  governedSourceVersionId: string;
+  sourceName?: string;
+  sourceUrl?: string;
+  sourceVersion?: string;
+  sourceCitation?: string;
+  verifyCurrent?: boolean;
   changeSummary: string;
   supersedesVersionId?: string;
   requirements: RequirementInput[];
@@ -274,11 +275,18 @@ export class MarketPlaybookService {
       "market",
       "program",
       "requirement_version",
+      "governed_source",
+      "governed_source_version",
+      "governed_source_publication",
       "market_playbook",
     ]);
     assertResourceAccess(
       context,
-      ["playbook_requirement", "playbook_applicability_rule"],
+      [
+        "playbook_requirement",
+        "playbook_applicability_rule",
+        "governed_source_dependency",
+      ],
       "create",
     );
     const name = requiredText(input.name, "Playbook name");
@@ -291,10 +299,6 @@ export class MarketPlaybookService {
     const effectiveTo = input.effectiveTo
       ? requiredIsoDate(input.effectiveTo, "Effective-to date")
       : undefined;
-    const sourceName = requiredText(input.sourceName, "Source name");
-    const sourceUrl = requiredHttpUrl(input.sourceUrl, "Source URL");
-    const sourceVersion = requiredText(input.sourceVersion, "Source version");
-    const sourceCitation = requiredText(input.sourceCitation, "Source citation");
     const changeSummary = requiredText(input.changeSummary, "Change summary");
     if (effectiveTo && effectiveTo < effectiveFrom)
       throw new PlaybookValidationError("Effective-to cannot precede effective-from.");
@@ -326,6 +330,66 @@ export class MarketPlaybookService {
         throw new TenantResourceNotFoundError("Program");
       if (parents[0].programMarketId && parents[0].programMarketId !== input.marketId)
         throw new PlaybookValidationError("The program does not belong to the selected market.");
+
+      const governedSource = await database
+        .select({
+          sourceVersion: schema.governedSourceVersions,
+          source: schema.governedSources,
+          publication: schema.governedSourcePublications,
+        })
+        .from(schema.governedSourceVersions)
+        .innerJoin(
+          schema.governedSources,
+          and(
+            eq(schema.governedSources.id, schema.governedSourceVersions.sourceId),
+            eq(schema.governedSources.organizationId, context.organizationId),
+          ),
+        )
+        .innerJoin(
+          schema.governedSourcePublications,
+          and(
+            eq(
+              schema.governedSourcePublications.sourceVersionId,
+              schema.governedSourceVersions.id,
+            ),
+            eq(
+              schema.governedSourcePublications.organizationId,
+              context.organizationId,
+            ),
+            eq(schema.governedSourcePublications.decision, "published"),
+          ),
+        )
+        .where(
+          and(
+            eq(
+              schema.governedSourceVersions.id,
+              input.governedSourceVersionId,
+            ),
+            eq(
+              schema.governedSourceVersions.organizationId,
+              context.organizationId,
+            ),
+          ),
+        )
+        .limit(1);
+      if (!governedSource[0])
+        throw new TenantResourceNotFoundError(
+          "Published governed source version",
+        );
+      if (
+        governedSource[0].sourceVersion.verifyCurrentStatus !==
+        "verified_current"
+      )
+        throw new PlaybookStateError(
+          "The governed source must be verified current before a playbook can rely on it.",
+        );
+      const sourceName = governedSource[0].source.title;
+      const sourceUrl = requiredHttpUrl(
+        governedSource[0].source.officialUrl,
+        "Source URL",
+      );
+      const sourceVersion = governedSource[0].sourceVersion.versionLabel;
+      const sourceCitation = `${governedSource[0].source.issuingAuthority} — ${governedSource[0].source.title} (${sourceVersion})`;
 
       const requirementIds = normalizedRequirements.map(
         (item) => item.requirementVersionId,
@@ -421,6 +485,7 @@ export class MarketPlaybookService {
           effectiveTo: effectiveTo ?? null,
         },
         source: {
+          governedSourceVersionId: input.governedSourceVersionId,
           name: sourceName,
           url: sourceUrl,
           version: sourceVersion,
@@ -444,11 +509,12 @@ export class MarketPlaybookService {
         policyForm,
         effectiveFrom,
         effectiveTo,
+        governedSourceVersionId: input.governedSourceVersionId,
         sourceName,
         sourceUrl,
         sourceVersion,
         sourceCitation,
-        verifyCurrent: input.verifyCurrent,
+        verifyCurrent: true,
         changeSummary,
         contentHash: digest(canonical),
         authorSubject: context.actorSubject,
@@ -485,6 +551,18 @@ export class MarketPlaybookService {
             expectedValues: condition.expectedValues,
           });
       }
+      await database.insert(schema.governedSourceDependencies).values({
+        id: randomUUID(),
+        ...tenantRecord(context, at),
+        sourceVersionId: input.governedSourceVersionId,
+        consumerType: "playbook_version",
+        consumerId: versionId,
+        relationship: "relied_on",
+        rationale:
+          "The playbook version pins this exact published source version for deterministic applicability.",
+        pinnedAt: at,
+        pinnedBy: context.actorSubject,
+      });
       await appendAudit(database, context, {
         action: "playbook.version_created",
         resourceType: "playbook_version",
@@ -494,7 +572,8 @@ export class MarketPlaybookService {
           versionNumber,
           contentHash: digest(canonical),
           requirementCount: normalizedRequirements.length,
-          sourceVerifiedCurrent: input.verifyCurrent,
+          governedSourceVersionId: input.governedSourceVersionId,
+          sourceVerifiedCurrent: true,
         },
         occurredAt: at,
       });
@@ -511,7 +590,11 @@ export class MarketPlaybookService {
       resource: "playbook_version_review",
       resourceOrganizationId: context.organizationId,
     });
-    assertResourceAccess(context, ["playbook_version"]);
+    assertResourceAccess(context, [
+      "playbook_version",
+      "governed_source_version",
+      "governed_source_publication",
+    ]);
     if (context.principalType !== "membership")
       throw new PlaybookStateError("A human organization member must review a playbook version.");
     return this.database.transaction(async (transaction) => {
@@ -529,8 +612,50 @@ export class MarketPlaybookService {
       if (!version[0]) throw new TenantResourceNotFoundError("Playbook version");
       if (version[0].authorSubject === context.actorSubject)
         throw new PlaybookStateError("A playbook author cannot review the same version.");
-      if (input.decision === "approved" && !version[0].verifyCurrent)
-        throw new PlaybookStateError("Verify the cited source is current before approval.");
+      const governedSource = version[0].governedSourceVersionId
+        ? await database
+            .select({
+              verifyCurrentStatus:
+                schema.governedSourceVersions.verifyCurrentStatus,
+              decision: schema.governedSourcePublications.decision,
+            })
+            .from(schema.governedSourceVersions)
+            .innerJoin(
+              schema.governedSourcePublications,
+              and(
+                eq(
+                  schema.governedSourcePublications.sourceVersionId,
+                  schema.governedSourceVersions.id,
+                ),
+                eq(
+                  schema.governedSourcePublications.organizationId,
+                  context.organizationId,
+                ),
+              ),
+            )
+            .where(
+              and(
+                eq(
+                  schema.governedSourceVersions.id,
+                  version[0].governedSourceVersionId,
+                ),
+                eq(
+                  schema.governedSourceVersions.organizationId,
+                  context.organizationId,
+                ),
+              ),
+            )
+            .limit(1)
+        : [];
+      if (
+        input.decision === "approved" &&
+        (!governedSource[0] ||
+          governedSource[0].decision !== "published" ||
+          governedSource[0].verifyCurrentStatus !== "verified_current")
+      )
+        throw new PlaybookStateError(
+          "A playbook requires a published, verified-current governed source before approval.",
+        );
       const at = this.clock().toISOString();
       const reviewId = randomUUID();
       await database.insert(schema.playbookVersionReviews).values({
@@ -564,6 +689,9 @@ export class MarketPlaybookService {
       "program",
       "requirement_version",
       "requirement",
+      "governed_source",
+      "governed_source_version",
+      "governed_source_publication",
       "playbook_version",
       "playbook_requirement",
       "playbook_applicability_rule",
@@ -576,7 +704,19 @@ export class MarketPlaybookService {
     const scopedCaseIds = assignedCaseIds?.length
       ? assignedCaseIds
       : ["__no_assigned_cases__"];
-    const [markets, programs, requirementVersions, playbooks, versions, requirements, rules, reviews, cases, links] =
+    const [
+      markets,
+      programs,
+      requirementVersions,
+      publishedSourceVersions,
+      playbooks,
+      versions,
+      requirements,
+      rules,
+      reviews,
+      cases,
+      links,
+    ] =
       await Promise.all([
         this.database.select().from(schema.markets).where(eq(schema.markets.organizationId, context.organizationId)).orderBy(schema.markets.name),
         this.database.select().from(schema.programs).where(eq(schema.programs.organizationId, context.organizationId)).orderBy(schema.programs.name),
@@ -590,6 +730,59 @@ export class MarketPlaybookService {
           title: schema.requirements.title,
           scopeType: schema.requirements.scopeType,
         }).from(schema.requirementVersions).innerJoin(schema.requirements, and(eq(schema.requirements.id, schema.requirementVersions.requirementId), eq(schema.requirements.organizationId, context.organizationId))).where(eq(schema.requirementVersions.organizationId, context.organizationId)).orderBy(schema.requirements.title),
+        this.database
+          .select({
+            id: schema.governedSourceVersions.id,
+            sourceId: schema.governedSources.id,
+            title: schema.governedSources.title,
+            issuingAuthority: schema.governedSources.issuingAuthority,
+            officialUrl: schema.governedSources.officialUrl,
+            versionLabel: schema.governedSourceVersions.versionLabel,
+            verifyCurrentStatus:
+              schema.governedSourceVersions.verifyCurrentStatus,
+            publishedAt: schema.governedSourcePublications.publishedAt,
+          })
+          .from(schema.governedSourceVersions)
+          .innerJoin(
+            schema.governedSources,
+            and(
+              eq(
+                schema.governedSources.id,
+                schema.governedSourceVersions.sourceId,
+              ),
+              eq(
+                schema.governedSources.organizationId,
+                context.organizationId,
+              ),
+            ),
+          )
+          .innerJoin(
+            schema.governedSourcePublications,
+            and(
+              eq(
+                schema.governedSourcePublications.sourceVersionId,
+                schema.governedSourceVersions.id,
+              ),
+              eq(
+                schema.governedSourcePublications.organizationId,
+                context.organizationId,
+              ),
+              eq(schema.governedSourcePublications.decision, "published"),
+            ),
+          )
+          .where(
+            and(
+              eq(
+                schema.governedSourceVersions.organizationId,
+                context.organizationId,
+              ),
+              eq(
+                schema.governedSourceVersions.verifyCurrentStatus,
+                "verified_current",
+              ),
+            ),
+          )
+          .orderBy(schema.governedSources.title),
         this.database.select().from(schema.marketPlaybooks).where(organization).orderBy(schema.marketPlaybooks.name),
         this.database.select().from(schema.playbookVersions).where(eq(schema.playbookVersions.organizationId, context.organizationId)).orderBy(desc(schema.playbookVersions.createdAt)),
         this.database.select().from(schema.playbookRequirements).where(eq(schema.playbookRequirements.organizationId, context.organizationId)).orderBy(schema.playbookRequirements.position),
@@ -598,7 +791,19 @@ export class MarketPlaybookService {
         this.database.select({ id: schema.renewalCases.id, title: schema.renewalCases.title, renewalDate: schema.renewalCases.renewalDate, peril: schema.renewalCases.peril, jurisdiction: schema.renewalCases.jurisdiction, propertyClass: schema.renewalCases.propertyClass }).from(schema.renewalCases).where(and(eq(schema.renewalCases.organizationId, context.organizationId), assignedCaseIds ? inArray(schema.renewalCases.id, scopedCaseIds) : undefined)).orderBy(schema.renewalCases.renewalDate),
         this.database.select().from(schema.casePlaybookLinks).where(and(eq(schema.casePlaybookLinks.organizationId, context.organizationId), assignedCaseIds ? inArray(schema.casePlaybookLinks.caseId, scopedCaseIds) : undefined)).orderBy(desc(schema.casePlaybookLinks.linkedAt)),
       ]);
-    return { markets, programs, requirementVersions, playbooks, versions, requirements, rules, reviews, cases, links };
+    return {
+      markets,
+      programs,
+      requirementVersions,
+      publishedSourceVersions,
+      playbooks,
+      versions,
+      requirements,
+      rules,
+      reviews,
+      cases,
+      links,
+    };
   }
 
   private async caseContext(context: TenantContext, caseId: string) {
@@ -635,7 +840,12 @@ export class MarketPlaybookService {
     });
     assertResourceAccess(
       context,
-      ["playbook_version_review", "renewal_case"],
+      [
+        "playbook_version_review",
+        "governed_source_version",
+        "governed_source_publication",
+        "renewal_case",
+      ],
       "read",
       input.caseId,
     );
@@ -649,6 +859,37 @@ export class MarketPlaybookService {
           eq(schema.playbookVersionReviews.playbookVersionId, schema.playbookVersions.id),
           eq(schema.playbookVersionReviews.organizationId, context.organizationId),
           eq(schema.playbookVersionReviews.decision, "approved"),
+        ),
+      )
+      .innerJoin(
+        schema.governedSourceVersions,
+        and(
+          eq(
+            schema.governedSourceVersions.id,
+            schema.playbookVersions.governedSourceVersionId,
+          ),
+          eq(
+            schema.governedSourceVersions.organizationId,
+            context.organizationId,
+          ),
+          eq(
+            schema.governedSourceVersions.verifyCurrentStatus,
+            "verified_current",
+          ),
+        ),
+      )
+      .innerJoin(
+        schema.governedSourcePublications,
+        and(
+          eq(
+            schema.governedSourcePublications.sourceVersionId,
+            schema.governedSourceVersions.id,
+          ),
+          eq(
+            schema.governedSourcePublications.organizationId,
+            context.organizationId,
+          ),
+          eq(schema.governedSourcePublications.decision, "published"),
         ),
       )
       .where(
@@ -689,6 +930,12 @@ export class MarketPlaybookService {
       resourceOrganizationId: context.organizationId,
       caseId: input.caseId,
     });
+    assertAuthorized(context, {
+      action: "create",
+      resource: "governed_source_dependency",
+      resourceOrganizationId: context.organizationId,
+      caseId: input.caseId,
+    });
     const resolved = await this.resolveApplicableVersion(context, input);
     const prior = await this.database
       .select()
@@ -719,6 +966,22 @@ export class MarketPlaybookService {
         linkedBy: context.actorSubject,
         supersedesLinkId: priorLink?.id,
       });
+      if (resolved.version.governedSourceVersionId)
+        await database
+          .insert(schema.governedSourceDependencies)
+          .values({
+            id: randomUUID(),
+            ...tenantRecord(context, at),
+            sourceVersionId: resolved.version.governedSourceVersionId,
+            consumerType: "renewal_case",
+            consumerId: input.caseId,
+            relationship: "relied_on",
+            rationale:
+              "The case pins a playbook that relies on this exact published source version.",
+            pinnedAt: at,
+            pinnedBy: context.actorSubject,
+          })
+          .onConflictDoNothing();
       await appendAudit(database, context, {
         action: "case.playbook_version_linked",
         resourceType: "case_playbook_link",

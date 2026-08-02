@@ -4,9 +4,9 @@ Measured on August 1, 2026 against [COMMERCIAL_NORTH_STAR.md](./COMMERCIAL_NORTH
 
 ## Current state
 
-Fortify preserves a deterministic fictional Colorado renewal sandbox and now has a locally validated California brokerage wedge on the normalized production architecture: tenant-scoped PostgreSQL, OIDC-compatible identity, deny-by-default role plus assignment authorization, immutable purpose-specific access logging, private S3-compatible storage contracts, portfolio import, governed property/policy/renewal/appeal records, durable notice processing and human confirmation, external evidence requests, exact evidence readback, and immutable PDF/ZIP/manifest/letter artifacts. The current M3 tree has 78 tables, 168 database guards/triggers, and 74 authorization resource classes. It is published as draft PR #10, stacked after M2 draft PR #9, M1 draft PR #8, and M0 draft PR #7.
+Fortify preserves a deterministic fictional Colorado renewal sandbox and now has a locally validated California source-governance slice on the normalized production architecture: tenant-scoped PostgreSQL, OIDC-compatible identity, deny-by-default role plus assignment authorization, immutable purpose-specific access logging, private S3-compatible storage contracts, portfolio import, governed property/policy/renewal/appeal records, durable notice processing and human confirmation, external evidence requests, exact evidence readback, immutable PDF/ZIP/manifest/letter artifacts, and exact source-version publication/dependency/change-impact controls. The current M4 tree has 84 tables, 196 database guards/triggers, and 80 authorization resource classes. Publication is pending on a branch stacked after M3 draft PR #10, M2 draft PR #9, M1 draft PR #8, and M0 draft PR #7.
 
-The replacement north star makes California the initial production jurisdiction and expands the product into governed resilience investment, funding, independent verification, external-model mapping, explicit market commitments, and insurance-recognition outcomes. Those expanded capabilities are not implied by the existing renewal implementation. No managed deployment, rights-cleared California portfolio, authoritative California source register, real verifier, funding sponsor, model provider, insurer reviewer, backup restore, or paid pilot has been validated.
+The replacement north star makes California the initial production jurisdiction and expands the product into governed resilience investment, funding, independent verification, external-model mapping, explicit market commitments, and insurance-recognition outcomes. Those expanded capabilities are not implied by the existing renewal implementation or the local source workflow. No managed deployment, rights-cleared California portfolio or source snapshot, verified legal currentness, customer-approved source policy, real verifier, funding sponsor, model provider, insurer reviewer, backup restore, or paid pilot has been validated.
 
 ## Milestone ledger
 
@@ -16,7 +16,7 @@ The replacement north star makes California the initial production jurisdiction 
 | M1 Production data plane/sandbox | Locally validated; draft PR #8 published; deployment validation pending | Explicit sandbox/production modes; normalized PostgreSQL source of truth; 73-table graph including portfolios, parcels, unit summaries, scopes, aliases, relationships, immutable versions; governed source/effective/confidentiality/data-right fields; exact separate California fixture; idempotency/concurrency/audit; PGlite and attack contracts; no production fallback to `DemoState` | Validate selected managed PostgreSQL/PostGIS, spatial extension/query behavior, defense-in-depth RLS, performance, backup/restore, and rights-cleared California import before deployment or customer claims |
 | M2 Identity/secure evidence | Locally validated; managed deployment validation pending | OIDC/PKCE/state/nonce boundary, production-disabled local provider, opaque sessions, 18-role ceiling including operator/contractor/verifier/programme/insurer-MGA/lender-funder roles, direct/team portfolio and case assignments, purpose/permission/data-domain/expiry enforcement, immutable data-access log, external/service/support grants, private storage, quarantine/scanning, retention/legal hold, exact-byte fixture restore, functional `/access` workspace | Validate managed OIDC/MFA, PostgreSQL/RLS, private bucket/KMS/scanner, rate limiting, secrets, operational restore, and role workflows with authorized customer/partner users before deployment or external claims |
 | M3 Live brokerage wedge | Locally validated; draft PR #10 published; external acceptance pending | Complete fictional California CSV import through normalized client/community/property/building/policy, appeal case, notice intake/extraction/human-confirmed facts, governed evidence request, exact evidence version, and immutable PDF/ZIP/manifest/letter bytes; authenticated APIs and responsive `/brokerage` workspace; no production `DemoState` dependency | Validate rights-cleared brokerage data and workflow, managed PostgreSQL/OIDC/storage/scanner operation, live scoped request delivery, ten production cases, and brokerage acceptance before deployment or customer claims |
-| M4 California source/playbooks | In progress | Immutable market playbooks, source URL/version/citation/verify-current, bounded applicability, independent author/reviewer lifecycle, exact case pins, deterministic blocker-preserving readiness | Build governed California policy/programme/model/insurer source register, approved snapshots/rights, publication, supersession/change alerts, impact analysis, and target-profile-aware recognition playbooks using primary/authorised sources |
+| M4 California source/playbooks | Locally validated; publication pending; external/legal validation pending | Tenant-scoped source/version/review/publication/dependency/change-alert records; exact clean-byte/hash binding; human and separation-of-duty gates; immutable supersession; exact playbook/case impact; source-pinned playbooks; responsive source workspace and deterministic fixtures | Obtain rights-cleared snapshots and legal/currentness review; validate customer source policy and monitored change operation; add governed M5 profile/report consumers before claiming complete impact coverage |
 | M5 Profiles/interventions/capital planning | Not started | No governed target-profile or intervention registry; existing requirements and evidence types are only adjacent primitives | Versioned profiles, intervention specifications, evidence hierarchy, baseline/gap assessment, projects, transparent capital scenarios, maintenance, and real browser workflow |
 | M6 Funding/project execution | Not started | Generic tasks and maintenance events are adjacent only | Funding programmes/versions, eligibility, blended commitments, costs, milestones/dependencies, human approvals, export boundary, stakeholder benefit ledger, and scoped collaborator workflows |
 | M7 Independent verification | Not started | Human evidence review is not independent-verifier governance | Verifier organizations/credentials/conflicts, assignments, methods, findings/exceptions/corrective action, certificates/revocation, maintenance and provenance-complete conclusions |
@@ -31,12 +31,12 @@ The replacement north star makes California the initial production jurisdiction 
 | Requirement | Current evidence | Status |
 |---|---|---|
 | Production source of truth | Normalized PostgreSQL; SQLite `DemoState` isolated to sandbox | Renewal foundation locally validated; expanded domain incomplete |
-| Tenant isolation | Tenant context, organization predicates, database guards, deny-by-default role/assignment policy, cross-tenant tests | Locally validated for 74 current resource classes; every new resource still requires attack coverage |
+| Tenant isolation | Tenant context, organization predicates, database guards, deny-by-default role/assignment policy, cross-tenant tests | Locally validated for 80 current resource classes; every new resource still requires attack coverage |
 | Authentication | OIDC-compatible interface and local provider; opaque server sessions | Locally validated interface; managed provider/MFA deployment pending |
 | Secure evidence | S3-compatible signed operations, hash/MIME/size/encryption checks, quarantine/scanning, retention/legal hold, access grants | Local adapter/contract evidence only |
 | Portfolio and property | CSV/XLSX mapping, stable IDs, normalized core plus governed portfolio/parcel/unit/scope/alias/relationship/immutable-version graph, explicit separate California fixture, unavailable geometry state | Local graph validated; rights-cleared input, live spatial data, PostGIS/provider and customer validation pending |
 | Document intelligence | Durable jobs, provider/classifier/extractor versions, citations, multiple candidates, human correction/supersession | Offline selectable-text adapter only; live rights/provider validation pending |
-| Market readiness | Exact approved destination version; missing/stale/scope/contradiction/review states; blockers fail closed; no average | Locally validated renewal capability; profile/model/funding/verification readiness absent |
+| Market readiness | Exact published governed source version and approved destination version; missing/stale/scope/contradiction/review states; blockers fail closed; no average | Source/playbook layer locally validated; profile/model/funding/verification readiness absent |
 | Evidence hierarchy | No typed nine-level resilience evidence separation | Not started |
 | Capital/funding | No governed profiles, interventions, projects, capital plans, programmes, commitments, approvals, or exports | Not started |
 | Verification | No independent verifier credential/assignment/finding/certificate model | Not started |
@@ -60,22 +60,22 @@ The transformation must continue to prove:
 
 ## Last confirmed local evidence
 
-The M3 brokerage tree stacked on M2 passed the complete local release gates on August 1, 2026, including approved localhost binding for Playwright:
+The M4 source-governance tree stacked on M3 passed the complete local release gates on August 1, 2026, including approved localhost binding for Playwright:
 
 - ESLint and strict TypeScript passed.
-- Vitest: 15 files / 60 tests.
-- Repository secret scan: 250 non-ignored files.
-- Next.js build: 22 product pages / 46 API routes.
+- Vitest: 16 files / 62 tests.
+- Repository secret scan: 262 non-ignored files.
+- Next.js build: 23 product pages / 51 API routes.
 - Deterministic sandbox evaluation: 12/12.
 - Prohibited-claims scan: 18 direct patterns across runtime source and generated text artifacts.
-- Playwright: 18/18 serial desktop Chromium and Pixel 7 scenarios, including the complete brokerage request/packet flow and all preserved journeys.
-- Production schema regeneration: 78 tables, no drift; the migrated database exposes exactly 168 guards/triggers.
-- `npm audit --audit-level=moderate`: 0 vulnerabilities after a narrow development-tool esbuild override; schema generation, tests, build, and browser gates were rerun against the resulting lockfile.
-- All five production brokerage packet pages were rendered and inspected after repairing a footer overflow; the four-entry ZIP passed integrity/content review and contains the exact PDF, manifest, letter, and exhibit bytes. The preserved six-page/17-entry sandbox artifact regression also passed.
+- Playwright: 20/20 serial desktop Chromium and Pixel 7 scenarios, including governed source publication/successor impact and all preserved journeys.
+- Production schema regeneration: 84 tables, no drift; the migrated database exposes exactly 196 guards/triggers.
+- `npm audit --audit-level=moderate`: 0 vulnerabilities.
+- The preserved six-page Letter PDF was rendered and inspected; the 17-entry ZIP passed CRC and content review. The deterministic evaluator retained exact 11,602-byte PDF, 51,723-byte ZIP, and manifest hash evidence.
 - `git diff --check` passed.
-- Brokerage desktop, 834-pixel tablet, and Pixel 7 views were inspected; UTC date-only display and mobile tab visibility were repaired, rebuilt, rerun, and re-inspected with no measured document overflow.
+- Source-register desktop and Pixel 7 views were inspected; intrinsic-width overflow and pointer interception found in an early mobile run were repaired, rebuilt, rerun, and re-inspected with no observed clipping or overflow.
 
-This validates the replacement M3 live-brokerage slice locally and preserves the M0–M2 plus renewal-foundation evidence. It is not proof that M4–M12, a managed provider/PostGIS/RLS/OIDC/MFA/object-storage topology, rights-cleared customer data, live external delivery, brokerage acceptance, or any other external gate has been met.
+This validates the replacement M4 source-governance slice locally and preserves the M0–M3 plus renewal-foundation evidence. It is not proof that M5–M12, legal currentness, redistribution rights, a managed provider/PostGIS/RLS/OIDC/MFA/object-storage topology, rights-cleared customer data, live external delivery, brokerage acceptance, or any other external gate has been met.
 
 ## External validation gates
 

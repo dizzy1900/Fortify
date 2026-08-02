@@ -41,7 +41,7 @@ describe("normalized PostgreSQL tenant data plane", () => {
     const triggers = await client.query<{ trigger_name: string }>(
       "select trigger_name from information_schema.triggers where trigger_schema = 'public' order by trigger_name",
     );
-    expect(tables.rows.map((row) => row.table_name)).toHaveLength(78);
+    expect(tables.rows.map((row) => row.table_name)).toHaveLength(84);
     expect(tables.rows.map((row) => row.table_name)).not.toContain("app_state");
     const triggerNames = [
       ...new Set(triggers.rows.map((row) => row.trigger_name)),
@@ -84,6 +84,19 @@ describe("normalized PostgreSQL tenant data plane", () => {
         "playbook_versions_immutable_update",
         "playbook_version_reviews_immutable_delete",
         "case_playbook_links_immutable_update",
+        "governed_source_versions_source_tenant_guard",
+        "governed_source_versions_storage_tenant_guard",
+        "governed_source_reviews_separation_guard",
+        "governed_source_publications_approval_guard",
+        "governed_source_dependencies_consumer_guard",
+        "source_change_alerts_lineage_guard",
+        "playbook_versions_governed_source_publication_guard",
+        "governed_sources_immutable_update",
+        "governed_source_versions_immutable_update",
+        "governed_source_reviews_immutable_delete",
+        "governed_source_publications_immutable_delete",
+        "governed_source_dependencies_immutable_update",
+        "source_change_alerts_immutable_update",
         "property_portfolios_client_tenant_guard",
         "portfolio_properties_client_reference_guard",
         "portfolio_properties_property_tenant_guard",
@@ -117,7 +130,7 @@ describe("normalized PostgreSQL tenant data plane", () => {
         "submission_artifacts_no_delete",
       ]),
     );
-    expect(triggerNames).toHaveLength(168);
+    expect(triggerNames).toHaveLength(196);
   });
 
   test("isolates reads and mutations by explicit organization context", async () => {

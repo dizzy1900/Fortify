@@ -10,6 +10,7 @@ import {
   PlaybookApplicabilityError,
   PlaybookStateError,
 } from "@/lib/production/market-playbook-service";
+import { GovernedSourceService } from "@/lib/production/governed-source-service";
 import {
   tenantRecord,
   type ProductionDatabaseLike,
@@ -40,7 +41,62 @@ async function createCase(key: string) {
       renewalDate: "2027-01-01",
     },
   );
-  return { ...fixture, caseId };
+  const sourceService = new GovernedSourceService(
+    productionDatabase(),
+    () => new Date(at),
+  );
+  const source = await sourceService.createSource(fixture.context, {
+    canonicalKey: `fictional-destination-${key}`,
+    sourceClass: "insurer_mga_material",
+    issuingAuthority: "Fictional destination authority",
+    title: `Fictional destination guide ${key}`,
+    jurisdiction: "Colorado",
+    officialUrl: "https://example.test/fictional-playbook",
+    authorityTier: "customer_supplied",
+    reviewOwnerSubject: `source-owner-${key}`,
+  });
+  const sourceVersion = await sourceService.createVersion(fixture.context, {
+    sourceId: source.sourceId,
+    versionLabel: "2026.1",
+    retrievalDate: "2026-08-01",
+    sourceHash: "a".repeat(64),
+    snapshotState: "metadata_only_restricted",
+    rightsStatus: "restricted",
+    redistributionAllowed: false,
+    useRestrictions: "Fictional metadata fixture; no redistribution.",
+    structuredSummary: {
+      scope: "Deterministic test destination guidance",
+    },
+    verifyCurrentStatus: "verified_current",
+    nextReviewDate: "2026-09-01",
+    extractionMethod: "human_authored",
+    humanConfirmed: true,
+    changeSummary: "Initial test fixture.",
+  });
+  await sourceService.reviewVersion(reviewerContext(fixture), {
+    sourceVersionId: sourceVersion.sourceVersionId,
+    decision: "approved",
+    note: "Exact fixture boundary and rights reviewed.",
+    sourceCompared: true,
+    rightsConfirmed: true,
+  });
+  await sourceService.publishVersion(
+    {
+      ...fixture.context,
+      actorSubject: `publisher-${fixture.organizationId}`,
+      role: "practice_leader",
+    },
+    {
+      sourceVersionId: sourceVersion.sourceVersionId,
+      decision: "published",
+      note: "Published for deterministic test use.",
+    },
+  );
+  return {
+    ...fixture,
+    caseId,
+    governedSourceVersionId: sourceVersion.sourceVersionId,
+  };
 }
 
 async function seedRequirements(
@@ -90,7 +146,10 @@ async function seedRequirements(
   return versions;
 }
 
-function reviewerContext(fixture: Awaited<ReturnType<typeof createCase>>): TenantContext {
+function reviewerContext(fixture: {
+  context: TenantContext;
+  organizationId: string;
+}): TenantContext {
   return {
     ...fixture.context,
     actorSubject: `reviewer-${fixture.organizationId}`,
@@ -179,6 +238,7 @@ function versionInput(
     propertyClass: "condominium",
     effectiveFrom: "2026-01-01",
     effectiveTo: "2027-12-31",
+    governedSourceVersionId: fixture.governedSourceVersionId,
     sourceName: "Fictional broker-authored destination guidance",
     sourceUrl: "https://example.test/fictional-playbook",
     sourceVersion: "2026.1",

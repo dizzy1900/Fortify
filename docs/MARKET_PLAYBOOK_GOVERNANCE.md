@@ -5,10 +5,10 @@ Fortify market playbooks are tenant-owned evidence-workflow configurations. They
 ## Version and approval model
 
 - `market_playbooks` provide a stable tenant-owned identity and name.
-- Every `playbook_version` is an immutable snapshot of destination, program, jurisdiction, peril, property class, optional policy form, effective period, source/version/citation, verify-current state, change summary, and content hash.
+- Every `playbook_version` is an immutable snapshot of destination, program, jurisdiction, peril, property class, optional policy form, effective period, exact governed-source-version pin, historical source/version/citation snapshot, change summary, and content hash.
 - Requirements, freshness, accepted evidence/source types, scope, review authority, deadlines, template/delivery fields, caveats, and conditions are immutable children of the exact version.
 - A successor points to the immediately prior version. The prior version and every case link remain available; corrections never rewrite them.
-- The author cannot review the same version. Approval requires a different human organization member and `verify_current=true`. A changes-requested decision requires a successor rather than editing the reviewed version.
+- A playbook can be created only from a published, verified-current governed source version. Creation adds an immutable source dependency. The author cannot review the same playbook version, and approval rechecks that the governed source remains published and verified current. A changes-requested decision requires a successor rather than editing the reviewed version.
 - Database triggers reject update/delete of versions, rules, reviews, and case links and reject cross-organization parent references.
 
 ## Bounded applicability
@@ -19,7 +19,7 @@ An approved version matches only when its market, exact optional program, jurisd
 
 ## Case linkage and version history
 
-An authorized broker can pin the one applicable approved version to a case destination. A later pin is a new append-only link with a pointer to the prior link. The database validates approval, tenant ownership, scope, destination, and effective date before accepting a link. This preserves the rule version used for prior-case decisions and future comparison.
+An authorized broker can pin the one applicable approved version to a case destination. A later pin is a new append-only link with a pointer to the prior link. The database validates playbook approval, governed-source publication/current state, tenant ownership, scope, destination, and effective date before accepting a link. The link also adds an exact case/source dependency. This preserves the playbook and source versions used for prior-case decisions and future impact analysis.
 
 ## Deterministic evidence readiness
 
@@ -49,4 +49,4 @@ No average is used. Completed recommended items cannot offset a blocker. The out
 
 Organization owners, brokerage administrators, and practice leaders may author and independently review playbooks. Case roles may read applicable guidance; authorized case operators may pin an approved version. External contributors do not receive authoring authority.
 
-The checked-in sandbox uses fictional broker-authored sources and deterministic evidence. PGlite tests prove local PostgreSQL-compatible migration, isolation, immutability, lifecycle, applicability, and evaluation behavior. They do not prove that a carrier accepts the configuration or that a rights-cleared customer guide, managed PostgreSQL service, or production deployment has been validated.
+The checked-in Colorado sandbox uses a fictional, published broker-authored governed source and deterministic evidence. The separate `/sources` sandbox demonstrates California primary-page metadata boundaries but does not make those fixtures operative in the Colorado workflow. PGlite tests prove local PostgreSQL-compatible migration, source publication/current-state enforcement, isolation, immutability, lifecycle, applicability, and evaluation behavior. They do not prove that a carrier accepts the configuration or that a rights-cleared live source/customer guide, managed PostgreSQL service, or production deployment has been validated.
