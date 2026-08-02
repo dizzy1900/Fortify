@@ -41,7 +41,7 @@ describe("normalized PostgreSQL tenant data plane", () => {
     const triggers = await client.query<{ trigger_name: string }>(
       "select trigger_name from information_schema.triggers where trigger_schema = 'public' order by trigger_name",
     );
-    expect(tables.rows.map((row) => row.table_name)).toHaveLength(153);
+    expect(tables.rows.map((row) => row.table_name)).toHaveLength(168);
     expect(tables.rows.map((row) => row.table_name)).not.toContain("app_state");
     const triggerNames = [
       ...new Set(triggers.rows.map((row) => row.trigger_name)),
@@ -175,9 +175,27 @@ describe("normalized PostgreSQL tenant data plane", () => {
         "market_commitment_publications_separation_guard",
         "model_input_mappings_immutable_update",
         "market_commitment_versions_restricted_update",
+        "recognition_bindings_integrity_guard",
+        "recognition_mappings_integrity_guard",
+        "submission_deliveries_lineage_guard",
+        "delivery_receipts_integrity_guard",
+        "reviewer_sessions_integrity_guard",
+        "reviewer_requests_integrity_guard",
+        "reviewer_responses_integrity_guard",
+        "evidence_acceptance_integrity_guard",
+        "model_responses_integrity_guard",
+        "rating_responses_integrity_guard",
+        "underwriting_responses_integrity_guard",
+        "placement_responses_integrity_guard",
+        "funding_responses_integrity_guard",
+        "recognition_closures_integrity_guard",
+        "maintenance_roll_forward_integrity_guard",
+        "reviewer_sessions_restricted_update",
+        "recognition_bindings_immutable_update",
+        "delivery_receipts_immutable_delete",
       ]),
     );
-    expect(triggerNames).toHaveLength(454);
+    expect(triggerNames).toHaveLength(533);
   });
 
   test("isolates reads and mutations by explicit organization context", async () => {

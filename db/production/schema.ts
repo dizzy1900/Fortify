@@ -4375,6 +4375,331 @@ export const marketCommitmentPublications = pgTable(
   ],
 );
 
+export const recognitionSubmissionBindings = pgTable(
+  "recognition_submission_bindings",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    submissionVersionId: text("submission_version_id").notNull().references(() => submissionVersions.id, { onDelete: "restrict" }),
+    playbookVersionId: text("playbook_version_id").notNull().references(() => playbookVersions.id, { onDelete: "restrict" }),
+    profileVersionId: text("profile_version_id").notNull().references(() => targetProfileVersions.id, { onDelete: "restrict" }),
+    commitmentVersionId: text("commitment_version_id").references(() => marketCommitmentVersions.id, { onDelete: "restrict" }),
+    requestedAction: text("requested_action").notNull(),
+    destinationLabel: text("destination_label").notNull(),
+    deliveryMethod: text("delivery_method").notNull(),
+    readinessStatus: text("readiness_status").notNull(),
+    blockerSnapshot: jsonb("blocker_snapshot").$type<string[]>().notNull().default([]),
+    caveatSnapshot: jsonb("caveat_snapshot").$type<string[]>().notNull().default([]),
+    preparedBy: text("prepared_by").notNull(),
+    preparedAt: timestamp("prepared_at", { withTimezone: true, mode: "string" }).notNull(),
+    humanConfirmed: boolean("human_confirmed").notNull().default(false),
+  },
+  (table) => [
+    uniqueIndex("recognition_submission_bindings_org_version_unique").on(table.organizationId, table.submissionVersionId),
+    check("recognition_submission_bindings_delivery_check", sql`${table.deliveryMethod} in ('secure_review_link', 'encrypted_email', 'manual_export', 'provider_api')`),
+    check("recognition_submission_bindings_readiness_check", sql`${table.readinessStatus} in ('ready_for_human_confirmation', 'ready_with_caveats', 'blocked')`),
+    check("recognition_submission_bindings_confirmed_check", sql`${table.humanConfirmed} = true`),
+    check("recognition_submission_bindings_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const recognitionSubmissionMappings = pgTable(
+  "recognition_submission_mappings",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    submissionVersionId: text("submission_version_id").notNull().references(() => submissionVersions.id, { onDelete: "restrict" }),
+    mappingId: text("mapping_id").notNull().references(() => modelInputMappings.id, { onDelete: "restrict" }),
+    stateAtSubmission: text("state_at_submission").notNull(),
+    acceptedValueSnapshot: jsonb("accepted_value_snapshot").$type<Record<string, unknown>>(),
+  },
+  (table) => [
+    uniqueIndex("recognition_submission_mappings_org_pair_unique").on(table.organizationId, table.submissionVersionId, table.mappingId),
+    check("recognition_submission_mappings_state_check", sql`${table.stateAtSubmission} in ('submitted', 'accepted_by_model_market', 'accepted_with_modification', 'rejected', 'unsupported', 'expired')`),
+    check("recognition_submission_mappings_value_check", sql`(${table.stateAtSubmission} in ('accepted_by_model_market', 'accepted_with_modification') and ${table.acceptedValueSnapshot} is not null) or (${table.stateAtSubmission} not in ('accepted_by_model_market', 'accepted_with_modification') and ${table.acceptedValueSnapshot} is null)`),
+    check("recognition_submission_mappings_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const submissionDeliveries = pgTable(
+  "submission_deliveries",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    submissionVersionId: text("submission_version_id").notNull().references(() => submissionVersions.id, { onDelete: "restrict" }),
+    attemptNumber: integer("attempt_number").notNull(),
+    deliveryMethod: text("delivery_method").notNull(),
+    destination: text("destination").notNull(),
+    providerKey: text("provider_key").notNull(),
+    status: text("status").notNull(),
+    providerReference: text("provider_reference"),
+    failureCode: text("failure_code"),
+    deliveredBy: text("delivered_by").notNull(),
+    attemptedAt: timestamp("attempted_at", { withTimezone: true, mode: "string" }).notNull(),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true, mode: "string" }),
+    requestHash: text("request_hash").notNull(),
+    supersedesDeliveryId: text("supersedes_delivery_id").references((): AnyPgColumn => submissionDeliveries.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    uniqueIndex("submission_deliveries_org_version_attempt_unique").on(table.organizationId, table.submissionVersionId, table.attemptNumber),
+    check("submission_deliveries_attempt_check", sql`${table.attemptNumber} >= 1`),
+    check("submission_deliveries_method_check", sql`${table.deliveryMethod} in ('secure_review_link', 'encrypted_email', 'manual_export', 'provider_api')`),
+    check("submission_deliveries_status_check", sql`${table.status} in ('delivered', 'failed')`),
+    check("submission_deliveries_hash_check", sql`char_length(${table.requestHash}) = 64`),
+    check("submission_deliveries_result_check", sql`(${table.status} = 'delivered' and ${table.providerReference} is not null and ${table.deliveredAt} is not null and ${table.failureCode} is null) or (${table.status} = 'failed' and ${table.failureCode} is not null and ${table.deliveredAt} is null)`),
+    check("submission_deliveries_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const deliveryReceipts = pgTable(
+  "delivery_receipts",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    deliveryId: text("delivery_id").notNull().references(() => submissionDeliveries.id, { onDelete: "restrict" }),
+    storageObjectId: text("storage_object_id").notNull().references(() => storageObjects.id, { onDelete: "restrict" }),
+    receiptType: text("receipt_type").notNull(),
+    receiptHash: text("receipt_hash").notNull(),
+    sourceAuthority: text("source_authority").notNull(),
+    sourceReference: text("source_reference").notNull(),
+    receivedAt: timestamp("received_at", { withTimezone: true, mode: "string" }).notNull(),
+    humanConfirmed: boolean("human_confirmed").notNull().default(false),
+  },
+  (table) => [
+    uniqueIndex("delivery_receipts_org_delivery_hash_unique").on(table.organizationId, table.deliveryId, table.receiptHash),
+    check("delivery_receipts_type_check", sql`${table.receiptType} in ('provider_acknowledgement', 'review_link_created', 'manual_custody', 'recipient_acknowledgement')`),
+    check("delivery_receipts_hash_check", sql`char_length(${table.receiptHash}) = 64`),
+    check("delivery_receipts_confirmed_check", sql`${table.humanConfirmed} = true`),
+    check("delivery_receipts_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const reviewerSessions = pgTable(
+  "reviewer_sessions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    submissionVersionId: text("submission_version_id").notNull().references(() => submissionVersions.id, { onDelete: "restrict" }),
+    externalPrincipalId: text("external_principal_id").notNull().references(() => externalPrincipals.id, { onDelete: "restrict" }),
+    externalAccessGrantId: text("external_access_grant_id").notNull().references(() => externalAccessGrants.id, { onDelete: "restrict" }),
+    tokenHash: text("token_hash").notNull(),
+    allowedActions: jsonb("allowed_actions").$type<string[]>().notNull().default([]),
+    downloadAllowed: boolean("download_allowed").notNull().default(false),
+    status: text("status").notNull().default("active"),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }).notNull(),
+    openedAt: timestamp("opened_at", { withTimezone: true, mode: "string" }),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true, mode: "string" }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "string" }),
+    revocationReason: text("revocation_reason"),
+  },
+  (table) => [
+    uniqueIndex("reviewer_sessions_token_unique").on(table.tokenHash),
+    index("reviewer_sessions_org_submission_idx").on(table.organizationId, table.submissionVersionId, table.expiresAt),
+    check("reviewer_sessions_hash_check", sql`char_length(${table.tokenHash}) = 64`),
+    check("reviewer_sessions_status_check", sql`${table.status} in ('active', 'completed', 'revoked', 'expired')`),
+    check("reviewer_sessions_revocation_check", sql`(${table.status} = 'revoked' and ${table.revokedAt} is not null and ${table.revocationReason} is not null) or ${table.status} <> 'revoked'`),
+    check("reviewer_sessions_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const reviewerRequests = pgTable(
+  "reviewer_requests",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    reviewerSessionId: text("reviewer_session_id").notNull().references(() => reviewerSessions.id, { onDelete: "restrict" }),
+    submissionVersionId: text("submission_version_id").notNull().references(() => submissionVersions.id, { onDelete: "restrict" }),
+    requestType: text("request_type").notNull(),
+    originalLanguage: text("original_language").notNull(),
+    normalizedReason: text("normalized_reason").notNull(),
+    status: text("status").notNull().default("open"),
+    requestedBy: text("requested_by").notNull(),
+    requestedAt: timestamp("requested_at", { withTimezone: true, mode: "string" }).notNull(),
+    supersedesRequestId: text("supersedes_request_id").references((): AnyPgColumn => reviewerRequests.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    index("reviewer_requests_org_session_idx").on(table.organizationId, table.reviewerSessionId, table.requestedAt),
+    check("reviewer_requests_type_check", sql`${table.requestType} in ('clarification', 'additional_evidence', 'correction')`),
+    check("reviewer_requests_reason_check", sql`${table.normalizedReason} in ('scope_clarification', 'freshness_clarification', 'source_clarification', 'verifier_clarification', 'model_mapping_clarification', 'missing_evidence', 'record_correction')`),
+    check("reviewer_requests_status_check", sql`${table.status} in ('open', 'responded', 'closed', 'superseded')`),
+    check("reviewer_requests_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const reviewerRequestResponses = pgTable(
+  "reviewer_request_responses",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    reviewerRequestId: text("reviewer_request_id").notNull().references(() => reviewerRequests.id, { onDelete: "restrict" }),
+    originalLanguage: text("original_language").notNull(),
+    evidenceVersionIds: jsonb("evidence_version_ids").$type<string[]>().notNull().default([]),
+    respondedBy: text("responded_by").notNull(),
+    respondedAt: timestamp("responded_at", { withTimezone: true, mode: "string" }).notNull(),
+    humanConfirmed: boolean("human_confirmed").notNull().default(false),
+  },
+  (table) => [
+    uniqueIndex("reviewer_request_responses_org_request_unique").on(table.organizationId, table.reviewerRequestId),
+    check("reviewer_request_responses_confirmed_check", sql`${table.humanConfirmed} = true`),
+    check("reviewer_request_responses_lifecycle_check", lifecycleValues),
+  ],
+);
+
+const responseEvidenceColumns = () => ({
+  submissionVersionId: text("submission_version_id").notNull().references(() => submissionVersions.id, { onDelete: "restrict" }),
+  sourceAuthority: text("source_authority").notNull(),
+  sourceReference: text("source_reference").notNull(),
+  originalLanguage: text("original_language").notNull(),
+  normalizedReason: text("normalized_reason").notNull(),
+  humanConfirmed: boolean("human_confirmed").notNull().default(false),
+  recordedBy: text("recorded_by").notNull(),
+  recordedAt: timestamp("recorded_at", { withTimezone: true, mode: "string" }).notNull(),
+});
+
+export const evidenceAcceptanceEvents = pgTable(
+  "evidence_acceptance_events",
+  {
+    id: text("id").primaryKey(), ...tenantColumns(), ...responseEvidenceColumns(),
+    evidenceVersionId: text("evidence_version_id").notNull().references(() => evidenceVersions.id, { onDelete: "restrict" }),
+    disposition: text("disposition").notNull(),
+    supersedesEventId: text("supersedes_event_id").references((): AnyPgColumn => evidenceAcceptanceEvents.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    index("evidence_acceptance_events_org_submission_idx").on(table.organizationId, table.submissionVersionId, table.recordedAt),
+    check("evidence_acceptance_events_disposition_check", sql`${table.disposition} in ('accepted', 'partially_accepted', 'clarification_required', 'rejected', 'stale', 'wrong_scope', 'unsupported_source', 'unverifiable', 'not_applicable')`),
+    check("evidence_acceptance_events_confirmed_check", sql`${table.humanConfirmed} = true`),
+    check("evidence_acceptance_events_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const modelResponseEvents = pgTable(
+  "model_response_events",
+  {
+    id: text("id").primaryKey(), ...tenantColumns(), ...responseEvidenceColumns(),
+    mappingId: text("mapping_id").notNull().references(() => modelInputMappings.id, { onDelete: "restrict" }),
+    disposition: text("disposition").notNull(),
+    acceptedValue: jsonb("accepted_value").$type<Record<string, unknown>>(),
+    supersedesEventId: text("supersedes_event_id").references((): AnyPgColumn => modelResponseEvents.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    index("model_response_events_org_submission_idx").on(table.organizationId, table.submissionVersionId, table.recordedAt),
+    check("model_response_events_disposition_check", sql`${table.disposition} in ('input_accepted', 'input_modified', 'mapping_rejected', 'model_does_not_represent_intervention', 'model_version_changed', 'no_response')`),
+    check("model_response_events_value_check", sql`(${table.disposition} in ('input_accepted', 'input_modified') and ${table.acceptedValue} is not null) or (${table.disposition} not in ('input_accepted', 'input_modified') and ${table.acceptedValue} is null)`),
+    check("model_response_events_confirmed_check", sql`${table.humanConfirmed} = true`),
+    check("model_response_events_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const ratingTreatmentEvents = pgTable(
+  "rating_treatment_events",
+  {
+    id: text("id").primaryKey(), ...tenantColumns(), ...responseEvidenceColumns(),
+    disposition: text("disposition").notNull(),
+    governedSourceVersionId: text("governed_source_version_id").references(() => governedSourceVersions.id, { onDelete: "restrict" }),
+    supersedesEventId: text("supersedes_event_id").references((): AnyPgColumn => ratingTreatmentEvents.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    index("rating_treatment_events_org_submission_idx").on(table.organizationId, table.submissionVersionId, table.recordedAt),
+    check("rating_treatment_events_disposition_check", sql`${table.disposition} in ('filed_discount_applied', 'factor_changed', 'discount_not_applicable', 'filing_does_not_recognise_intervention', 'insufficient_evidence', 'unknown')`),
+    check("rating_treatment_events_source_check", sql`${table.disposition} not in ('filed_discount_applied', 'factor_changed') or ${table.governedSourceVersionId} is not null`),
+    check("rating_treatment_events_confirmed_check", sql`${table.humanConfirmed} = true`),
+    check("rating_treatment_events_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const underwritingTreatmentEvents = pgTable(
+  "underwriting_treatment_events",
+  {
+    id: text("id").primaryKey(), ...tenantColumns(), ...responseEvidenceColumns(),
+    disposition: text("disposition").notNull(),
+    supersedesEventId: text("supersedes_event_id").references((): AnyPgColumn => underwritingTreatmentEvents.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    index("underwriting_treatment_events_org_submission_idx").on(table.organizationId, table.submissionVersionId, table.recordedAt),
+    check("underwriting_treatment_events_disposition_check", sql`${table.disposition} in ('classification_changed', 'reconsideration_opened', 'terms_changed', 'capacity_offered', 'referred', 'no_change', 'declined', 'nonrenewed', 'quote_review_initiated')`),
+    check("underwriting_treatment_events_confirmed_check", sql`${table.humanConfirmed} = true`),
+    check("underwriting_treatment_events_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const placementResponseEvents = pgTable(
+  "placement_response_events",
+  {
+    id: text("id").primaryKey(), ...tenantColumns(), ...responseEvidenceColumns(),
+    disposition: text("disposition").notNull(),
+    termSnapshot: jsonb("term_snapshot").$type<Record<string, unknown>>(),
+    supersedesEventId: text("supersedes_event_id").references((): AnyPgColumn => placementResponseEvents.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    index("placement_response_events_org_submission_idx").on(table.organizationId, table.submissionVersionId, table.recordedAt),
+    check("placement_response_events_disposition_check", sql`${table.disposition} in ('quote', 'revised_quote', 'bind', 'renewal', 'no_quote', 'withdrawn', 'fair_plan_transition', 'voluntary_market_transition', 'lost_to_another_option')`),
+    check("placement_response_events_confirmed_check", sql`${table.humanConfirmed} = true`),
+    check("placement_response_events_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const fundingResponseEvents = pgTable(
+  "funding_response_events",
+  {
+    id: text("id").primaryKey(), ...tenantColumns(), ...responseEvidenceColumns(),
+    disposition: text("disposition").notNull(),
+    supersedesEventId: text("supersedes_event_id").references((): AnyPgColumn => fundingResponseEvents.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    index("funding_response_events_org_submission_idx").on(table.organizationId, table.submissionVersionId, table.recordedAt),
+    check("funding_response_events_disposition_check", sql`${table.disposition} in ('approved', 'conditionally_approved', 'milestone_approved', 'milestone_rejected', 'disbursement_exported', 'programme_ineligible')`),
+    check("funding_response_events_confirmed_check", sql`${table.humanConfirmed} = true`),
+    check("funding_response_events_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const recognitionCaseClosureEvents = pgTable(
+  "recognition_case_closure_events",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    caseId: text("case_id").notNull().references(() => renewalCases.id, { onDelete: "restrict" }),
+    submissionVersionId: text("submission_version_id").notNull().references(() => submissionVersions.id, { onDelete: "restrict" }),
+    closureStatus: text("closure_status").notNull(),
+    unresolvedCaveats: jsonb("unresolved_caveats").$type<string[]>().notNull().default([]),
+    note: text("note").notNull(),
+    humanConfirmed: boolean("human_confirmed").notNull().default(false),
+    decidedBy: text("decided_by").notNull(),
+    decidedAt: timestamp("decided_at", { withTimezone: true, mode: "string" }).notNull(),
+    supersedesEventId: text("supersedes_event_id").references((): AnyPgColumn => recognitionCaseClosureEvents.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    index("recognition_case_closure_events_org_case_idx").on(table.organizationId, table.caseId, table.decidedAt),
+    check("recognition_case_closure_events_status_check", sql`${table.closureStatus} in ('closed', 'closed_outcome_pending', 'reopened', 'corrected')`),
+    check("recognition_case_closure_events_confirmed_check", sql`${table.humanConfirmed} = true`),
+    check("recognition_case_closure_events_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const maintenanceRollForwards = pgTable(
+  "maintenance_roll_forwards",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    sourceCaseId: text("source_case_id").notNull().references(() => renewalCases.id, { onDelete: "restrict" }),
+    targetCaseId: text("target_case_id").notNull().references(() => renewalCases.id, { onDelete: "restrict" }),
+    maintenanceObligationId: text("maintenance_obligation_id").notNull().references(() => maintenanceObligations.id, { onDelete: "restrict" }),
+    evidenceVersionId: text("evidence_version_id").references(() => evidenceVersions.id, { onDelete: "restrict" }),
+    status: text("status").notNull(),
+    basis: text("basis").notNull(),
+    humanConfirmed: boolean("human_confirmed").notNull().default(false),
+    reviewedBy: text("reviewed_by").notNull(),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("maintenance_roll_forwards_org_target_obligation_unique").on(table.organizationId, table.targetCaseId, table.maintenanceObligationId),
+    check("maintenance_roll_forwards_distinct_cases_check", sql`${table.sourceCaseId} <> ${table.targetCaseId}`),
+    check("maintenance_roll_forwards_status_check", sql`${table.status} in ('carried_forward', 'expired', 'review_required', 'not_applicable')`),
+    check("maintenance_roll_forwards_confirmed_check", sql`${table.humanConfirmed} = true`),
+    check("maintenance_roll_forwards_lifecycle_check", lifecycleValues),
+  ],
+);
+
 export const idempotencyKeys = pgTable(
   "idempotency_keys",
   {

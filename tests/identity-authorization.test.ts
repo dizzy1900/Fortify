@@ -55,7 +55,7 @@ describe("production identity and deny-by-default authorization", () => {
 
   test("denies cross-tenant access for every production resource class", () => {
     expect(new Set(resourceClasses).size).toBe(resourceClasses.length);
-    expect(resourceClasses).toHaveLength(149);
+    expect(resourceClasses).toHaveLength(164);
     const owner: AuthorizationContext = {
       organizationId: "org-alpha",
       actorSubject: "owner-alpha",
