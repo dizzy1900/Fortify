@@ -2,7 +2,19 @@
 
 ## Current milestone
 
-M0 — Product doctrine and release-foundation reconciliation for the California Resilience Investment and Insurance Recognition OS is locally validated and published as draft PR #7 on August 1, 2026. The prior M1–M7 renewal implementation remains a locally validated reusable foundation and published stacked PR series; it is not evidence that profiles, interventions, capital plans, funding, verification, model mapping, recognition commitments, recognition submissions, programme administration, deployment, or external validation exist.
+M1 — The governed California property-graph/data-right slice is locally validated and published as draft PR #8 on August 1, 2026, stacked directly after draft PR #7. The prior M1–M7 renewal implementation remains a locally validated reusable foundation and published stacked PR series; it is not evidence that profiles, interventions, capital plans, funding, verification, model mapping, recognition commitments, recognition submissions, programme administration, deployment, or external validation exist.
+
+## Replacement north-star M1 locally validated
+
+- Expanded production persistence from 65 to 73 tables and from 126 to 147 guards/triggers for property portfolios, portfolio membership, parcels, unit summaries, typed physical scopes, aliases, cross-property relationships, and immutable property versions.
+- Added source/source-record, effective-period, confidentiality, data-right classification, and rights-recorded metadata to every new graph record. `docs/DATA_RIGHTS_AND_MOAT.md` defines the ten contract-ready classes and keeps cross-customer use prohibited by default.
+- Added an authorization-enforced `PropertyGraphService`, authenticated read/register APIs, bounded runtime input validation, one-transaction audit/idempotency coupling, and database enforcement for tenant references, client/property/building/scope integrity, immediate version lineage, and immutable snapshot history. The deny-by-default registry now covers 69 resource classes.
+- Added a deterministic California graph fixture under `org-fortify-california-fixture`, separate from the Colorado `org-fortify-sandbox`. Its two fictional properties retain two explicitly unavailable parcel boundaries, six typed scopes, reviewed aliases/relationship, and hash-bound property versions; replay is exact.
+- Added the responsive `/property-graph` workspace with production API loading/error/empty states and an explicit sandbox fixture. Portfolio/property controls and property, scope, version, and rights views are functional; unavailable geometry is never rendered as a map or score.
+- One consolidated `npm run verify` passed ESLint, strict TypeScript, 13 files/50 tests, a 225-file secret scan, the 20-page/39-API build, 12/12 deterministic evaluation, the 18-pattern claims scan, and 14/14 serial desktop/mobile Playwright scenarios. Production schema generation reported 73 tables/no drift, `npm audit --omit=dev` reported 0 vulnerabilities, and `git diff --check` passed.
+- Visually inspected the property workspace at 1280-pixel desktop, 834-pixel tablet, and Pixel 7 mobile sizes. Identity, insufficient spatial state, scope, rights, and provenance remained legible with no measured overflow or observed clipping.
+- Managed PostgreSQL/PostGIS, defense-in-depth RLS, live property boundaries, rights-cleared California input, performance/load testing, and customer validation remain explicit deployment/external gates.
+- Exact local merge-tree preflight against refreshed `origin/codex/resilience-os-foundation` succeeded. GitHub readback for draft PR #8 reported the intended base/head and `MERGEABLE`; `UNSTABLE` is the check state, not a merge conflict.
 
 ## Replacement north-star M0 locally validated
 
@@ -98,7 +110,8 @@ M0 — Product doctrine and release-foundation reconciliation for the California
 ## Next
 
 - Keep draft PR #7 stacked on M7 until the predecessor is ready; local merge-tree and GitHub both report the exact M0 stack conflict-free at publication.
-- Begin M1 by closing the California property-graph and governance gaps on the existing normalized tenant foundation: parcel, unit summary, aliases/relationships/versions, source/effective/confidentiality/data-right fields, spatial-ready boundaries, a California fixture organization, RLS evaluation, and resource-complete attack coverage.
+- Keep draft PR #8 stacked on draft PR #7, then begin M2 resilience roles, portfolio assignment, and purpose-specific data-access logging without weakening the current tenant boundary.
+- Validate the property graph against the selected managed PostgreSQL/PostGIS provider and evaluate defense-in-depth RLS; the local PGlite and nullable EPSG:4326-ready GeoJSON contracts are not provider, PostGIS, or performance evidence.
 - Validate rights-cleared brokerage exports and correspondence against the generic adapters; fixture compatibility is not certification. Validate any external OCR/document-intelligence provider only after licensing, egress, retention, credentials, security, latency, cost, and error behavior are approved.
 - Validate the M2 migration and contract suite against the selected managed PostgreSQL service; PGlite is PostgreSQL-compatible local evidence, not production-provider evidence.
 - Configure and validate a managed OIDC provider, redirect registration, MFA policy, secrets, session behavior, and rate limits in staging.

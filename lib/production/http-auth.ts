@@ -24,6 +24,7 @@ import {
   PlaybookStateError,
   PlaybookValidationError,
 } from "@/lib/production/market-playbook-service";
+import { PropertyGraphValidationError } from "@/lib/production/property-graph-service";
 import {
   StorageDeletionBlockedError,
   StorageGrantError,
@@ -113,6 +114,8 @@ export function authenticationFailure(error: unknown) {
       { error: error.message, code: error.code },
       { status: error.code === "no_match" ? 404 : 409 },
     );
+  if (error instanceof PropertyGraphValidationError)
+    return Response.json({ error: error.message }, { status: 400 });
   if (error instanceof StorageValidationError)
     return Response.json({ error: error.message }, { status: 400 });
   if (error instanceof StorageGrantError)

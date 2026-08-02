@@ -1,8 +1,8 @@
 # Production data model
 
-The PostgreSQL schema contains 65 normalized tables at the published M7 baseline. It is a reusable tenant, property, renewal, evidence, storage, document, and market-playbook foundation for the Resilience Investment and Insurance Recognition OS—not a claim that the expanded domain is implemented.
+The PostgreSQL schema contains 73 normalized tables in the M1 California property-graph tree. It is a reusable tenant, property, renewal, evidence, storage, document, market-playbook, and governed property-identity foundation for the Resilience Investment and Insurance Recognition OS—not a claim that the expanded domain is implemented.
 
-California production work must extend this model with parcel/unit/alias/relationship/property versions; governed policy/programme/model sources; typed evidence levels; target profiles; intervention specifications; baseline conditions; resilience projects and capital plans; funding programmes/commitments/milestones; independent verifiers/findings/certificates; external models and input mappings; explicit market/funder commitments; recognition submissions and separate evidence/model/rating/underwriting/placement/funding responses; longitudinal maintenance/outcomes; programme cohorts; data rights; and recognition-graph events. Each new customer-controlled resource requires tenant columns, authorization, database guards, audit coupling, and attack tests before it counts as implemented.
+California production work must still extend this model with governed policy/programme/model sources; typed evidence levels; target profiles; intervention specifications; baseline conditions; resilience projects and capital plans; funding programmes/commitments/milestones; independent verifiers/findings/certificates; external models and input mappings; explicit market/funder commitments; recognition submissions and separate evidence/model/rating/underwriting/placement/funding responses; longitudinal maintenance/outcomes; programme cohorts; consent/cohort data-right controls; and recognition-graph events. Each new customer-controlled resource requires tenant columns, authorization, database guards, audit coupling, and attack tests before it counts as implemented.
 
 ## Organizations and access foundation
 
@@ -27,8 +27,18 @@ California production work must extend this model with parcel/unit/alias/relatio
 - `property_identifiers`: source-specific broker, manager, parcel, or provider identifiers with review state.
 - `locations`: normalized address and geospatial coordinates.
 - `buildings`: stable building identity within a property.
+- `property_portfolios`: tenant-owned property-book identity with exact jurisdiction, primary peril, source/effective period, confidentiality, and data-right metadata.
+- `portfolio_properties`: governed property membership in a portfolio; cross-tenant membership is database-rejected.
+- `parcels`: parcel identity plus explicit `available`, `unavailable`, `pending_review`, or `invalid` geometry state. GeoJSON payloads are EPSG:4326-ready but optional; no geometry is inferred.
+- `unit_summaries`: property/building-scoped unit groups and occupancy type without inventing unit-level identities.
+- `property_scopes`: typed community, parcel, building, building-group, unit-summary, landscape-zone, access-route, and shared-infrastructure applicability nodes.
+- `property_aliases`: source-specific aliases with explicit review state; an alias alone never merges records.
+- `property_relationships`: reviewed directional relationships between properties in the same tenant.
+- `property_versions`: immutable hash-bound property snapshots with immediate-predecessor lineage.
 
 Ambiguous records are not merged by name. Import reconciliation creates reviewed identifiers only after explicit human confirmation.
+
+Every governed graph record retains source, optional source-record identifier, effective period, confidentiality, data-right classification, and rights-recorded state. These classifications and their limits are defined in [DATA_RIGHTS_AND_MOAT.md](./DATA_RIGHTS_AND_MOAT.md).
 
 ## Portfolio import
 
@@ -117,6 +127,10 @@ Audit events and requirement/evidence/submission/playbook versions cannot be upd
 
 `migrateDemoSeedToProduction` maps the deterministic fixture into the explicit synthetic organization `org-fortify-sandbox`. It creates normalized books, clients, communities, properties, locations, buildings, markets, programs, policies, cases, notice sources/passages, requirement versions, evidence versions/links, contradictions, tasks, submission versions/items, responses, outcomes, maintenance, audit, and one idempotent receipt. A repeated identical seed is a replay; reused version text with different content is rejected.
 
+## California fixture
+
+`seedCaliforniaPropertyGraphFixture` creates the explicit synthetic organization `org-fortify-california-fixture`, two fictional California properties, two parcels whose boundaries remain unavailable, six typed scope nodes, reviewed aliases/relationship, and immutable version snapshots. It is distinct from `org-fortify-sandbox`; loading or querying one tenant does not expose the other.
+
 ## Deliberately deferred entities
 
-The north star also names richer coverage, parcel/relationship/version, collaboration, checklist, delivery, reviewer-session, consent/data-right, export/deletion-request, and integration entities. They are introduced with their owning milestones rather than represented by unused placeholder tables. `docs/IMPLEMENTATION_STATUS.md` remains authoritative about what is implemented.
+The north star also names richer coverage, collaboration, checklist, delivery, reviewer-session, consent/data-right, export/deletion-request, and integration entities. They are introduced with their owning milestones rather than represented by unused placeholder tables. Record-level data-right classification is implemented for the M1 property graph; consent, cohort, de-identification, suppression, and benchmark workflows remain deferred. `docs/IMPLEMENTATION_STATUS.md` remains authoritative about what is implemented.

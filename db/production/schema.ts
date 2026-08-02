@@ -107,6 +107,40 @@ const tenantColumns = () => ({
   deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
 });
 
+const governedGraphColumns = () => ({
+  sourceSystem: text("source_system").notNull().default("manual"),
+  sourceRecordId: text("source_record_id"),
+  effectiveFrom: date("effective_from", { mode: "string" }),
+  effectiveTo: date("effective_to", { mode: "string" }),
+  confidentialityState: text("confidentiality_state")
+    .notNull()
+    .default("tenant_confidential"),
+  dataRightClass: text("data_right_class")
+    .notNull()
+    .default("property_specific_data"),
+  rightsVerified: boolean("rights_verified").notNull().default(false),
+});
+
+const governedGraphChecks = (table: {
+  effectiveFrom: AnyPgColumn;
+  effectiveTo: AnyPgColumn;
+  confidentialityState: AnyPgColumn;
+  dataRightClass: AnyPgColumn;
+}) => [
+  check(
+    `${table.effectiveFrom.name.replace("effective_from", "governed")}_effective_period_check`,
+    sql`${table.effectiveTo} is null or ${table.effectiveFrom} is null or ${table.effectiveTo} >= ${table.effectiveFrom}`,
+  ),
+  check(
+    `${table.confidentialityState.name.replace("confidentiality_state", "governed")}_confidentiality_check`,
+    sql`${table.confidentialityState} in ('public', 'tenant_confidential', 'carrier_confidential', 'restricted')`,
+  ),
+  check(
+    `${table.dataRightClass.name.replace("data_right_class", "governed")}_data_right_check`,
+    sql`${table.dataRightClass} in ('raw_customer_document', 'personally_identifiable', 'property_specific_data', 'carrier_confidential_material', 'customer_specific_playbook', 'fortify_generic_ontology', 'software_telemetry', 'deidentified_derived_event', 'cross_customer_benchmark', 'model_provider_restricted')`,
+  ),
+];
+
 export const memberships = pgTable(
   "memberships",
   {
@@ -803,6 +837,35 @@ export const clients = pgTable(
   ],
 );
 
+export const propertyPortfolios = pgTable(
+  "property_portfolios",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    ...governedGraphColumns(),
+    clientId: text("client_id")
+      .notNull()
+      .references(() => clients.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
+    jurisdiction: text("jurisdiction").notNull(),
+    primaryPeril: text("primary_peril").notNull(),
+    description: text("description").notNull().default(""),
+  },
+  (table) => [
+    uniqueIndex("property_portfolios_org_source_unique").on(
+      table.organizationId,
+      table.sourceSystem,
+      table.sourceRecordId,
+    ),
+    index("property_portfolios_org_client_idx").on(
+      table.organizationId,
+      table.clientId,
+    ),
+    ...governedGraphChecks(table),
+    check("property_portfolios_lifecycle_check", lifecycleValues),
+  ],
+);
+
 export const communities = pgTable(
   "communities",
   {
@@ -934,6 +997,260 @@ export const buildings = pgTable(
       table.label,
     ),
     check("buildings_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const portfolioProperties = pgTable(
+  "portfolio_properties",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    ...governedGraphColumns(),
+    portfolioId: text("portfolio_id")
+      .notNull()
+      .references(() => propertyPortfolios.id, { onDelete: "restrict" }),
+    propertyId: text("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "restrict" }),
+    relationshipStatus: text("relationship_status")
+      .notNull()
+      .default("active"),
+  },
+  (table) => [
+    uniqueIndex("portfolio_properties_org_pair_unique").on(
+      table.organizationId,
+      table.portfolioId,
+      table.propertyId,
+      table.effectiveFrom,
+    ),
+    index("portfolio_properties_org_property_idx").on(
+      table.organizationId,
+      table.propertyId,
+    ),
+    ...governedGraphChecks(table),
+    check(
+      "portfolio_properties_status_check",
+      sql`${table.relationshipStatus} in ('active', 'pending_review', 'ended')`,
+    ),
+    check("portfolio_properties_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const parcels = pgTable(
+  "parcels",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    ...governedGraphColumns(),
+    propertyId: text("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "restrict" }),
+    label: text("label").notNull(),
+    parcelNumber: text("parcel_number"),
+    boundaryGeojson: jsonb("boundary_geojson").$type<Record<string, unknown>>(),
+    spatialReference: text("spatial_reference").notNull().default("EPSG:4326"),
+    geometryStatus: text("geometry_status").notNull().default("unavailable"),
+  },
+  (table) => [
+    uniqueIndex("parcels_org_property_label_unique").on(
+      table.organizationId,
+      table.propertyId,
+      table.label,
+    ),
+    index("parcels_org_number_idx").on(
+      table.organizationId,
+      table.parcelNumber,
+    ),
+    ...governedGraphChecks(table),
+    check(
+      "parcels_geometry_status_check",
+      sql`${table.geometryStatus} in ('unavailable', 'unreviewed', 'confirmed', 'rejected')`,
+    ),
+    check(
+      "parcels_boundary_state_check",
+      sql`(${table.boundaryGeojson} is null and ${table.geometryStatus} in ('unavailable', 'rejected')) or (${table.boundaryGeojson} is not null and ${table.geometryStatus} in ('unreviewed', 'confirmed'))`,
+    ),
+    check("parcels_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const unitSummaries = pgTable(
+  "unit_summaries",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    ...governedGraphColumns(),
+    propertyId: text("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "restrict" }),
+    buildingId: text("building_id").references(() => buildings.id, {
+      onDelete: "restrict",
+    }),
+    label: text("label").notNull(),
+    unitCount: integer("unit_count").notNull(),
+    occupancyType: text("occupancy_type").notNull(),
+  },
+  (table) => [
+    uniqueIndex("unit_summaries_org_property_label_unique").on(
+      table.organizationId,
+      table.propertyId,
+      table.label,
+      table.effectiveFrom,
+    ),
+    ...governedGraphChecks(table),
+    check("unit_summaries_count_check", sql`${table.unitCount} >= 0`),
+    check("unit_summaries_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const propertyScopes = pgTable(
+  "property_scopes",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    ...governedGraphColumns(),
+    propertyId: text("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "restrict" }),
+    parcelId: text("parcel_id").references(() => parcels.id, {
+      onDelete: "restrict",
+    }),
+    buildingId: text("building_id").references(() => buildings.id, {
+      onDelete: "restrict",
+    }),
+    unitSummaryId: text("unit_summary_id").references(() => unitSummaries.id, {
+      onDelete: "restrict",
+    }),
+    scopeType: text("scope_type").notNull(),
+    label: text("label").notNull(),
+    details: jsonb("details").$type<Record<string, unknown>>().notNull().default({}),
+  },
+  (table) => [
+    uniqueIndex("property_scopes_org_property_type_label_unique").on(
+      table.organizationId,
+      table.propertyId,
+      table.scopeType,
+      table.label,
+      table.effectiveFrom,
+    ),
+    ...governedGraphChecks(table),
+    check(
+      "property_scopes_type_check",
+      sql`${table.scopeType} in ('community', 'parcel', 'building', 'building_group', 'unit_summary', 'landscape_zone', 'access_route', 'shared_infrastructure')`,
+    ),
+    check("property_scopes_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const propertyAliases = pgTable(
+  "property_aliases",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    ...governedGraphColumns(),
+    propertyId: text("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "restrict" }),
+    alias: text("alias").notNull(),
+    aliasType: text("alias_type").notNull(),
+    reviewStatus: text("review_status").notNull().default("unreviewed"),
+  },
+  (table) => [
+    uniqueIndex("property_aliases_org_alias_unique").on(
+      table.organizationId,
+      table.propertyId,
+      table.alias,
+      table.sourceSystem,
+      table.effectiveFrom,
+    ),
+    ...governedGraphChecks(table),
+    check(
+      "property_aliases_review_check",
+      sql`${table.reviewStatus} in ('unreviewed', 'confirmed', 'rejected', 'superseded')`,
+    ),
+    check("property_aliases_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const propertyRelationships = pgTable(
+  "property_relationships",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    ...governedGraphColumns(),
+    fromPropertyId: text("from_property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "restrict" }),
+    toPropertyId: text("to_property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "restrict" }),
+    relationshipType: text("relationship_type").notNull(),
+    scopeLabel: text("scope_label").notNull().default(""),
+    reviewStatus: text("review_status").notNull().default("unreviewed"),
+  },
+  (table) => [
+    uniqueIndex("property_relationships_org_pair_unique").on(
+      table.organizationId,
+      table.fromPropertyId,
+      table.toPropertyId,
+      table.relationshipType,
+      table.effectiveFrom,
+    ),
+    ...governedGraphChecks(table),
+    check(
+      "property_relationships_distinct_check",
+      sql`${table.fromPropertyId} <> ${table.toPropertyId}`,
+    ),
+    check(
+      "property_relationships_review_check",
+      sql`${table.reviewStatus} in ('unreviewed', 'confirmed', 'rejected', 'superseded')`,
+    ),
+    check("property_relationships_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const propertyVersions = pgTable(
+  "property_versions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    ...governedGraphColumns(),
+    propertyId: text("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "restrict" }),
+    versionNumber: integer("version_number").notNull(),
+    snapshot: jsonb("snapshot").$type<Record<string, unknown>>().notNull(),
+    snapshotHash: text("snapshot_hash").notNull(),
+    changeSummary: text("change_summary").notNull(),
+    supersedesId: text("supersedes_id").references(
+      (): AnyPgColumn => propertyVersions.id,
+      { onDelete: "restrict" },
+    ),
+    recordedAt: timestamp("recorded_at", {
+      withTimezone: true,
+      mode: "string",
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("property_versions_org_property_version_unique").on(
+      table.organizationId,
+      table.propertyId,
+      table.versionNumber,
+    ),
+    uniqueIndex("property_versions_org_hash_unique").on(
+      table.organizationId,
+      table.propertyId,
+      table.snapshotHash,
+    ),
+    ...governedGraphChecks(table),
+    check("property_versions_number_check", sql`${table.versionNumber} >= 1`),
+    check(
+      "property_versions_hash_check",
+      sql`char_length(${table.snapshotHash}) = 64`,
+    ),
+    check("property_versions_lifecycle_check", lifecycleValues),
   ],
 );
 

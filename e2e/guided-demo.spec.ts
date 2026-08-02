@@ -112,6 +112,7 @@ test("public page and all workspace routes are healthy", async ({ page }) => {
     "/sign-in",
     "/demo",
     "/portfolio",
+    "/property-graph",
     "/imports",
     "/documents",
     "/playbooks",
@@ -132,6 +133,69 @@ test("public page and all workspace routes are healthy", async ({ page }) => {
     const response = await page.goto(route);
     expect(response?.status(), route).toBe(200);
     await expect(page.locator("body")).not.toBeEmpty();
+  }
+});
+
+test("California property graph preserves identity, missing geometry, provenance, and tenant boundaries", async ({ page }, testInfo) => {
+  await page.goto("/property-graph");
+  await expect(
+    page.getByRole("heading", { name: "California property evidence graph" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Synthetic California development fixture", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/Separate organization and records from the preserved fictional Colorado/),
+  ).toBeVisible();
+  await expect(page.getByText("No approved parcel geometry")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Boundary unavailable" })).toBeVisible();
+
+  const assertNoOverflow = async () => {
+    const overflow = await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth >
+        document.documentElement.clientWidth,
+    );
+    expect(overflow).toBe(false);
+  };
+
+  await assertNoOverflow();
+  await page.getByRole("button", { name: "Scope graph" }).click();
+  await expect(page.getByRole("heading", { name: "Physical scope graph" })).toBeVisible();
+  await expect(page.getByText("Entire fictional association")).toBeVisible();
+  await expect(page.getByText("Fictional Ridge Access Road")).toBeVisible();
+
+  await page
+    .getByLabel("Property selector")
+    .selectOption("property-ca-fixture-canyon-court");
+  await expect(page.getByText("Shared access route", { exact: true })).toBeVisible();
+  await expect(page.getByText("Shared water infrastructure")).toBeVisible();
+
+  await page.getByRole("button", { name: "Versions" }).click();
+  await expect(page.getByText("Immutable", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Rights & provenance" }).click();
+  await expect(page.getByRole("heading", { name: "Tenant-controlled use" })).toBeVisible();
+  await expect(page.getByText("prohibited", { exact: true })).toBeVisible();
+
+  if (testInfo.project.name === "chromium") {
+    await page.getByRole("button", { name: "Property record" }).click();
+    await page.screenshot({
+      path: "test-results/visual-inspection/property-graph-desktop.png",
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 834, height: 1112 });
+    await page.reload();
+    await assertNoOverflow();
+    await page.screenshot({
+      path: "test-results/visual-inspection/property-graph-tablet.png",
+      fullPage: true,
+    });
+  } else {
+    await assertNoOverflow();
+    await page.screenshot({
+      path: "test-results/visual-inspection/property-graph-mobile.png",
+      fullPage: true,
+    });
   }
 });
 
