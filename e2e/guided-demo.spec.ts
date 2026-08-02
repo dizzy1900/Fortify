@@ -122,6 +122,7 @@ test("public page and all workspace routes are healthy", async ({ page }) => {
     "/resilience-planning",
     "/funding",
     "/verification",
+    "/model-recognition",
     "/community",
     "/policy",
     "/notice",
@@ -718,4 +719,40 @@ test("independent verification preserves assignment, evidence, correction, certi
   await page.getByRole("button", { name: "Findings & exceptions" }).click();
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: testInfo.project.name === "chromium" ? "test-results/visual-inspection/independent-verification-desktop.png" : testInfo.project.name === "tablet" ? "test-results/visual-inspection/independent-verification-tablet.png" : "test-results/visual-inspection/independent-verification-mobile.png", fullPage: true });
+});
+
+test("model recognition keeps proposals, external acceptance, and review-only commitments separate", async ({ page }, testInfo) => {
+  await page.goto("/model-recognition");
+  await expect(page.getByRole("heading", { name: "Trace what was proposed. Prove what was accepted." })).toBeVisible();
+  await expect(page.getByText("External-authority boundary", { exact: true })).toBeVisible();
+  await expect(page.getByText(/does not calculate risk, set rates, bind coverage/)).toBeVisible();
+  await expect(page.locator(".recognition-gate strong").getByText("Accepted with modification", { exact: true })).toBeVisible();
+  await expect(page.getByText("Class A documented", { exact: true })).toBeVisible();
+  await expect(page.getByText("Class A — documentation accepted with property-level qualifier", { exact: true })).toBeVisible();
+
+  await page.getByLabel("Review model mapping state").selectOption("submitted");
+  await expect(page.getByText("Submitted for external review", { exact: true })).toBeVisible();
+  await expect(page.getByText("No acceptance evidence", { exact: true })).toBeVisible();
+  await page.getByLabel("Review model mapping state").selectOption("unsupported");
+  await expect(page.getByText("Input unsupported", { exact: true })).toBeVisible();
+  await expect(page.getByText("No supported transformation", { exact: true })).toBeVisible();
+  await page.getByLabel("Review model mapping state").selectOption("accepted_with_modification");
+  await page.getByRole("button", { name: "Inspect decision record" }).click();
+  await expect(page.getByText(/never overwrites Fortify’s proposal/)).toBeVisible();
+
+  await page.getByRole("button", { name: "Model register" }).click();
+  await expect(page.getByText("Exact source, limited use", { exact: true })).toBeVisible();
+  await expect(page.getByText("Fire response time", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Market commitments" }).click();
+  await expect(page.getByRole("heading", { name: "Will review ≠ will insure" })).toBeVisible();
+  await expect(page.getByText("Review-only authority", { exact: true })).toBeVisible();
+  await page.getByLabel("Review model mapping state").selectOption("no_commitment");
+  await expect(page.getByRole("heading", { name: "No explicit market commitment" })).toBeVisible();
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+  expect(overflow).toBe(false);
+  await page.getByLabel("Review model mapping state").selectOption("accepted_with_modification");
+  await page.getByRole("button", { name: "Input mapping" }).click();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: testInfo.project.name === "chromium" ? "test-results/visual-inspection/model-recognition-desktop.png" : testInfo.project.name === "tablet" ? "test-results/visual-inspection/model-recognition-tablet.png" : "test-results/visual-inspection/model-recognition-mobile.png", fullPage: true });
 });
