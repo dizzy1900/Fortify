@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M8 — The external-model registry, evidence-bound input mapping, separate external-acceptance history, and explicit authority-scoped market-commitment slice is implemented and locally validated. Publication is pending on a branch stacked directly on M7. It does not prove model validity, semantic acceptance, carrier authority, an enforceable commitment, insurance treatment, customer use, deployment, or external validation.
+M8 — The external-model registry, evidence-bound input mapping, separate external-acceptance history, and explicit authority-scoped market-commitment slice is implemented, locally validated, and published in stacked draft PR [#15](https://github.com/dizzy1900/Fortify/pull/15). It does not prove model validity, semantic acceptance, carrier authority, an enforceable commitment, insurance treatment, customer use, deployment, or external validation.
 
 ## Replacement north-star M8 locally validated
 
@@ -13,6 +13,7 @@ M8 — The external-model registry, evidence-bound input mapping, separate exter
 - Added the responsive `/model-recognition` workspace with functioning model, mapping, commitment, lineage, and fail-closed scenario controls plus populated, loading, error, and empty behavior. Desktop, 834-pixel tablet, and Pixel 7 captures were inspected without clipping, collision, or measured document-width overflow.
 - Local gates pass: ESLint, strict TypeScript, 20 Vitest files/78 tests, 343-file secret scan, 27-page/101-API production build, 12/12 deterministic evaluation, 18-pattern claims scan, and 42/42 serial Playwright scenarios across desktop, tablet, and mobile. Production schema generation reports 153 tables/no drift; `npm audit --audit-level=moderate` reports 0 vulnerabilities.
 - The preserved six-page PDF rendered cleanly at every page; the 17-entry ZIP passed CRC and content inventory review. Exact artifact evidence remains 11,602-byte PDF, 51,723-byte ZIP, and manifest hash `47c5de9b8c2da8dfc040951b57697a2081fec8f1b3817e5148480aefaf9aef9a`.
+- Published branch `codex/m8-model-mapping-commitments` as stacked draft PR [#15](https://github.com/dizzy1900/Fortify/pull/15) against `codex/m7-independent-verification`. The initial remote head was `b7bec667ac7c1f1903f8597da97df1019f559477`; local `git merge-tree --write-tree` produced `d8e4d6fbb82cb9af6f1dc928d0a90f85adb98817`, and GitHub reported “No conflicts with base branch.”
 - All model/provider/market/insurer records and responses are deterministic fictional fixtures. No model validity, semantic mapping acceptance, carrier authority, commitment enforceability, insurance outcome, rights-cleared source, managed deployment, or customer reliance has been validated. M9 recognition submission and response/outcome separation is next.
 
 ## Replacement north-star M7 locally validated and published
