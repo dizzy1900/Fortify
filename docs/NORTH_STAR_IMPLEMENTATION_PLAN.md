@@ -90,6 +90,8 @@ Exit evidence: immutable submissions/delivery, reviewer isolation, idempotent de
 
 Add sponsor cohort administration, programme dashboard, stakeholder benefit ledger, governed recognition-graph events, tenant-only descriptive analytics, brokerage ROI, programme outcomes, and opt-in/de-identification/suppression controls for any cross-customer aggregate.
 
+Local state: the normalized M10 slice is locally validated with exact published programme/profile cohort pins, immutable membership and recognition-graph events, independent analytics-policy governance, tenant-only descriptive snapshots with denominators, customer-confirmation gates for workflow baselines, exact JSON/CSV report bytes, governed source lineage, and fail-closed cross-customer execution. Real customer baselines, contractual aggregate rights, programme outcomes, managed deployment, and customer/programme validation remain external.
+
 Exit evidence: exportable reports, customer-confirmed baselines, privacy attacks, cohort thresholds, no predictive acceptance/premium claims, and no causal loss-reduction claim without evaluation design.
 
 ### M11 — Production integrations

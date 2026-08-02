@@ -36,7 +36,7 @@ export type SourceImpactReport = {
     playbooks: Array<{ id: string; versionId: string; name: string }>;
     cases: Array<{ id: string; title: string; renewalDate: string }>;
     profiles: { state: "available"; items: Array<{ id: string; versionId: string; name: string }> };
-    reports: { state: "unavailable_not_implemented"; items: [] };
+    reports: { state: "available"; items: Array<{ id: string; title: string; reportType: string }> };
   };
   limitations: string[];
 };
@@ -495,7 +495,7 @@ export class GovernedSourceService {
             schema.governedSourceDependencies.sourceVersionId,
             fromVersionId,
           ),
-          eq(schema.governedSourceDependencies.relationship, "relied_on"),
+          inArray(schema.governedSourceDependencies.relationship, ["relied_on", "input_lineage"]),
         ),
       )
       .orderBy(asc(schema.governedSourceDependencies.pinnedAt));
@@ -507,6 +507,9 @@ export class GovernedSourceService {
       .map((item) => item.consumerId);
     const profileVersionIds = dependencies
       .filter((item) => item.consumerType === "target_profile_version")
+      .map((item) => item.consumerId);
+    const reportIds = dependencies
+      .filter((item) => item.consumerType === "analytics_report")
       .map((item) => item.consumerId);
     const playbooks = playbookIds.length
       ? await database
@@ -558,6 +561,12 @@ export class GovernedSourceService {
           .innerJoin(schema.targetProfiles, and(eq(schema.targetProfiles.id, schema.targetProfileVersions.profileId), eq(schema.targetProfiles.organizationId, context.organizationId)))
           .where(and(eq(schema.targetProfileVersions.organizationId, context.organizationId), inArray(schema.targetProfileVersions.id, profileVersionIds)))
       : [];
+    const reports = reportIds.length
+      ? await database
+          .select({ id: schema.analyticsReports.id, title: schema.analyticsReports.title, reportType: schema.analyticsReports.reportType })
+          .from(schema.analyticsReports)
+          .where(and(eq(schema.analyticsReports.organizationId, context.organizationId), inArray(schema.analyticsReports.id, reportIds)))
+      : [];
     return {
       sourceId,
       fromVersionId,
@@ -567,11 +576,11 @@ export class GovernedSourceService {
         playbooks,
         cases,
         profiles: { state: "available", items: profiles },
-        reports: { state: "unavailable_not_implemented", items: [] },
+        reports: { state: "available", items: reports },
       },
       limitations: [
         "Profile impact identifies exact source reliance; it never changes a published profile automatically.",
-        "Governed report dependencies are scheduled for a later milestone and remain unavailable.",
+        "Report impact identifies exact source lineage; it never mutates or republishes a generated report automatically.",
         "Impact identifies reliance; it does not automatically change an operative playbook or case.",
       ],
     };
@@ -840,7 +849,7 @@ export class GovernedSourceService {
       dependencies,
       alerts,
       unavailableImpactTargets: {
-        reports: "Governed report dependencies are not implemented.",
+        reports: "Generated analytics reports preserve exact source-version lineage and require explicit regeneration after source change.",
       },
       doctrine: {
         extractedRulesAutomaticallyOperative: false,

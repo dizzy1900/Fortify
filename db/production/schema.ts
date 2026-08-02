@@ -2179,11 +2179,11 @@ export const governedSourceDependencies = pgTable(
     ),
     check(
       "governed_source_dependencies_consumer_check",
-      sql`${table.consumerType} in ('playbook_version', 'renewal_case', 'target_profile_version', 'external_model_version', 'market_commitment_version')`,
+      sql`${table.consumerType} in ('playbook_version', 'renewal_case', 'target_profile_version', 'external_model_version', 'market_commitment_version', 'analytics_report')`,
     ),
     check(
       "governed_source_dependencies_relationship_check",
-      sql`${table.relationship} in ('relied_on', 'reference_only')`,
+      sql`${table.relationship} in ('relied_on', 'reference_only', 'input_lineage')`,
     ),
     check("governed_source_dependencies_lifecycle_check", lifecycleValues),
   ],
@@ -4697,6 +4697,315 @@ export const maintenanceRollForwards = pgTable(
     check("maintenance_roll_forwards_status_check", sql`${table.status} in ('carried_forward', 'expired', 'review_required', 'not_applicable')`),
     check("maintenance_roll_forwards_confirmed_check", sql`${table.humanConfirmed} = true`),
     check("maintenance_roll_forwards_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const programmeCohorts = pgTable(
+  "programme_cohorts",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    fundingProgrammeId: text("funding_programme_id").notNull().references(() => fundingProgrammes.id, { onDelete: "restrict" }),
+    canonicalKey: text("canonical_key").notNull(),
+    name: text("name").notNull(),
+    sponsorName: text("sponsor_name").notNull(),
+    description: text("description").notNull(),
+    ownerSubject: text("owner_subject").notNull(),
+  },
+  (table) => [
+    uniqueIndex("programme_cohorts_org_key_unique").on(table.organizationId, table.canonicalKey),
+    check("programme_cohorts_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const programmeCohortVersions = pgTable(
+  "programme_cohort_versions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    cohortId: text("cohort_id").notNull().references(() => programmeCohorts.id, { onDelete: "restrict" }),
+    versionNumber: integer("version_number").notNull(),
+    programmeVersionId: text("programme_version_id").notNull().references(() => fundingProgrammeVersions.id, { onDelete: "restrict" }),
+    profileVersionId: text("profile_version_id").notNull().references(() => targetProfileVersions.id, { onDelete: "restrict" }),
+    geography: text("geography").notNull(),
+    propertyClass: text("property_class").notNull(),
+    effectiveFrom: date("effective_from", { mode: "string" }).notNull(),
+    effectiveTo: date("effective_to", { mode: "string" }),
+    state: text("state").notNull().default("draft"),
+    methodologyVersion: text("methodology_version").notNull(),
+    limitations: text("limitations").notNull(),
+    authorSubject: text("author_subject").notNull(),
+    activatedBy: text("activated_by"),
+    activatedAt: timestamp("activated_at", { withTimezone: true, mode: "string" }),
+    humanConfirmed: boolean("human_confirmed").notNull().default(false),
+    supersedesVersionId: text("supersedes_version_id").references((): AnyPgColumn => programmeCohortVersions.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    uniqueIndex("programme_cohort_versions_org_number_unique").on(table.organizationId, table.cohortId, table.versionNumber),
+    check("programme_cohort_versions_number_check", sql`${table.versionNumber} >= 1`),
+    check("programme_cohort_versions_state_check", sql`${table.state} in ('draft', 'active', 'superseded', 'closed', 'withdrawn')`),
+    check("programme_cohort_versions_period_check", sql`${table.effectiveTo} is null or ${table.effectiveTo} >= ${table.effectiveFrom}`),
+    check("programme_cohort_versions_activation_check", sql`${table.state} <> 'active' or (${table.humanConfirmed} = true and ${table.activatedBy} is not null and ${table.activatedAt} is not null)`),
+    check("programme_cohort_versions_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const programmeCohortMembershipEvents = pgTable(
+  "programme_cohort_membership_events",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    cohortVersionId: text("cohort_version_id").notNull().references(() => programmeCohortVersions.id, { onDelete: "restrict" }),
+    propertyId: text("property_id").notNull().references(() => properties.id, { onDelete: "restrict" }),
+    caseId: text("case_id").references(() => renewalCases.id, { onDelete: "restrict" }),
+    projectId: text("project_id").references(() => resilienceProjects.id, { onDelete: "restrict" }),
+    eventType: text("event_type").notNull(),
+    reason: text("reason").notNull(),
+    source: text("source").notNull(),
+    humanConfirmed: boolean("human_confirmed").notNull().default(false),
+    decidedBy: text("decided_by").notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true, mode: "string" }).notNull(),
+    supersedesEventId: text("supersedes_event_id").references((): AnyPgColumn => programmeCohortMembershipEvents.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    check("programme_cohort_membership_type_check", sql`${table.eventType} in ('applicant', 'qualified', 'ineligible', 'insufficient_evidence', 'project_started', 'project_completed', 'removed', 'corrected')`),
+    check("programme_cohort_membership_confirmed_check", sql`${table.humanConfirmed} = true`),
+    check("programme_cohort_membership_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const analyticsPolicyVersions = pgTable(
+  "analytics_policy_versions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    versionNumber: integer("version_number").notNull(),
+    mode: text("mode").notNull(),
+    contractReference: text("contract_reference"),
+    minimumCohortSize: integer("minimum_cohort_size").notNull().default(10),
+    deidentificationMethod: text("deidentification_method").notNull(),
+    suppressionThreshold: integer("suppression_threshold").notNull().default(10),
+    allowedMetricFamilies: jsonb("allowed_metric_families").$type<string[]>().notNull().default([]),
+    retentionDays: integer("retention_days").notNull(),
+    deletionTreatment: text("deletion_treatment").notNull(),
+    optInConfirmed: boolean("opt_in_confirmed").notNull().default(false),
+    authorSubject: text("author_subject").notNull(),
+    effectiveFrom: date("effective_from", { mode: "string" }).notNull(),
+    effectiveTo: date("effective_to", { mode: "string" }),
+    status: text("status").notNull().default("draft"),
+    supersedesVersionId: text("supersedes_version_id").references((): AnyPgColumn => analyticsPolicyVersions.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    uniqueIndex("analytics_policy_versions_org_number_unique").on(table.organizationId, table.versionNumber),
+    check("analytics_policy_versions_number_check", sql`${table.versionNumber} >= 1`),
+    check("analytics_policy_versions_mode_check", sql`${table.mode} in ('tenant_only', 'cross_customer_opt_in')`),
+    check("analytics_policy_versions_status_check", sql`${table.status} in ('draft', 'reviewed', 'published', 'superseded', 'withdrawn')`),
+    check("analytics_policy_versions_threshold_check", sql`${table.minimumCohortSize} >= 10 and ${table.suppressionThreshold} >= 10 and ${table.retentionDays} > 0`),
+    check("analytics_policy_versions_rights_check", sql`${table.mode} = 'tenant_only' or (${table.contractReference} is not null and ${table.optInConfirmed} = true)`),
+    check("analytics_policy_versions_period_check", sql`${table.effectiveTo} is null or ${table.effectiveTo} >= ${table.effectiveFrom}`),
+    check("analytics_policy_versions_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const analyticsPolicyReviews = pgTable(
+  "analytics_policy_reviews",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    policyVersionId: text("policy_version_id").notNull().references(() => analyticsPolicyVersions.id, { onDelete: "restrict" }),
+    decision: text("decision").notNull(),
+    reviewerSubject: text("reviewer_subject").notNull(),
+    rightsChecked: boolean("rights_checked").notNull().default(false),
+    privacyChecked: boolean("privacy_checked").notNull().default(false),
+    note: text("note").notNull(),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("analytics_policy_reviews_org_version_unique").on(table.organizationId, table.policyVersionId),
+    check("analytics_policy_reviews_decision_check", sql`${table.decision} in ('approved', 'rejected', 'changes_requested')`),
+    check("analytics_policy_reviews_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const analyticsPolicyPublications = pgTable(
+  "analytics_policy_publications",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    policyVersionId: text("policy_version_id").notNull().references(() => analyticsPolicyVersions.id, { onDelete: "restrict" }),
+    decision: text("decision").notNull(),
+    publisherSubject: text("publisher_subject").notNull(),
+    note: text("note").notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("analytics_policy_publications_org_version_unique").on(table.organizationId, table.policyVersionId),
+    check("analytics_policy_publications_decision_check", sql`${table.decision} in ('published', 'rejected')`),
+    check("analytics_policy_publications_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const recognitionGraphEvents = pgTable(
+  "recognition_graph_events",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    sourceAuditEventId: text("source_audit_event_id").notNull().references(() => auditEvents.id, { onDelete: "restrict" }),
+    eventType: text("event_type").notNull(),
+    subjectType: text("subject_type").notNull(),
+    subjectId: text("subject_id").notNull(),
+    relationship: text("relationship").notNull(),
+    objectType: text("object_type").notNull(),
+    objectId: text("object_id").notNull(),
+    propertyId: text("property_id").references(() => properties.id, { onDelete: "restrict" }),
+    caseId: text("case_id").references(() => renewalCases.id, { onDelete: "restrict" }),
+    projectId: text("project_id").references(() => resilienceProjects.id, { onDelete: "restrict" }),
+    programmeVersionId: text("programme_version_id").references(() => fundingProgrammeVersions.id, { onDelete: "restrict" }),
+    submissionVersionId: text("submission_version_id").references(() => submissionVersions.id, { onDelete: "restrict" }),
+    evidenceLevel: text("evidence_level"),
+    dataRightClass: text("data_right_class").notNull().default("deidentified_derived_event"),
+    attributes: jsonb("attributes").$type<Record<string, unknown>>().notNull().default({}),
+    eventHash: text("event_hash").notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("recognition_graph_events_org_hash_unique").on(table.organizationId, table.eventHash),
+    uniqueIndex("recognition_graph_events_org_source_relation_unique").on(table.organizationId, table.sourceAuditEventId, table.relationship, table.objectType, table.objectId),
+    index("recognition_graph_events_org_property_time_idx").on(table.organizationId, table.propertyId, table.occurredAt),
+    check("recognition_graph_events_hash_check", sql`char_length(${table.eventHash}) = 64`),
+    check("recognition_graph_events_right_check", sql`${table.dataRightClass} in ('software_telemetry', 'deidentified_derived_event', 'property_specific_data', 'customer_specific_playbook', 'carrier_confidential_material', 'model_provider_restricted')`),
+    check("recognition_graph_events_evidence_check", sql`${table.evidenceLevel} is null or ${table.evidenceLevel} in ('physical_specification', 'verified_installation', 'modelled_vulnerability_reduction', 'modelled_expected_loss_reduction', 'filed_rating_treatment', 'underwriting_treatment', 'financing_or_programme_treatment', 'observed_event_performance', 'claims_evidence')`),
+    check("recognition_graph_events_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const workflowBaselines = pgTable(
+  "workflow_baselines",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    cohortVersionId: text("cohort_version_id").references(() => programmeCohortVersions.id, { onDelete: "restrict" }),
+    baselineType: text("baseline_type").notNull(),
+    periodStart: date("period_start", { mode: "string" }).notNull(),
+    periodEnd: date("period_end", { mode: "string" }).notNull(),
+    caseCount: integer("case_count").notNull(),
+    manualMinutesPerCase: integer("manual_minutes_per_case").notNull(),
+    manualTouchesPerCase: integer("manual_touches_per_case").notNull(),
+    externalCostCentsPerCase: integer("external_cost_cents_per_case").notNull().default(0),
+    currency: text("currency").notNull().default("USD"),
+    source: text("source").notNull(),
+    sourceVersion: text("source_version").notNull(),
+    limitations: text("limitations").notNull(),
+    humanConfirmed: boolean("human_confirmed").notNull().default(false),
+    confirmedBy: text("confirmed_by").notNull(),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    check("workflow_baselines_type_check", sql`${table.baselineType} in ('brokerage_workflow', 'programme_operations')`),
+    check("workflow_baselines_value_check", sql`${table.caseCount} > 0 and ${table.manualMinutesPerCase} >= 0 and ${table.manualTouchesPerCase} >= 0 and ${table.externalCostCentsPerCase} >= 0`),
+    check("workflow_baselines_period_check", sql`${table.periodEnd} >= ${table.periodStart}`),
+    check("workflow_baselines_confirmed_check", sql`${table.humanConfirmed} = true`),
+    check("workflow_baselines_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const programmeMetricSnapshots = pgTable(
+  "programme_metric_snapshots",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    cohortVersionId: text("cohort_version_id").notNull().references(() => programmeCohortVersions.id, { onDelete: "restrict" }),
+    policyVersionId: text("policy_version_id").notNull().references(() => analyticsPolicyVersions.id, { onDelete: "restrict" }),
+    analyticsScope: text("analytics_scope").notNull(),
+    windowStart: timestamp("window_start", { withTimezone: true, mode: "string" }).notNull(),
+    windowEnd: timestamp("window_end", { withTimezone: true, mode: "string" }).notNull(),
+    methodologyVersion: text("methodology_version").notNull(),
+    sourceDataThrough: timestamp("source_data_through", { withTimezone: true, mode: "string" }).notNull(),
+    inputHash: text("input_hash").notNull(),
+    metrics: jsonb("metrics").$type<Record<string, number | null>>().notNull().default({}),
+    denominators: jsonb("denominators").$type<Record<string, number>>().notNull().default({}),
+    suppressedMetrics: jsonb("suppressed_metrics").$type<string[]>().notNull().default([]),
+    caveats: jsonb("caveats").$type<string[]>().notNull().default([]),
+    generatedBy: text("generated_by").notNull(),
+    generatedAt: timestamp("generated_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    check("programme_metric_snapshots_scope_check", sql`${table.analyticsScope} in ('tenant_only', 'cross_customer_opt_in')`),
+    check("programme_metric_snapshots_window_check", sql`${table.windowEnd} >= ${table.windowStart} and ${table.sourceDataThrough} <= ${table.generatedAt}`),
+    check("programme_metric_snapshots_hash_check", sql`char_length(${table.inputHash}) = 64`),
+    check("programme_metric_snapshots_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const analyticsReports = pgTable(
+  "analytics_reports",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    metricSnapshotId: text("metric_snapshot_id").notNull().references(() => programmeMetricSnapshots.id, { onDelete: "restrict" }),
+    baselineId: text("baseline_id").references(() => workflowBaselines.id, { onDelete: "restrict" }),
+    reportType: text("report_type").notNull(),
+    title: text("title").notNull(),
+    methodologyVersion: text("methodology_version").notNull(),
+    metricPayload: jsonb("metric_payload").$type<Record<string, unknown>>().notNull().default({}),
+    caveats: jsonb("caveats").$type<string[]>().notNull().default([]),
+    interpretationBoundary: text("interpretation_boundary").notNull(),
+    humanConfirmed: boolean("human_confirmed").notNull().default(false),
+    generatedBy: text("generated_by").notNull(),
+    generatedAt: timestamp("generated_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("analytics_reports_org_snapshot_type_unique").on(table.organizationId, table.metricSnapshotId, table.reportType),
+    check("analytics_reports_type_check", sql`${table.reportType} in ('brokerage_roi', 'programme_outcome')`),
+    check("analytics_reports_confirmed_check", sql`${table.humanConfirmed} = true`),
+    check("analytics_reports_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const analyticsReportArtifacts = pgTable(
+  "analytics_report_artifacts",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    reportId: text("report_id").notNull().references(() => analyticsReports.id, { onDelete: "restrict" }),
+    storageObjectId: text("storage_object_id").notNull().references(() => storageObjects.id, { onDelete: "restrict" }),
+    format: text("format").notNull(),
+    filename: text("filename").notNull(),
+    mimeType: text("mime_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    sha256: text("sha256").notNull(),
+    generatedAt: timestamp("generated_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("analytics_report_artifacts_org_report_format_unique").on(table.organizationId, table.reportId, table.format),
+    check("analytics_report_artifacts_format_check", sql`${table.format} in ('json', 'csv')`),
+    check("analytics_report_artifacts_size_check", sql`${table.sizeBytes} > 0 and char_length(${table.sha256}) = 64`),
+    check("analytics_report_artifacts_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const analyticsQueryReceipts = pgTable(
+  "analytics_query_receipts",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    policyVersionId: text("policy_version_id").notNull().references(() => analyticsPolicyVersions.id, { onDelete: "restrict" }),
+    metricSnapshotId: text("metric_snapshot_id").notNull().references(() => programmeMetricSnapshots.id, { onDelete: "restrict" }),
+    queryPurpose: text("query_purpose").notNull(),
+    requestedScope: text("requested_scope").notNull(),
+    distinctTenantCount: integer("distinct_tenant_count").notNull(),
+    distinctPropertyCount: integer("distinct_property_count").notNull(),
+    suppressionApplied: boolean("suppression_applied").notNull().default(false),
+    suppressedFields: jsonb("suppressed_fields").$type<string[]>().notNull().default([]),
+    payloadHash: text("payload_hash").notNull(),
+    executedBy: text("executed_by").notNull(),
+    executedAt: timestamp("executed_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    check("analytics_query_receipts_scope_check", sql`${table.requestedScope} in ('tenant_only', 'cross_customer_opt_in')`),
+    check("analytics_query_receipts_counts_check", sql`${table.distinctTenantCount} >= 1 and ${table.distinctPropertyCount} >= 0`),
+    check("analytics_query_receipts_hash_check", sql`char_length(${table.payloadHash}) = 64`),
+    check("analytics_query_receipts_lifecycle_check", lifecycleValues),
   ],
 );
 
