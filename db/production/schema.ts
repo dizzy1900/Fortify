@@ -2179,7 +2179,7 @@ export const governedSourceDependencies = pgTable(
     ),
     check(
       "governed_source_dependencies_consumer_check",
-      sql`${table.consumerType} in ('playbook_version', 'renewal_case')`,
+      sql`${table.consumerType} in ('playbook_version', 'renewal_case', 'target_profile_version')`,
     ),
     check(
       "governed_source_dependencies_relationship_check",
@@ -2225,6 +2225,327 @@ export const sourceChangeAlerts = pgTable(
     ),
     check("source_change_alerts_distinct_versions_check", sql`${table.fromVersionId} <> ${table.toVersionId}`),
     check("source_change_alerts_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const targetProfiles = pgTable(
+  "target_profiles",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    canonicalKey: text("canonical_key").notNull(),
+    name: text("name").notNull(),
+    description: text("description").notNull(),
+    jurisdiction: text("jurisdiction").notNull(),
+    peril: text("peril").notNull(),
+    propertyClass: text("property_class").notNull(),
+  },
+  (table) => [
+    uniqueIndex("target_profiles_org_key_unique").on(table.organizationId, table.canonicalKey),
+    check("target_profiles_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const targetProfileVersions = pgTable(
+  "target_profile_versions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    profileId: text("profile_id").notNull().references(() => targetProfiles.id, { onDelete: "restrict" }),
+    versionNumber: integer("version_number").notNull(),
+    effectiveFrom: date("effective_from", { mode: "string" }).notNull(),
+    effectiveTo: date("effective_to", { mode: "string" }),
+    status: text("status").notNull().default("draft"),
+    authorSubject: text("author_subject").notNull(),
+    changeSummary: text("change_summary").notNull(),
+    limitations: text("limitations").notNull(),
+    recognitionState: text("recognition_state").notNull().default("unavailable_no_commitment_registry"),
+    supersedesVersionId: text("supersedes_version_id").references((): AnyPgColumn => targetProfileVersions.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    uniqueIndex("target_profile_versions_org_profile_number_unique").on(table.organizationId, table.profileId, table.versionNumber),
+    check("target_profile_versions_number_check", sql`${table.versionNumber} >= 1`),
+    check("target_profile_versions_status_check", sql`${table.status} in ('draft', 'published', 'superseded', 'withdrawn')`),
+    check("target_profile_versions_recognition_check", sql`${table.recognitionState} in ('unavailable_no_commitment_registry', 'unverified_external_reference')`),
+    check("target_profile_versions_effective_check", sql`${table.effectiveTo} is null or ${table.effectiveTo} >= ${table.effectiveFrom}`),
+    check("target_profile_versions_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const targetProfileCriteria = pgTable(
+  "target_profile_criteria",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    profileVersionId: text("profile_version_id").notNull().references(() => targetProfileVersions.id, { onDelete: "restrict" }),
+    code: text("code").notNull(),
+    title: text("title").notNull(),
+    targetLevel: text("target_level").notNull(),
+    evidenceLevel: text("evidence_level").notNull(),
+    requirementText: text("requirement_text").notNull(),
+    verificationMethod: text("verification_method").notNull(),
+    position: integer("position").notNull(),
+  },
+  (table) => [
+    uniqueIndex("target_profile_criteria_org_version_code_unique").on(table.organizationId, table.profileVersionId, table.code),
+    check("target_profile_criteria_level_check", sql`${table.targetLevel} in ('minimum', 'preferred')`),
+    check("target_profile_criteria_evidence_check", sql`${table.evidenceLevel} in ('self_attested', 'documented', 'professional_observation', 'independent_verification', 'jurisdictional_record', 'programme_recognition', 'insurer_acknowledgement', 'modeled_analysis', 'measured_outcome')`),
+    check("target_profile_criteria_position_check", sql`${table.position} >= 1`),
+    check("target_profile_criteria_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const targetProfileApplicability = pgTable(
+  "target_profile_applicability",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    profileVersionId: text("profile_version_id").notNull().references(() => targetProfileVersions.id, { onDelete: "restrict" }),
+    field: text("field").notNull(),
+    operator: text("operator").notNull(),
+    expectedValues: jsonb("expected_values").$type<string[]>().notNull().default([]),
+    position: integer("position").notNull(),
+  },
+  (table) => [
+    uniqueIndex("target_profile_applicability_org_version_position_unique").on(table.organizationId, table.profileVersionId, table.position),
+    check("target_profile_applicability_operator_check", sql`${table.operator} in ('equals', 'includes', 'one_of')`),
+    check("target_profile_applicability_position_check", sql`${table.position} >= 1`),
+    check("target_profile_applicability_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const targetProfileReviews = pgTable(
+  "target_profile_reviews",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    profileVersionId: text("profile_version_id").notNull().references(() => targetProfileVersions.id, { onDelete: "restrict" }),
+    decision: text("decision").notNull(),
+    reviewerSubject: text("reviewer_subject").notNull(),
+    note: text("note").notNull(),
+    sourcePinsChecked: boolean("source_pins_checked").notNull().default(false),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("target_profile_reviews_org_version_unique").on(table.organizationId, table.profileVersionId),
+    check("target_profile_reviews_decision_check", sql`${table.decision} in ('approved', 'changes_requested')`),
+    check("target_profile_reviews_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const targetProfilePublications = pgTable(
+  "target_profile_publications",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    profileVersionId: text("profile_version_id").notNull().references(() => targetProfileVersions.id, { onDelete: "restrict" }),
+    decision: text("decision").notNull(),
+    publisherSubject: text("publisher_subject").notNull(),
+    note: text("note").notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("target_profile_publications_org_version_unique").on(table.organizationId, table.profileVersionId),
+    check("target_profile_publications_decision_check", sql`${table.decision} in ('published', 'rejected')`),
+    check("target_profile_publications_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const interventions = pgTable(
+  "interventions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    canonicalKey: text("canonical_key").notNull(),
+    name: text("name").notNull(),
+    category: text("category").notNull(),
+    description: text("description").notNull(),
+  },
+  (table) => [
+    uniqueIndex("interventions_org_key_unique").on(table.organizationId, table.canonicalKey),
+    check("interventions_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const interventionVersions = pgTable(
+  "intervention_versions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    interventionId: text("intervention_id").notNull().references(() => interventions.id, { onDelete: "restrict" }),
+    versionNumber: integer("version_number").notNull(),
+    status: text("status").notNull().default("draft"),
+    technicalSpecification: text("technical_specification").notNull(),
+    evidenceLevel: text("evidence_level").notNull(),
+    typicalCostLowCents: integer("typical_cost_low_cents").notNull(),
+    typicalCostHighCents: integer("typical_cost_high_cents").notNull(),
+    typicalDurationDays: integer("typical_duration_days").notNull(),
+    dependencies: jsonb("dependencies").$type<string[]>().notNull().default([]),
+    maintenanceRequirements: jsonb("maintenance_requirements").$type<string[]>().notNull().default([]),
+    benefitStatement: text("benefit_statement").notNull(),
+    benefitBoundary: text("benefit_boundary").notNull(),
+    authorSubject: text("author_subject").notNull(),
+    reviewerSubject: text("reviewer_subject"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: "string" }),
+    supersedesVersionId: text("supersedes_version_id").references((): AnyPgColumn => interventionVersions.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    uniqueIndex("intervention_versions_org_item_number_unique").on(table.organizationId, table.interventionId, table.versionNumber),
+    check("intervention_versions_status_check", sql`${table.status} in ('draft', 'published', 'superseded', 'withdrawn')`),
+    check("intervention_versions_evidence_check", sql`${table.evidenceLevel} in ('self_attested', 'documented', 'professional_observation', 'independent_verification', 'jurisdictional_record', 'programme_recognition', 'insurer_acknowledgement', 'modeled_analysis', 'measured_outcome')`),
+    check("intervention_versions_cost_check", sql`${table.typicalCostLowCents} >= 0 and ${table.typicalCostHighCents} >= ${table.typicalCostLowCents}`),
+    check("intervention_versions_duration_check", sql`${table.typicalDurationDays} >= 0`),
+    check("intervention_versions_reviewer_check", sql`${table.reviewerSubject} is null or ${table.reviewerSubject} <> ${table.authorSubject}`),
+    check("intervention_versions_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const interventionVersionReviews = pgTable(
+  "intervention_version_reviews",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    interventionVersionId: text("intervention_version_id").notNull().references(() => interventionVersions.id, { onDelete: "restrict" }),
+    decision: text("decision").notNull(),
+    reviewerSubject: text("reviewer_subject").notNull(),
+    note: text("note").notNull(),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("intervention_reviews_org_version_unique").on(table.organizationId, table.interventionVersionId),
+    check("intervention_reviews_decision_check", sql`${table.decision} in ('approved', 'changes_requested')`),
+    check("intervention_reviews_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const baselineAssessments = pgTable(
+  "baseline_assessments",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    propertyId: text("property_id").notNull().references(() => properties.id, { onDelete: "restrict" }),
+    profileVersionId: text("profile_version_id").notNull().references(() => targetProfileVersions.id, { onDelete: "restrict" }),
+    applicabilityState: text("applicability_state").notNull(),
+    applicabilityReasons: jsonb("applicability_reasons").$type<string[]>().notNull().default([]),
+    assessedAt: timestamp("assessed_at", { withTimezone: true, mode: "string" }).notNull(),
+    assessedBy: text("assessed_by").notNull(),
+  },
+  (table) => [
+    check("baseline_assessments_applicability_check", sql`${table.applicabilityState} in ('applicable', 'inapplicable', 'insufficient_property_data')`),
+    check("baseline_assessments_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const baselineGaps = pgTable(
+  "baseline_gaps",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    baselineAssessmentId: text("baseline_assessment_id").notNull().references(() => baselineAssessments.id, { onDelete: "restrict" }),
+    criterionId: text("criterion_id").notNull().references(() => targetProfileCriteria.id, { onDelete: "restrict" }),
+    state: text("state").notNull(),
+    observedCondition: text("observed_condition").notNull(),
+    evidenceItemId: text("evidence_item_id").references(() => evidenceItems.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    uniqueIndex("baseline_gaps_org_assessment_criterion_unique").on(table.organizationId, table.baselineAssessmentId, table.criterionId),
+    check("baseline_gaps_state_check", sql`${table.state} in ('satisfied', 'gap', 'insufficient_evidence', 'not_applicable')`),
+    check("baseline_gaps_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const resilienceProjects = pgTable(
+  "resilience_projects",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    propertyId: text("property_id").notNull().references(() => properties.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
+    description: text("description").notNull(),
+    status: text("status").notNull().default("candidate"),
+  },
+  (table) => [
+    check("resilience_projects_status_check", sql`${table.status} in ('candidate', 'planned', 'approved', 'in_progress', 'complete', 'cancelled')`),
+    check("resilience_projects_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const projectInterventions = pgTable(
+  "project_interventions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    projectId: text("project_id").notNull().references(() => resilienceProjects.id, { onDelete: "restrict" }),
+    interventionVersionId: text("intervention_version_id").notNull().references(() => interventionVersions.id, { onDelete: "restrict" }),
+    rationale: text("rationale").notNull(),
+  },
+  (table) => [
+    uniqueIndex("project_interventions_org_project_version_unique").on(table.organizationId, table.projectId, table.interventionVersionId),
+    check("project_interventions_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const capitalPlans = pgTable(
+  "capital_plans",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    propertyId: text("property_id").notNull().references(() => properties.id, { onDelete: "restrict" }),
+    baselineAssessmentId: text("baseline_assessment_id").notNull().references(() => baselineAssessments.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
+    planningState: text("planning_state").notNull(),
+    decisionBoundary: text("decision_boundary").notNull(),
+    selectedScenarioId: text("selected_scenario_id"),
+  },
+  (table) => [
+    check("capital_plans_state_check", sql`${table.planningState} in ('options_available', 'insufficient_evidence', 'no_attractive_path', 'inapplicable')`),
+    check("capital_plans_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const capitalPlanScenarios = pgTable(
+  "capital_plan_scenarios",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    capitalPlanId: text("capital_plan_id").notNull().references(() => capitalPlans.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
+    totalCostLowCents: integer("total_cost_low_cents").notNull(),
+    totalCostHighCents: integer("total_cost_high_cents").notNull(),
+    durationDays: integer("duration_days").notNull(),
+    dependencies: jsonb("dependencies").$type<string[]>().notNull().default([]),
+    maintenanceRequirements: jsonb("maintenance_requirements").$type<string[]>().notNull().default([]),
+    fundingEligibilityState: text("funding_eligibility_state").notNull(),
+    modeledBenefitState: text("modeled_benefit_state").notNull(),
+    insurerTreatmentState: text("insurer_treatment_state").notNull(),
+    rationale: text("rationale").notNull(),
+    assumptions: jsonb("assumptions").$type<string[]>().notNull().default([]),
+    position: integer("position").notNull(),
+  },
+  (table) => [
+    check("capital_plan_scenarios_cost_check", sql`${table.totalCostLowCents} >= 0 and ${table.totalCostHighCents} >= ${table.totalCostLowCents}`),
+    check("capital_plan_scenarios_duration_check", sql`${table.durationDays} >= 0`),
+    check("capital_plan_scenarios_funding_check", sql`${table.fundingEligibilityState} in ('unknown', 'potential_candidate', 'not_eligible')`),
+    check("capital_plan_scenarios_benefit_check", sql`${table.modeledBenefitState} in ('unavailable', 'not_requested', 'externally_supplied_unverified')`),
+    check("capital_plan_scenarios_insurer_check", sql`${table.insurerTreatmentState} in ('unverified', 'no_commitment', 'externally_acknowledged')`),
+    check("capital_plan_scenarios_position_check", sql`${table.position} >= 1`),
+    check("capital_plan_scenarios_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const capitalPlanScenarioProjects = pgTable(
+  "capital_plan_scenario_projects",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    scenarioId: text("scenario_id").notNull().references(() => capitalPlanScenarios.id, { onDelete: "restrict" }),
+    projectId: text("project_id").notNull().references(() => resilienceProjects.id, { onDelete: "restrict" }),
+    position: integer("position").notNull(),
+  },
+  (table) => [
+    uniqueIndex("capital_scenario_projects_org_pair_unique").on(table.organizationId, table.scenarioId, table.projectId),
+    check("capital_scenario_projects_position_check", sql`${table.position} >= 1`),
+    check("capital_scenario_projects_lifecycle_check", lifecycleValues),
   ],
 );
 

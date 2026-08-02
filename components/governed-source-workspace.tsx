@@ -77,7 +77,7 @@ type Publication = {
 type Dependency = {
   id: string;
   sourceVersionId: string;
-  consumerType: "playbook_version" | "renewal_case";
+  consumerType: "playbook_version" | "renewal_case" | "target_profile_version";
   consumerId: string;
   relationship: "relied_on" | "reference_only";
   rationale: string;
@@ -87,7 +87,7 @@ type ImpactSnapshot = {
   affected: {
     playbooks: Array<{ id: string; versionId: string; name: string }>;
     cases: Array<{ id: string; title: string; renewalDate: string }>;
-    profiles: { state: string; items: [] };
+    profiles: { state: string; items: Array<{ id: string; versionId: string; name: string }> };
     reports: { state: string; items: [] };
   };
   limitations: string[];
@@ -108,7 +108,7 @@ type Workspace = {
   publications: Publication[];
   dependencies: Dependency[];
   alerts: Alert[];
-  unavailableImpactTargets: { profiles: string; reports: string };
+  unavailableImpactTargets: { reports: string };
   doctrine: {
     extractedRulesAutomaticallyOperative: false;
     publicationRequiresHumanConfirmation: true;
@@ -371,11 +371,11 @@ const fixtureWorkspace: Workspace = {
               renewalDate: "2027-01-15",
             },
           ],
-          profiles: { state: "unavailable_not_implemented", items: [] },
+          profiles: { state: "available", items: [{ id: "profile-ca-community-wildfire", versionId: "profile-ca-community-wildfire-v1", name: "California community wildfire evidence-readiness" }] },
           reports: { state: "unavailable_not_implemented", items: [] },
         },
         limitations: [
-          "Profiles are unavailable until M5; no affected profile is inferred.",
+          "The exact relied-on profile version is flagged without being changed.",
           "Reports are unavailable; no report is silently assumed current.",
           "The alert does not mutate a playbook or case.",
         ],
@@ -383,7 +383,6 @@ const fixtureWorkspace: Workspace = {
     },
   ],
   unavailableImpactTargets: {
-    profiles: "M5 property profiles are not implemented.",
     reports: "Governed report dependencies are not implemented.",
   },
   doctrine: {
@@ -1376,8 +1375,8 @@ export function GovernedSourceWorkspace({ mode }: { mode: RuntimeMode }) {
                         <strong>{alert.impactSnapshot.affected.cases.length}</strong>
                         Cases
                       </span>
-                      <span className="unavailable">
-                        <strong>—</strong>Profiles unavailable
+                      <span>
+                        <strong>{alert.impactSnapshot.affected.profiles.items.length}</strong>Profiles
                       </span>
                       <span className="unavailable">
                         <strong>—</strong>Reports unavailable
@@ -1393,6 +1392,11 @@ export function GovernedSourceWorkspace({ mode }: { mode: RuntimeMode }) {
                       {alert.impactSnapshot.affected.cases.map((item) => (
                         <li key={item.id}>
                           <FileClock size={14} /> {item.title} · renewal {item.renewalDate}
+                        </li>
+                      ))}
+                      {alert.impactSnapshot.affected.profiles.items.map((profile) => (
+                        <li key={profile.versionId}>
+                          <FileCheck2 size={14} /> {profile.name} · pinned version {profile.versionId}
                         </li>
                       ))}
                     </ul>
@@ -1421,9 +1425,9 @@ export function GovernedSourceWorkspace({ mode }: { mode: RuntimeMode }) {
               <strong>Cases</strong>
               <span>Exact case pins through destination playbooks</span>
             </div>
-            <div className="unavailable">
-              <strong>Profiles · unavailable</strong>
-              <span>{workspace?.unavailableImpactTargets.profiles}</span>
+            <div>
+              <strong>Profiles</strong>
+              <span>Exact version-level dependencies and human impact review</span>
             </div>
             <div className="unavailable">
               <strong>Reports · unavailable</strong>
@@ -1431,6 +1435,9 @@ export function GovernedSourceWorkspace({ mode }: { mode: RuntimeMode }) {
             </div>
             <Link className="button secondary" href="/playbooks">
               Inspect market playbooks <ArrowRight size={14} />
+            </Link>
+            <Link className="button secondary" href="/resilience-planning">
+              Inspect target profiles <ArrowRight size={14} />
             </Link>
           </aside>
         </section>

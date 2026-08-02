@@ -35,7 +35,7 @@ export type SourceImpactReport = {
   affected: {
     playbooks: Array<{ id: string; versionId: string; name: string }>;
     cases: Array<{ id: string; title: string; renewalDate: string }>;
-    profiles: { state: "unavailable_not_implemented"; items: [] };
+    profiles: { state: "available"; items: Array<{ id: string; versionId: string; name: string }> };
     reports: { state: "unavailable_not_implemented"; items: [] };
   };
   limitations: string[];
@@ -505,6 +505,9 @@ export class GovernedSourceService {
     const caseIds = dependencies
       .filter((item) => item.consumerType === "renewal_case")
       .map((item) => item.consumerId);
+    const profileVersionIds = dependencies
+      .filter((item) => item.consumerType === "target_profile_version")
+      .map((item) => item.consumerId);
     const playbooks = playbookIds.length
       ? await database
           .select({
@@ -548,6 +551,13 @@ export class GovernedSourceService {
             ),
           )
       : [];
+    const profiles = profileVersionIds.length
+      ? await database
+          .select({ id: schema.targetProfiles.id, versionId: schema.targetProfileVersions.id, name: schema.targetProfiles.name })
+          .from(schema.targetProfileVersions)
+          .innerJoin(schema.targetProfiles, and(eq(schema.targetProfiles.id, schema.targetProfileVersions.profileId), eq(schema.targetProfiles.organizationId, context.organizationId)))
+          .where(and(eq(schema.targetProfileVersions.organizationId, context.organizationId), inArray(schema.targetProfileVersions.id, profileVersionIds)))
+      : [];
     return {
       sourceId,
       fromVersionId,
@@ -556,11 +566,11 @@ export class GovernedSourceService {
       affected: {
         playbooks,
         cases,
-        profiles: { state: "unavailable_not_implemented", items: [] },
+        profiles: { state: "available", items: profiles },
         reports: { state: "unavailable_not_implemented", items: [] },
       },
       limitations: [
-        "Property profiles are scheduled for M5 and are not silently inferred.",
+        "Profile impact identifies exact source reliance; it never changes a published profile automatically.",
         "Governed report dependencies are scheduled for a later milestone and remain unavailable.",
         "Impact identifies reliance; it does not automatically change an operative playbook or case.",
       ],
@@ -727,7 +737,7 @@ export class GovernedSourceService {
     context: TenantContext,
     input: {
       sourceVersionId: string;
-      consumerType: "playbook_version" | "renewal_case";
+      consumerType: "playbook_version" | "renewal_case" | "target_profile_version";
       consumerId: string;
       relationship: "relied_on" | "reference_only";
       rationale: string;
@@ -830,7 +840,6 @@ export class GovernedSourceService {
       dependencies,
       alerts,
       unavailableImpactTargets: {
-        profiles: "M5 property profiles are not implemented.",
         reports: "Governed report dependencies are not implemented.",
       },
       doctrine: {

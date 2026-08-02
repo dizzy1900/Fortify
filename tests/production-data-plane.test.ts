@@ -41,7 +41,7 @@ describe("normalized PostgreSQL tenant data plane", () => {
     const triggers = await client.query<{ trigger_name: string }>(
       "select trigger_name from information_schema.triggers where trigger_schema = 'public' order by trigger_name",
     );
-    expect(tables.rows.map((row) => row.table_name)).toHaveLength(84);
+    expect(tables.rows.map((row) => row.table_name)).toHaveLength(100);
     expect(tables.rows.map((row) => row.table_name)).not.toContain("app_state");
     const triggerNames = [
       ...new Set(triggers.rows.map((row) => row.trigger_name)),
@@ -97,6 +97,18 @@ describe("normalized PostgreSQL tenant data plane", () => {
         "governed_source_publications_immutable_delete",
         "governed_source_dependencies_immutable_update",
         "source_change_alerts_immutable_update",
+        "target_profile_versions_profile_tenant_guard",
+        "target_profile_versions_lineage_guard",
+        "target_profile_reviews_separation_guard",
+        "target_profile_publications_separation_guard",
+        "intervention_versions_lineage_guard",
+        "intervention_reviews_separation_guard",
+        "baseline_assessments_published_profile_guard",
+        "project_interventions_review_guard",
+        "capital_plans_baseline_property_guard",
+        "target_profile_versions_immutable_update",
+        "baseline_gaps_immutable_delete",
+        "capital_plan_scenarios_immutable_update",
         "property_portfolios_client_tenant_guard",
         "portfolio_properties_client_reference_guard",
         "portfolio_properties_property_tenant_guard",
@@ -130,7 +142,7 @@ describe("normalized PostgreSQL tenant data plane", () => {
         "submission_artifacts_no_delete",
       ]),
     );
-    expect(triggerNames).toHaveLength(196);
+    expect(triggerNames).toHaveLength(246);
   });
 
   test("isolates reads and mutations by explicit organization context", async () => {

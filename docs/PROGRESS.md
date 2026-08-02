@@ -2,7 +2,19 @@
 
 ## Current milestone
 
-M4 — The governed California source register and source-pinned playbook slice is locally validated on August 1, 2026 and published as draft PR #11, stacked directly after M3 draft PR #10. The prior M1–M7 renewal implementation remains a locally validated reusable foundation and published stacked PR series; M4 does not prove legal currentness, redistribution rights, customer acceptance, governed profiles, interventions, capital plans, funding, verification, model mapping, recognition commitments, live recognition delivery/outcomes, programme administration, deployment, or external validation.
+M5 — The governed target-profile, intervention, baseline-gap, and transparent capital-planning slice is locally validated on August 1, 2026 and ready to publish as a draft PR stacked directly after M4 draft PR #11. It does not prove physical resilience, engineering adequacy, real cost, funding eligibility, modeled benefit, insurer treatment, recognition, customer acceptance, deployment, or external validation.
+
+## Replacement north-star M5 locally validated
+
+- Expanded production persistence from 84 to 100 tables and from 196 to 246 guards/triggers. The deny-by-default registry now covers 96 resource classes, with direct database attack coverage for new cross-tenant profile and assessment references.
+- Added immutable, immediate-successor target-profile versions with exact published-source dependencies; normalized minimum/preferred criteria; a nine-level evidence hierarchy; bounded applicability rules; independent review; and a separate human publication decision. Author, reviewer, and publisher cannot collapse into one actor.
+- Added versioned intervention specifications with transparent planning cost ranges, typical duration, dependencies, maintenance, evidence basis, benefit statement, and explicit benefit boundary. Independent review is required before an intervention can enter a project scenario.
+- Added deterministic property/profile applicability, immutable baseline assessments and gaps, candidate projects, intervention links, capital plans, and scenario/project links. Applicable, inapplicable, insufficient-property-data/evidence, options-available, and no-attractive-path states remain explicit; inapplicable and insufficient states create no invented scenarios.
+- Added seven authenticated production APIs and the responsive `/resilience-planning` workspace. Its California fixture exposes working baseline/profile/intervention/scenario controls plus populated, loading, error, empty, inapplicable, insufficient-evidence, and no-attractive-path behavior. There is no score or opaque ROI.
+- Governed source successor impact now returns exact target-profile-version dependencies. Profile impact is available without automatically mutating the profile; governed report impact remains explicitly unavailable.
+- The consolidated release gate passed: ESLint, strict TypeScript, 17 files/65 tests, 276-file secret scan, 24-page/58-API build, 12/12 deterministic sandbox evaluation, 18-pattern claims scan, and 22/22 serial desktop/mobile Playwright scenarios. Schema generation reported no drift, the migrated database exposed exactly 246 guards/triggers, and `npm audit --audit-level=moderate` reported 0 vulnerabilities.
+- Desktop Chromium, 834-pixel tablet, and Pixel 7 captures were inspected with no observed clipping, collision, or document-width overflow.
+- All planning content is deterministic development-fixture evidence. Qualified technical review, rights-cleared inputs, real contractor scopes/costs, funding decisions, modeled analysis, insurer acknowledgement, customer use, and managed-provider operation remain external or later-milestone gates.
 
 ## Replacement north-star M4 locally validated
 
