@@ -66,9 +66,12 @@ test("portfolio launch surface matches the reviewed visual baseline", async ({
   await expect(
     page.getByRole("heading", { name: "Renewals that need a decision" }),
   ).toBeVisible();
-  await expect(page).toHaveScreenshot("portfolio-launch.png", {
-    fullPage: true,
-    animations: "disabled",
-    maxDiffPixelRatio: 0.03,
-  });
+  await expect(page).toHaveScreenshot(
+    `portfolio-launch-${process.platform}.png`,
+    {
+      fullPage: true,
+      animations: "disabled",
+      maxDiffPixelRatio: 0.03,
+    },
+  );
 });
