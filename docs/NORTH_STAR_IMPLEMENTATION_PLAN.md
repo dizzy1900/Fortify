@@ -42,6 +42,8 @@ Exit evidence: revocation/expiry/MFA-ready behavior, cross-tenant attacks for ev
 
 Deliver California portfolio/SOV/policy imports, the persistent property evidence graph, policy/renewal/appeal cases, document and notice intake, human confirmation, renewal workflow, external evidence requests, and production-architecture packet generation.
 
+Local state: the complete deterministic California development-fixture journey is locally validated on normalized production architecture, including exact immutable PDF/ZIP/manifest/letter bytes. Rights-cleared brokerage data, managed-provider operation, live delivery, and brokerage acceptance remain external or deployment evidence.
+
 Exit evidence: one complete development-fixture brokerage journey from import through versioned packet without legacy global state; rights-cleared brokerage acceptance remains external.
 
 ### M4 — California source and recognition playbooks

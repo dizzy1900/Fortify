@@ -1,6 +1,6 @@
 # Production data model
 
-The PostgreSQL schema contains 75 normalized tables in the M2 identity/secure-evidence tree. It is a reusable tenant, access, property, renewal, evidence, storage, document, market-playbook, and governed property-identity foundation for the Resilience Investment and Insurance Recognition OS—not a claim that the expanded domain is implemented.
+The PostgreSQL schema contains 78 normalized tables in the locally validated M3 brokerage tree. It is a reusable tenant, access, property, renewal/appeal, evidence-request, immutable packet, storage, document, market-playbook, and governed property-identity foundation for the Resilience Investment and Insurance Recognition OS—not a claim that the expanded domain is implemented.
 
 California production work must still extend this model with governed policy/programme/model sources; typed evidence levels; target profiles; intervention specifications; baseline conditions; resilience projects and capital plans; funding programmes/commitments/milestones; independent verifiers/findings/certificates; external models and input mappings; explicit market/funder commitments; recognition submissions and separate evidence/model/rating/underwriting/placement/funding responses; longitudinal maintenance/outcomes; programme cohorts; consent/cohort data-right controls; and recognition-graph events. Each new customer-controlled resource requires tenant columns, authorization, database guards, audit coupling, and attack tests before it counts as implemented.
 
@@ -107,9 +107,12 @@ Missing, stale, contradictory, or unreviewed evidence remains a named state. No 
 ## Workflow and submission
 
 - `tasks`: case and optional requirement work.
+- `evidence_requests`: stable case-scoped external evidence request, recipient/principal boundary, draft/issued/expired/revoked state, issue/expiry evidence, and current immutable version pointer.
+- `evidence_request_versions`: immutable human-confirmed purpose, instructions, due date, exact requested item scopes, confirmer, and confirmation time.
 - `submissions`: stable case/destination submission identity.
 - `submission_versions`: immutable human-confirmed message, caveats, and manifest hash.
 - `submission_items`: exact evidence version included in a submission version.
+- `submission_artifacts`: immutable generated PDF, ZIP, manifest, or letter identity with exact storage object, MIME, size, SHA-256, recipe version, and generation time.
 - `market_responses`: original reviewer language, normalized type/reason, and supersession.
 - `renewal_outcomes`: original outcome language, normalized status/reason, and correction chain.
 - `maintenance_events`: property evidence refresh schedule.
@@ -123,7 +126,7 @@ Missing, stale, contradictory, or unreviewed evidence remains a named state. No 
 
 Every customer-owned table carries `organization_id`, created/updated timestamps, created/updated actor, revision, lifecycle status, and deletion timestamp. Database triggers reject cross-organization references. Unique indexes bind external identifiers, hashes, versions, and idempotency keys inside the organization boundary.
 
-Audit events, data-access logs, and requirement/evidence/submission/playbook versions cannot be updated or deleted. Playbook requirements, conditions, reviews, and case links are also immutable. Portfolio/case assignments permit only a one-way reason-bound revocation; changed scope or purpose requires a new record. A correction creates a successor. Production migrations contain no `app_state` table or `DemoState` JSON column.
+Audit events, data-access logs, requirement/evidence/evidence-request/submission/playbook versions, and generated submission artifacts cannot be updated or deleted. Playbook requirements, conditions, reviews, and case links are also immutable. Portfolio/case assignments permit only a one-way reason-bound revocation; evidence requests permit only controlled lifecycle transitions; changed scope or purpose requires a new immutable version or new request. A correction creates a successor. Production migrations contain no `app_state` table or `DemoState` JSON column.
 
 ## Seed migration
 
