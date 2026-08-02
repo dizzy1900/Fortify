@@ -18,7 +18,7 @@ Fortify production access is deny by default. The deterministic sandbox role sel
 |---|---|
 | Organization owner | Full tenant administration, including explicit support access |
 | Brokerage administrator | Membership, team, workflow, and tenant administration |
-| Practice leader | Book, market, requirements, cases, evidence, and submissions; no identity-provider administration |
+| Practice leader | Book, market, playbook/version review, requirements, cases, evidence, and submissions; no identity-provider administration |
 | Broker/account executive | Case, evidence, task, submission, response, and outcome work |
 | Marketer | Market-facing case, submission, response, and outcome work |
 | Assistant | Source, evidence, task, and maintenance work with case visibility |
@@ -45,4 +45,4 @@ The executable matrix is `lib/production/authorization.ts`. An absent role, abse
 4. PostgreSQL same-organization triggers reject cross-tenant parent references even when repository code is bypassed.
 5. Consequential identity/permission mutations and audit events commit in the same transaction.
 
-The local PGlite attack suite covers all 49 registered production resource classes, direct cross-tenant identity/storage/import references, storage-key traversal, role denial, case scope, invitation/session expiry, membership revocation, API credential scopes, external grant revocation, support grant revocation, and storage-grant expiry/revocation. A managed identity provider, MFA policy, managed PostgreSQL and object-storage deployment, production secrets, rate limiting, and operational incident controls still require deployment validation.
+The local PGlite attack suite covers all 61 registered production resource classes, direct cross-tenant identity/storage/import/document/playbook references, storage-key traversal, role denial, case scope, invitation/session expiry, membership revocation, API credential scopes, external grant revocation, support grant revocation, storage-grant expiry/revocation, independent playbook review, and immutable exact-version linkage. A managed identity provider, MFA policy, managed PostgreSQL and object-storage deployment, production secrets, rate limiting, and operational incident controls still require deployment validation.

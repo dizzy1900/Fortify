@@ -25,6 +25,8 @@ Document intake follows the same clean-object boundary. `DocumentPipelineService
 
 `LocalSelectableTextProvider` is the default offline production adapter for plain text and selectable PDFs. It does not invent OCR, PDF-native geometry, or image support. Exact-hash fixtures exercise scans, rotations, tables, images, conflicts, and low-confidence/model-derived candidates; `ExternalDocumentIntelligenceProvider` is an injected boundary that requires separate rights, credentials, security review, and staging validation.
 
+`MarketPlaybookService` creates immutable destination versions and bounded requirement conditions, records independent human review, resolves one exact approved/effective version, pins it to a case destination through append-only lineage, and derives named evidence states without a weighted average. Missing or overlapping applicability fails closed. Requirement evaluation binds accepted type/source/disposition, scope, freshness, review state, and contradiction state to the same evidence versions. The `/playbooks` administrator workspace exposes source/version/citation, verify-current state, lifecycle, lineage, case pin, and the blocker-preserving calculation. See [MARKET_PLAYBOOK_GOVERNANCE.md](./MARKET_PLAYBOOK_GOVERNANCE.md).
+
 ## Transaction doctrine
 
 Consequential mutations use one PostgreSQL transaction for:
@@ -37,7 +39,7 @@ Consequential mutations use one PostgreSQL transaction for:
 
 An exception rolls the whole transaction back. The contract suite deliberately corrupts a seed import after earlier inserts and verifies that no community or idempotency receipt survives.
 
-Audit hashes bind the preceding tenant audit hash, organization, actor, action, resource, canonical detail, and occurrence time. PostgreSQL triggers reject audit update/delete. Requirement, evidence, and submission version tables also reject update/delete; corrections must create superseding versions.
+Audit hashes bind the preceding tenant audit hash, organization, actor, action, resource, canonical detail, and occurrence time. PostgreSQL triggers reject audit update/delete. Requirement, evidence, submission, and playbook version tables also reject update/delete; playbook rules, reviews, and case links are append-only, and corrections must create successors.
 
 ## Tenant defense in depth
 
@@ -48,7 +50,7 @@ Audit hashes bind the preceding tenant audit hash, organization, actor, action, 
 - Sandbox data is owned by `org-fortify-sandbox`, whose row is constrained to `environment=sandbox` and `synthetic=true`.
 - Cross-customer analytics opt-in defaults to false.
 
-M3 adds authenticated principals, memberships, deny-by-default authorization policies, revocation, support-access controls, and resource-complete attack tests. M4 extends the same organization boundary through storage objects, grants, scan results, and backup manifests. M5 extends it through saved mappings, mapping versions, import runs, quarantined rows, and immutable receipts. M6 extends it through jobs, attempts, extraction runs, passages, candidate fields, human reviews, and confirmed fact versions. Managed-provider configuration, MFA policy enforcement, defense-in-depth RLS evaluation, rate limiting, secrets infrastructure, and deployment validation remain external/operational gates rather than inferred passes.
+M3 adds authenticated principals, memberships, deny-by-default authorization policies, revocation, support-access controls, and resource-complete attack tests. M4 extends the same organization boundary through storage objects, grants, scan results, and backup manifests. M5 extends it through saved mappings, mapping versions, import runs, quarantined rows, and immutable receipts. M6 extends it through jobs, attempts, extraction runs, passages, candidate fields, human reviews, and confirmed fact versions. M7 extends it through playbooks, immutable versions/rules/reviews, and append-only case linkage. Managed-provider configuration, MFA policy enforcement, defense-in-depth RLS evaluation, rate limiting, secrets infrastructure, and deployment validation remain external/operational gates rather than inferred passes.
 
 ## Persistence adapters
 
@@ -67,4 +69,4 @@ The contract suite uses PGlite as an embedded PostgreSQL-compatible engine becau
 
 ## Next architecture boundary
 
-M6 is implemented locally, with live OCR/document-intelligence rights, managed-worker operation, managed-provider validation, and rights-cleared document evaluation still outstanding. M7 introduces destination-specific playbooks and deterministic readiness blockers. Production remains closed to customer data until managed PostgreSQL, OIDC, private object storage, malware scanning, backup/restore, and the remaining security/deployment gates are validated.
+M7 is implemented locally, with rights-cleared destination guidance, managed-provider operation, and external workflow validation still outstanding. M8 introduces production renewal workflow and scoped external evidence collection. Production remains closed to customer data until managed PostgreSQL, OIDC, private object storage, malware scanning, backup/restore, and the remaining security/deployment gates are validated.

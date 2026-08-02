@@ -114,6 +114,7 @@ test("public page and all workspace routes are healthy", async ({ page }) => {
     "/portfolio",
     "/imports",
     "/documents",
+    "/playbooks",
     "/community",
     "/policy",
     "/notice",
@@ -254,6 +255,49 @@ test("document workspace preserves provenance, human review, corrections, and de
       testInfo.project.name === "chromium"
         ? "test-results/visual-inspection/document-review-desktop.png"
         : "test-results/visual-inspection/document-review-mobile.png",
+    fullPage: true,
+  });
+});
+
+test("market playbooks preserve blockers, immutable versions, and independent review", async ({ page }, testInfo) => {
+  await page.goto("/playbooks");
+  await expect(
+    page.getByRole("heading", { name: "Market playbooks" }),
+  ).toBeVisible();
+  await expect(page.getByText("No averaged score", { exact: true })).toBeVisible();
+  await expect(page.getByText("blocked", { exact: true })).toBeVisible();
+  await expect(page.getByText("Missing", { exact: true })).toBeVisible();
+  await expect(page.getByText("Stale", { exact: true })).toBeVisible();
+  await expect(page.getByText("Contradiction", { exact: true })).toBeVisible();
+  await expect(page.getByText(/averages cannot offset blockers/)).toBeVisible();
+
+  await page.getByRole("button", { name: "Version builder" }).click();
+  await page.getByLabel("Verified current").check();
+  await page.getByRole("button", { name: "Create draft version" }).click();
+  await expect(
+    page.getByText("Synthetic draft created. It is not applicable until independent review."),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Version history" }).click();
+  await expect(page.getByRole("heading", { name: "Version 3" })).toBeVisible();
+  await expect(page.getByText("Change diff", { exact: true })).toBeVisible();
+  await expect(page.getByText("Independent review pending")).toBeVisible();
+  await page.getByRole("button", { name: "Approve version" }).click();
+  await expect(
+    page.getByText("Synthetic version independently approved for deterministic evaluation."),
+  ).toBeVisible();
+  await expect(page.getByText("approved", { exact: true }).last()).toBeVisible();
+
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  );
+  expect(overflow).toBe(false);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({
+    path:
+      testInfo.project.name === "chromium"
+        ? "test-results/visual-inspection/market-playbooks-desktop.png"
+        : "test-results/visual-inspection/market-playbooks-mobile.png",
     fullPage: true,
   });
 });

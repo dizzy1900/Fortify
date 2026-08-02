@@ -1,0 +1,4 @@
+ALTER TABLE "playbook_applicability_rules" ADD CONSTRAINT "playbook_applicability_rules_position_check" CHECK ("playbook_applicability_rules"."position" >= 1);--> statement-breakpoint
+ALTER TABLE "playbook_requirements" ADD CONSTRAINT "playbook_requirements_position_check" CHECK ("playbook_requirements"."position" >= 1);--> statement-breakpoint
+ALTER TABLE "playbook_requirements" ADD CONSTRAINT "playbook_requirements_review_status_check" CHECK ("playbook_requirements"."required_review_status" in ('human_confirmed', 'confirmed', 'approved'));--> statement-breakpoint
+ALTER TABLE "playbook_versions" ADD CONSTRAINT "playbook_versions_hash_check" CHECK (char_length("playbook_versions"."content_hash") = 64);

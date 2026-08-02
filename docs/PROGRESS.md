@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M6 — Durable document processing and human fact review are locally implemented on August 1, 2026. Rights-cleared document/provider and managed-worker validation remain external. Managed PostgreSQL, OIDC/MFA, private object storage, malware scanning, and operational restore validation also remain external; M7 destination-specific playbooks/readiness is the next code milestone.
+M7 — Versioned destination playbooks and deterministic evidence readiness are locally implemented on August 1, 2026. Rights-cleared destination guidance and managed-database/design-partner validation remain external. Managed PostgreSQL, OIDC/MFA, private object storage, malware scanning, document providers/workers, and operational restore validation also remain external; M8 production renewal workflow and scoped external evidence collection is the next code milestone.
 
 ## Completed baseline
 
@@ -74,9 +74,19 @@ M6 — Durable document processing and human fact review are locally implemented
 - Added 4 service/contract tests covering the document matrix, retry/dead-letter behavior, attempt/candidate immutability, model-derived human gates, corrections/supersession, unscanned/unsupported objects, and cross-tenant rejection.
 - Full local validation passed: ESLint, strict TypeScript, 10 files/41 tests, 192-file secret scan, 18-page/32-API production build, 12/12 deterministic evaluation, 8/8 serial desktop/mobile Playwright scenarios, production schema regeneration with no drift, and `npm audit --omit=dev` with 0 vulnerabilities. All six deterministic PDF pages and the 17-entry ZIP were inspected; desktop/mobile document states were visually checked without observed overflow or clipping.
 
+## M7 locally implemented this cycle
+
+- Expanded the production schema from 59 to 65 tables and from 100 to 126 tenant, governance, and immutability triggers for stable market playbooks, immutable versions, destination requirement rules, bounded applicability conditions, independent reviews, and append-only case/destination links.
+- Added exact market/program/jurisdiction/peril/property-class/policy-form and effective-period applicability. Zero approved matches and overlapping approved matches fail closed; no version is silently selected.
+- Added source name, URL, version, exact citation, verify-current state, content hash, author, reviewer, predecessor, change summary, and deterministic diff readback. Authors cannot review their own versions, approval requires verify-current, and reviewed configuration is corrected only through a successor.
+- Added deterministic `ready`, `missing`, `stale`, `scope_mismatch`, `contradiction`, `unreviewed`, `insufficient`, and `not_applicable` requirement states. Accepted type/source/disposition, scope, freshness, and review checks must be satisfied together; an unresolved blocker always yields `blocked` and no average is calculated.
+- Added a 61-resource deny-by-default policy, five authenticated APIs, and the responsive `/playbooks` workspace with populated/loading/error/empty behavior, exact destination evaluation, case pinning, source governance, bounded requirement selection, version history, independent review, and explicit non-score/non-outcome caveats.
+- Added `docs/MARKET_PLAYBOOK_GOVERNANCE.md` and 3 service/contract tests covering lifecycle, exact applicability, ambiguity, cross-tenant rejection, immutable links, successor diffs, all requirement states, and proof that completed items cannot average away a blocker.
+- The final consolidated `npm run verify` exited 0 with approved localhost-bind permission: ESLint, strict TypeScript, 11 files/44 tests, 209-file secret scan, 19-page/37-API production build, 12/12 deterministic evaluation, and 10/10 serial desktop/mobile Playwright scenarios. Production schema regeneration reported no drift, and `npm audit --omit=dev` reported 0 vulnerabilities. An earlier sandboxed attempt reached Playwright before its bind was denied; that attempt is retained only as environment evidence. Playbook readiness, builder, and approved successor history were visually inspected at both viewports with no document-width overflow.
+
 ## Next
 
-- Begin M7 with versioned destination-specific playbooks and deterministic blockers/statuses that replace the universal weighted readiness heuristic without creating a risk or outcome score.
+- Begin M8 with production case templates, ownership/team workflow, dependencies/deadlines/reminders, bulk renewal operations, quality/final review, next-cycle roll-forward, and scoped expiring external evidence requests with consent, mobile use, revocation, and audit.
 - Validate rights-cleared brokerage exports and correspondence against the generic adapters; fixture compatibility is not certification. Validate any external OCR/document-intelligence provider only after licensing, egress, retention, credentials, security, latency, cost, and error behavior are approved.
 - Validate the M2 migration and contract suite against the selected managed PostgreSQL service; PGlite is PostgreSQL-compatible local evidence, not production-provider evidence.
 - Configure and validate a managed OIDC provider, redirect registration, MFA policy, secrets, session behavior, and rate limits in staging.

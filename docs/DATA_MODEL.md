@@ -1,6 +1,6 @@
 # Production data model
 
-The PostgreSQL schema contains 59 normalized tables. It is a forward foundation for the catastrophe-property renewal workflow, not a claim that every later workflow is implemented.
+The PostgreSQL schema contains 65 normalized tables. It is a forward foundation for the catastrophe-property renewal workflow, not a claim that every later workflow is implemented.
 
 ## Organizations and access foundation
 
@@ -55,6 +55,17 @@ An import never destroys rejected rows, prior receipts, or created-record histor
 - `requirements`: stable requirement identity, scope, importance, and blocking flag.
 - `requirement_versions`: immutable effective version, citation, content hash, and supersession.
 
+## Market playbooks and readiness
+
+- `market_playbooks`: stable tenant-owned playbook identity and description.
+- `playbook_versions`: immutable destination/program/jurisdiction/peril/property-class/policy-form scope, effective period, source/version/citation, verify-current state, author, content hash, change summary, and predecessor.
+- `playbook_requirements`: immutable required/recommended and blocking semantics plus accepted evidence/source types, freshness, scope, review authority, deadline, template/delivery configuration, and caveat.
+- `playbook_applicability_rules`: bounded field/operator/value conditions; no arbitrary executable code.
+- `playbook_version_reviews`: one append-only independent human approval or changes-requested decision per version.
+- `case_playbook_links`: append-only exact-version case/destination pins with predecessor lineage.
+
+Approved applicability is exact and effective-date-bound. Zero or multiple matches fail closed. Readiness is derived at request time from requirement, evidence-link, evidence-version, and contradiction records; no averaged readiness record can hide a blocker. See [MARKET_PLAYBOOK_GOVERNANCE.md](./MARKET_PLAYBOOK_GOVERNANCE.md).
+
 ## Document processing and facts
 
 - `document_processing_jobs`: durable queue state, availability, lease, attempt budget, idempotency, terminal error, and dead-letter lifecycle.
@@ -98,7 +109,7 @@ Missing, stale, contradictory, or unreviewed evidence remains a named state. No 
 
 Every customer-owned table carries `organization_id`, created/updated timestamps, created/updated actor, revision, lifecycle status, and deletion timestamp. Database triggers reject cross-organization references. Unique indexes bind external identifiers, hashes, versions, and idempotency keys inside the organization boundary.
 
-Audit events and requirement/evidence/submission versions cannot be updated or deleted. A correction creates a successor. Production migrations contain no `app_state` table or `DemoState` JSON column.
+Audit events and requirement/evidence/submission/playbook versions cannot be updated or deleted. Playbook requirements, conditions, reviews, and case links are also immutable. A correction creates a successor. Production migrations contain no `app_state` table or `DemoState` JSON column.
 
 ## Seed migration
 
