@@ -1,0 +1,2 @@
+DROP INDEX "integration_webhooks_org_key_unique";--> statement-breakpoint
+CREATE UNIQUE INDEX "integration_webhooks_endpoint_key_unique" ON "integration_webhook_endpoints" USING btree ("endpoint_key");

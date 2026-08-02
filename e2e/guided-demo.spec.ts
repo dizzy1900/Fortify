@@ -829,3 +829,46 @@ test("programme intelligence keeps cohort decisions, graph provenance, analytics
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: testInfo.project.name === "chromium" ? "test-results/visual-inspection/programme-intelligence-desktop.png" : testInfo.project.name === "tablet" ? "test-results/visual-inspection/programme-intelligence-tablet.png" : "test-results/visual-inspection/programme-intelligence-mobile.png", fullPage: true });
 });
+
+test("integration operations preserves provider pins, retries, exact receipts, and signed webhook custody", async ({ page }, testInfo) => {
+  await page.goto("/integrations");
+  await expect(page.getByRole("heading", { name: "Connect deliberately. Replay without losing custody." })).toBeVisible();
+  await expect(page.getByText("Credentials referenced—not stored in configuration", { exact: true })).toBeVisible();
+  await expect(page.getByText("Provider output is candidate input", { exact: true })).toBeVisible();
+  await expect(page.getByText("Provider fixture healthy", { exact: true })).toBeVisible();
+
+  await page.getByLabel("Inspect integration control state").selectOption("rate_limited");
+  await expect(page.getByText("Rate limit respected", { exact: true })).toBeVisible();
+  await page.getByLabel("Inspect integration control state").selectOption("dead_letter");
+  await expect(page.getByText("Sync dead-lettered", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Sync & receipts" }).click();
+  await expect(page.getByRole("heading", { name: "Cursor → attempt → exact receipt" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Failures remain evidence" })).toBeVisible();
+  await expect(page.getByText("50 staged", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Inspect pagination lineage" }).click();
+  await expect(page.getByText("Next-page job inspected; cursor and request hash are immutable.", { exact: true })).toBeAttached();
+  await page.getByRole("button", { name: "Queue append-only replay" }).click();
+  await expect(page.getByText(/Append-only replay job queued/)).toBeAttached();
+  await expect(page.getByText("Provider fixture healthy", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Signed webhooks" }).click();
+  await expect(page.getByRole("heading", { name: "Verify before quarantine" })).toBeVisible();
+  await expect(page.getByText("HMAC SHA-256", { exact: true })).toBeVisible();
+  await expect(page.getByText("Signature valid · bytes quarantined", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Test duplicate event" }).click();
+  await expect(page.getByText(/Duplicate external event rejected/)).toBeAttached();
+  await expect(page.getByRole("heading", { name: "No signature, no intake" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Provider catalog" }).click();
+  for (const provider of ["Microsoft Graph email intake", "Gmail email intake", "Google Drive evidence intake", "Applied Epic compatible exchange", "AMS360 compatible exchange", "External model boundary", "Independent verifier boundary"])
+    await expect(page.getByRole("heading", { name: provider })).toBeVisible();
+  await expect(page.getByText("Credential-dependent live gate", { exact: true })).toBeVisible();
+
+  await page.getByLabel("Inspect integration control state").selectOption("disconnected");
+  await expect(page.getByText("Live credential unavailable", { exact: true })).toBeVisible();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+  expect(overflow).toBe(false);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: testInfo.project.name === "chromium" ? "test-results/visual-inspection/integration-operations-desktop.png" : testInfo.project.name === "tablet" ? "test-results/visual-inspection/integration-operations-tablet.png" : "test-results/visual-inspection/integration-operations-mobile.png", fullPage: true });
+});

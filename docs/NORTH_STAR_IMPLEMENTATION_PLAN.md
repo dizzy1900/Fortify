@@ -98,6 +98,8 @@ Exit evidence: exportable reports, customer-confirmed baselines, privacy attacks
 
 Complete Microsoft Graph intake first, Gmail/drive boundaries, AMS/property-system/model/verifier adapters, webhook verification, scoped API keys, pagination, rate limits, health, schema versions, sync receipts, retries, and dead letters.
 
+Local state: the normalized M11 slice is locally implemented with nine versioned provider boundaries, a Graph-first deterministic pagination/rate-limit fixture, secret-reference-only configuration, immutable schema and connection history, durable page/batch jobs, exact stored receipts, bounded retry/dead-letter/successor replay, scoped signed-webhook quarantine, provider health history, authenticated administration APIs, and a responsive integration workspace. Live credentials, vendor semantics, rights, staging operation, throughput, managed secret storage, and provider/customer validation remain external or M12 deployment evidence.
+
 Exit evidence: deterministic provider fixtures, idempotent replay, degraded/disconnected states, admin configuration, and credential-dependent live gates.
 
 ### M12 — Operational hardening and launch validation
