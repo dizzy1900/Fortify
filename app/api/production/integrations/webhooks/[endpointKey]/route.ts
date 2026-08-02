@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import { authenticationFailure } from "@/lib/production/http-auth";
 import { getProductionIntegrationService } from "@/lib/production/integration-http";
 import { requireProductionRuntime } from "@/lib/runtime";
+import { getProductionDatabase } from "@/db/production/client";
+import { consumeRequestRateLimit } from "@/lib/production/rate-limit";
 
 export async function POST(
   request: NextRequest,
@@ -9,6 +11,11 @@ export async function POST(
 ) {
   try {
     requireProductionRuntime();
+    await consumeRequestRateLimit(getProductionDatabase(), request, {
+      scope: "integration-webhook",
+      limit: 300,
+      windowSeconds: 60,
+    });
     const { endpointKey } = await params;
     const body = new Uint8Array(await request.arrayBuffer());
     return Response.json(

@@ -1,0 +1,171 @@
+{
+  "architecture": "normalized PostgreSQL development fixtures; never DemoState",
+  "status": "locally validated aggregate flow; live external steps remain gated",
+  "steps": [
+    {
+      "step": 1,
+      "label": "Create brokerage organization",
+      "evidence": "tests/identity-authorization.test.ts"
+    },
+    {
+      "step": 2,
+      "label": "Invite distinct roles",
+      "evidence": "tests/identity-authorization.test.ts"
+    },
+    {
+      "step": 3,
+      "label": "Import California portfolio",
+      "evidence": "tests/portfolio-import.test.ts"
+    },
+    {
+      "step": 4,
+      "label": "Create wildfire recognition case",
+      "evidence": "tests/brokerage-case.test.ts"
+    },
+    {
+      "step": 5,
+      "label": "Import policy and notice",
+      "evidence": "tests/brokerage-case.test.ts"
+    },
+    {
+      "step": 6,
+      "label": "Confirm extracted fields",
+      "evidence": "tests/document-pipeline.test.ts"
+    },
+    {
+      "step": 7,
+      "label": "Record external risk drivers",
+      "evidence": "tests/model-recognition.test.ts"
+    },
+    {
+      "step": 8,
+      "label": "Select target profile",
+      "evidence": "tests/resilience-planning.test.ts"
+    },
+    {
+      "step": 9,
+      "label": "Assess baseline gaps",
+      "evidence": "tests/resilience-planning.test.ts"
+    },
+    {
+      "step": 10,
+      "label": "Create capital plan",
+      "evidence": "tests/resilience-planning.test.ts"
+    },
+    {
+      "step": 11,
+      "label": "Apply funding programme",
+      "evidence": "tests/funding-project.test.ts"
+    },
+    {
+      "step": 12,
+      "label": "Approve funding commitment",
+      "evidence": "tests/funding-project.test.ts"
+    },
+    {
+      "step": 13,
+      "label": "Assign work and milestones",
+      "evidence": "tests/funding-project.test.ts"
+    },
+    {
+      "step": 14,
+      "label": "Invite manager and contractor",
+      "evidence": "tests/funding-project.test.ts"
+    },
+    {
+      "step": 15,
+      "label": "Collect completion evidence",
+      "evidence": "tests/funding-project.test.ts"
+    },
+    {
+      "step": 16,
+      "label": "Assign independent verifier",
+      "evidence": "tests/verification-governance.test.ts"
+    },
+    {
+      "step": 17,
+      "label": "Record findings and exceptions",
+      "evidence": "tests/verification-governance.test.ts"
+    },
+    {
+      "step": 18,
+      "label": "Create model mappings",
+      "evidence": "tests/model-recognition.test.ts"
+    },
+    {
+      "step": 19,
+      "label": "Crosswalk market playbook",
+      "evidence": "tests/market-playbook.test.ts"
+    },
+    {
+      "step": 20,
+      "label": "Resolve blocking items",
+      "evidence": "tests/brokerage-case.test.ts"
+    },
+    {
+      "step": 21,
+      "label": "Generate recognition submission",
+      "evidence": "tests/recognition-submission.test.ts"
+    },
+    {
+      "step": 22,
+      "label": "Confirm and deliver",
+      "evidence": "tests/recognition-submission.test.ts"
+    },
+    {
+      "step": 23,
+      "label": "Open insurer review session",
+      "evidence": "tests/recognition-submission.test.ts"
+    },
+    {
+      "step": 24,
+      "label": "Request clarification",
+      "evidence": "tests/recognition-submission.test.ts"
+    },
+    {
+      "step": 25,
+      "label": "Respond with evidence",
+      "evidence": "tests/recognition-submission.test.ts"
+    },
+    {
+      "step": 26,
+      "label": "Record evidence acceptance",
+      "evidence": "tests/recognition-submission.test.ts"
+    },
+    {
+      "step": 27,
+      "label": "Separate model rating underwriting treatment",
+      "evidence": "tests/recognition-submission.test.ts"
+    },
+    {
+      "step": 28,
+      "label": "Record placement outcome",
+      "evidence": "tests/recognition-submission.test.ts"
+    },
+    {
+      "step": 29,
+      "label": "Close case",
+      "evidence": "tests/recognition-submission.test.ts"
+    },
+    {
+      "step": 30,
+      "label": "Create maintenance obligations",
+      "evidence": "tests/recognition-submission.test.ts"
+    },
+    {
+      "step": 31,
+      "label": "Roll evidence into renewal",
+      "evidence": "tests/recognition-submission.test.ts"
+    },
+    {
+      "step": 32,
+      "label": "Verify audit permissions recognition graph",
+      "evidence": "tests/programme-analytics.test.ts"
+    },
+    {
+      "step": 33,
+      "label": "Generate ROI and programme reports",
+      "evidence": "tests/programme-analytics.test.ts"
+    }
+  ]
+}

@@ -106,6 +106,8 @@ Exit evidence: deterministic provider fixtures, idempotent replay, degraded/disc
 
 Complete CSP/CSRF/security headers/rate limits, structured redacted logs, secrets, RLS defence in depth, retention/deletion, staging/production release process, observability, dependency/SAST/container/accessibility/visual gates, encrypted backup/PITR, restore exercise, incident response, and launch evidence.
 
+Local state: the M12 repository contract is locally validated with a Next 16 nonce-CSP/security/CSRF proxy, durable HMAC request throttling, redacted structured logging, strict production environment/readiness checks, bounded database connections, 185 generated tenant RLS policies, retention/legal-hold-aware storage deletion, AES-256-GCM logical-backup and exact restore primitives, staging/production release workflow, bounded-memory CI, accessibility and visual regression gates, a mapped 33-step normalized PostgreSQL fixture flow, and the complete security/operations/launch document set. No managed environment, non-owner RLS role, OIDC/MFA, KMS/bucket/scanner, deployment, PITR schedule, production restore, alert delivery, security assessment, customer, verifier, programme, model-provider, or market use has been validated.
+
 Exit evidence: measured deployment and restore records, threat/data-flow/security documents, full 33-step production-fixture flow, and launch status separating code, local, deployment, customer, market, programme, and external validation.
 
 ## Per-cycle procedure

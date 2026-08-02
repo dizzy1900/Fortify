@@ -53,6 +53,8 @@ import { RecognitionStateError, RecognitionValidationError } from "@/lib/product
 import { ProgrammeAnalyticsStateError, ProgrammeAnalyticsValidationError } from "@/lib/production/programme-analytics-service";
 import { IntegrationStateError, IntegrationValidationError } from "@/lib/production/integration-service";
 import { IntegrationProviderError } from "@/lib/production/integration-providers";
+import { consumeRequestRateLimit, RequestRateLimitError } from "@/lib/production/rate-limit";
+import { logOperationalEvent } from "@/lib/production/observability";
 
 export const SESSION_COOKIE_NAME =
   process.env.NODE_ENV === "production"
@@ -62,7 +64,9 @@ export const SESSION_COOKIE_NAME =
 export async function resolveRequestPrincipal(
   request: NextRequest,
 ): Promise<ResolvedPrincipal | { authorization: Awaited<ReturnType<IdentityService["resolveApiCredential"]>>; expiresAt: string }> {
-  const service = new IdentityService(getProductionDatabase());
+  const database = getProductionDatabase();
+  await consumeRequestRateLimit(database, request, { scope: "authenticated-api" });
+  const service = new IdentityService(database);
   const authorization = request.headers.get("authorization");
   if (authorization?.startsWith("Bearer ")) {
     const token = authorization.slice("Bearer ".length).trim();
@@ -122,6 +126,11 @@ export function clearSessionCookie(response: NextResponse) {
 }
 
 export function authenticationFailure(error: unknown) {
+  if (error instanceof RequestRateLimitError)
+    return Response.json(
+      { error: error.message },
+      { status: 429, headers: { "Retry-After": String(error.retryAfterSeconds) } },
+    );
   if (error instanceof AuthorizationDeniedError)
     return Response.json({ error: error.message }, { status: 403 });
   if (error instanceof TenantResourceNotFoundError)
@@ -200,6 +209,11 @@ export function authenticationFailure(error: unknown) {
     error instanceof AuthenticationError
       ? error.message
       : "Authentication failed closed.";
+  logOperationalEvent(
+    error instanceof AuthenticationError ? "warn" : "error",
+    "request.failed",
+    { errorCode: error instanceof Error ? error.name : "UnknownError" },
+  );
   return Response.json(
     { error: message },
     { status: error instanceof AuthenticationError ? 401 : 500 },

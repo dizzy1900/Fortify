@@ -6,11 +6,11 @@ Copy `.env.example`, install with `npm ci`, run `npm run demo:reset`, then `npm 
 
 ## Container demo
 
-`docker compose up --build` builds the standalone Next.js server and mounts `./data`, `./storage`, and `./output`. The container health check calls `/api/health`. No cloud account or secret is required.
+`docker compose up --build` builds the standalone Next.js server and mounts `./data`, `./storage`, and `./output`. The sandbox container health check calls `/api/health`. No cloud account or secret is required.
 
 ## Production boundary
 
-The Docker image is a reproducibility aid, not a production-readiness claim. The production PostgreSQL data-plane adapter and migrations are implemented, but no managed database or production deployment has been validated.
+The Docker image and protected `.github/workflows/release.yml` workflow are reproducibility and release-contract aids, not production-readiness claims. The workflow validates the target environment, applies migrations before releasing an immutable GHCR digest, and emits a receipt. A repository owner must configure protected `staging` and `production` environments, required reviewers, OIDC/cloud deployment authority, and the selected deployment step. No managed database or production deployment has been validated.
 
 An operator must explicitly set:
 
@@ -22,6 +22,7 @@ FORTIFY_OIDC_PROVIDER_KEY=brokerage-oidc
 FORTIFY_OIDC_ISSUER=https://identity.example.com/
 FORTIFY_OIDC_CLIENT_ID=...
 FORTIFY_OIDC_CLIENT_SECRET=...
+FORTIFY_RATE_LIMIT_HASH_KEY=...
 FORTIFY_STORAGE_BUCKET=private-evidence-bucket
 FORTIFY_STORAGE_REGION=us-west-2
 FORTIFY_DOCUMENT_PROVIDER=local-selectable-text
@@ -34,6 +35,10 @@ Apply migrations before application rollout:
 ```bash
 npm run db:migrate:production
 ```
+
+Use `/api/health` only for process liveness and `/api/ready` for release/readiness checks. In production, readiness fails closed unless the production environment contract is valid and PostgreSQL answers a probe. The application role must be non-owner and its organization-session/RLS behavior must be verified against the selected managed PostgreSQL service before customer data is admitted.
+
+Logical backup and isolated restore tooling is available through `npm run ops:backup` and `npm run ops:restore`. It uses an AES-256-GCM envelope, exact plaintext/ciphertext SHA-256 readback, and an external secret-manager reference. It is not a substitute for managed PITR, an independent backup account, retention policy, restore monitoring, or a timed staging restore exercise; follow `docs/OPERATIONS_RUNBOOK.md` and record evidence in `docs/BACKUP_RESTORE_REPORT.md`.
 
 Run document processing outside the web request path with an explicitly scoped service account:
 

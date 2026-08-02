@@ -4,7 +4,7 @@ Measured on August 2, 2026 against [COMMERCIAL_NORTH_STAR.md](./COMMERCIAL_NORTH
 
 ## Current state
 
-Fortify preserves a deterministic fictional Colorado renewal sandbox and now has a locally validated M11 integration slice on the normalized production architecture: tenant-scoped PostgreSQL, OIDC-compatible identity, deny-by-default authorization, secure evidence, exact source governance, planning/funding/execution, independent verification, model mapping, market recognition, programme analytics, and version-pinned provider custody. The current M11 tree has 189 tables, 637 database guards/triggers, and 185 authorization resource classes.
+Fortify preserves a deterministic fictional Colorado renewal sandbox and now has a locally validated M12 operational-hardening slice on the normalized production architecture: tenant-scoped PostgreSQL, OIDC-compatible identity, deny-by-default authorization, secure evidence, exact source governance, planning/funding/execution, independent verification, model mapping, market recognition, programme analytics, version-pinned provider custody, request-boundary security, RLS policy coverage, encrypted backup primitives, and governed release/operations contracts. The current M12 tree has 190 tables, 637 database guards/triggers, 185 tenant RLS policies, and 185 authorization resource classes.
 
 The replacement north star makes California the initial production jurisdiction and expands the product into governed resilience investment, funding, independent verification, external-model mapping, explicit market commitments, and insurance-recognition outcomes. Those expanded capabilities are not implied by the existing renewal implementation or the local source workflow. No managed deployment, rights-cleared California portfolio or source snapshot, verified legal currentness, customer-approved source policy, real verifier, funding sponsor, model provider, insurer reviewer, backup restore, or paid pilot has been validated.
 
@@ -24,7 +24,7 @@ The replacement north star makes California the initial production jurisdiction 
 | M9 Recognition submission/outcomes | Locally validated; stacked draft PR #16 published; external validation pending | Immutable exact-version recognition bindings and mapping snapshots; failed-attempt/retry delivery custody with exact stored receipts; expiring/revocable submission-scoped reviewer; original correspondence plus separate normalized taxonomy; append-only evidence/model/rating/underwriting/placement/funding response ledgers and corrections; explicit outcome-pending closure; human-reviewed same-property renewal maintenance roll-forward; responsive `/recognition` workspace | Validate live delivery and recipient custody, authorized reviewer identity/use, real counterparty decisions and governed rating source, managed deployment, and customer operation without inferring acceptance or authority; implement M10 programme administration and analytics |
 | M10 Programme administration/analytics | Locally validated; stacked draft PR #17 published; external/customer/programme validation pending | Published programme/profile-pinned cohorts; append-only membership decisions; audit-derived recognition graph; stakeholder-benefit readback; independently governed tenant-only analytics policy; descriptive snapshots with denominators and exact query receipts; human-confirmed workflow baseline; exact JSON/CSV brokerage and programme reports with governed source lineage; responsive `/programme-intelligence` workspace; cross-customer execution disabled at service and database boundaries | Validate real customer baselines and workflow use, contractual data rights and privacy design, real programme participation/outcomes, and managed deployment without attributing causality, loss reduction, insurance outcomes, or savings; implement M11 integrations |
 | M11 Production integrations | Locally validated; stacked draft PR #18 published; live credentials and deployment validation externally blocked | Nine versioned provider boundaries; Graph-first deterministic pagination/rate-limit fixture; secret-reference-only connection configuration; immutable schema/state history; durable sync jobs/attempts/exact receipts; bounded retry/dead-letter/successor replay; scoped HMAC webhook quarantine; health history; authenticated APIs; responsive `/integrations` workspace; complete local release evidence | Validate reviewed provider implementations, scoped credentials, rights, live schemas, webhook senders, rate limits, monitoring, and rollback on the selected staging stack without inferring semantic or external acceptance; implement M12 hardening |
-| M12 Operational hardening/launch | Not started | Local Dockerfile, health route, CI workflow, dependency/secret/CodeQL evidence | Security/privacy/data-flow documents, CSP/CSRF/rate limits/RLS/log redaction, accessibility/visual gates, staging/production release, observability, encrypted backup/PITR, measured restore, full 33-step fixture flow, and launch report |
+| M12 Operational hardening/launch | Locally validated; deployment/customer/external validation blocked | Nonce CSP/secure headers and same-origin CSRF boundary; durable HMAC rate buckets; redacted JSON logs; strict readiness/env checks; bounded pool; 185 RLS policies; retention/legal hold; authenticated encrypted logical-backup fixture restore; release workflow; accessibility/visual/CI gates; 33/33 production-fixture evidence map; security, threat, data-flow, incident, operations, pilot, ROI, questionnaire, subprocessor, restore, and launch reports | Validate the hosted image job, protected staging/production environments, non-owner RLS role/session behavior, OIDC/MFA, KMS/private storage/scanner/secrets, alerts, load/performance, PITR schedule and fresh managed restore, security review, owner GitHub controls, then separately customer/programme/verifier/model/market gates |
 
 ## Architecture truth table
 
@@ -61,22 +61,22 @@ The transformation must continue to prove:
 
 ## Last confirmed local evidence
 
-The M11 production-integration tree based on M10 passed the complete local release surface on August 2, 2026:
+The M12 operational-hardening tree based on M11 passed the complete local release surface on August 2, 2026:
 
 - ESLint and strict TypeScript passed.
-- Vitest: 23 files / 89 tests.
-- Repository secret scan: 403 non-ignored files.
-- Next.js build: 30 product pages / 133 API routes.
+- Vitest: 24 files / 93 tests.
+- Repository secret scan: 431 non-ignored files.
+- Next.js build: 30 product pages / 134 API routes plus the Next 16 proxy.
 - Deterministic sandbox evaluation: 12/12.
 - Prohibited-claims scan: 18 direct patterns across runtime source and generated text artifacts.
-- Playwright: 51/51 serial desktop Chromium, 834-pixel tablet, and Pixel 7 scenarios, including connection/version pins, pagination, dead-letter replay, signed-webhook custody, disconnected-live state, and all preserved journeys.
-- Production schema regeneration: 189 tables, no drift; the migrated database exposes exactly 637 guards/triggers.
+- Playwright: 56 passed / 4 intentional project skips across desktop Chromium, 834-pixel tablet, and Pixel 7, including CSP/readiness headers, zero serious/critical Axe findings on three critical workspaces, the reviewed visual baseline, and all preserved journeys.
+- Production schema regeneration: 190 tables, no drift; the migrated database exposes exactly 637 guards/triggers and 185 tenant-isolation RLS policies.
 - `npm audit --audit-level=moderate`: 0 vulnerabilities.
 - The preserved six-page Letter PDF was rendered and inspected; the 17-entry ZIP passed CRC and content review. The deterministic evaluator retained exact 11,602-byte PDF, 51,723-byte ZIP, and manifest hash evidence.
 - `git diff --check` passed.
 - Integration-operations desktop, tablet, and Pixel 7 views were inspected with no observed clipping, collision, or document-width overflow.
 
-This validates the replacement M11 integration slice locally and preserves the M0–M10 plus renewal-foundation evidence. It is not proof that M12, a live provider connection, vendor semantics, model validity, semantic acceptance, counterparty authority, legal currentness, redistribution rights, cross-customer authority, real customer baselines or savings, caused programme/loss outcomes, a managed provider/PostGIS/RLS/OIDC/MFA/object-storage/secrets topology, rights-cleared customer data, a real credential or inspection, real funding, live external delivery, brokerage acceptance, programme acceptance, or any other external gate has been met.
+This validates the replacement M12 repository and local operations slice and preserves M0–M11 plus renewal-foundation evidence. It is not proof of a managed deployment, production restore/PITR, live provider, vendor semantics, model validity, semantic acceptance, counterparty authority, legal currentness, redistribution rights, cross-customer authority, real customer baselines or savings, caused programme/loss outcomes, a managed PostGIS/RLS/OIDC/MFA/object-storage/secrets topology, rights-cleared customer data, a real credential or inspection, real funding, live external delivery, brokerage acceptance, programme acceptance, security certification, or any other external gate.
 
 ## External validation gates
 
