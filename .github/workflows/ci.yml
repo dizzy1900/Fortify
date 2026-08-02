@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: 22.13.0
+  NODE_VERSION: 22.23.2
   NEXT_TELEMETRY_DISABLED: 1
   FORTIFY_RUNTIME_MODE: sandbox
 
@@ -103,10 +103,18 @@ jobs:
             target: tests/secure-object-storage.test.ts
           - label: verification-governance
             target: tests/verification-governance.test.ts
-          - label: lightweight-repository
-            target: >-
-              tests/artifacts.test.ts tests/domain.test.ts tests/migration.test.ts
-              tests/prohibited-claims.test.ts tests/repository.test.ts tests/runtime.test.ts
+          - label: artifacts
+            target: tests/artifacts.test.ts
+          - label: domain
+            target: tests/domain.test.ts
+          - label: migration
+            target: tests/migration.test.ts
+          - label: prohibited-claims
+            target: tests/prohibited-claims.test.ts
+          - label: repository
+            target: tests/repository.test.ts
+          - label: runtime
+            target: tests/runtime.test.ts
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
