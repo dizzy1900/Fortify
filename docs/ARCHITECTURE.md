@@ -33,6 +33,8 @@ Document intake follows the same clean-object boundary. `DocumentPipelineService
 
 `MarketPlaybookService` creates immutable destination versions and bounded requirement conditions, records independent human review, resolves one exact approved/effective version, pins it to a case destination through append-only lineage, and derives named evidence states without a weighted average. Missing or overlapping applicability fails closed. Requirement evaluation binds accepted type/source/disposition, scope, freshness, review state, and contradiction state to the same evidence versions. The `/playbooks` administrator workspace exposes source/version/citation, verify-current state, lifecycle, lineage, case pin, and the blocker-preserving calculation. See [MARKET_PLAYBOOK_GOVERNANCE.md](./MARKET_PLAYBOOK_GOVERNANCE.md).
 
+`PropertyGraphService` registers portfolios, property membership, parcels, unit summaries, typed physical scopes, aliases, relationships, and immutable property versions in one tenant-scoped transaction with an audit event and idempotency receipt. Database guards independently reject cross-organization links, scope references to another property, non-immediate version lineage, and version mutation/deletion. The authenticated production API provides organization-scoped workspace readback and graph registration; `/property-graph` uses those APIs in production and an explicitly separate synthetic California fixture in sandbox mode. Geometry stays nullable and carries an explicit state; EPSG:4326 readiness is not a claim that PostGIS, a boundary, or geospatial truth has been deployed.
+
 ## Transaction doctrine
 
 Consequential mutations use one PostgreSQL transaction for:
@@ -53,17 +55,19 @@ Audit hashes bind the preceding tenant audit hash, organization, actor, action, 
 - Stable resource IDs are globally unique application identifiers.
 - Every customer-owned production table carries organization, creation/update actors and timestamps, revision, lifecycle state, and deletion timestamp where applicable.
 - Database triggers reject parent/child references whose `organization_id` values differ, even if code bypasses repositories.
-- Sandbox data is owned by `org-fortify-sandbox`, whose row is constrained to `environment=sandbox` and `synthetic=true`.
+- Colorado sandbox data is owned by `org-fortify-sandbox`; the separate California development fixture is owned by `org-fortify-california-fixture`. Both rows are constrained to `environment=sandbox` and `synthetic=true`.
 - Cross-customer analytics opt-in defaults to false.
 
-M3 adds authenticated principals, memberships, deny-by-default authorization policies, revocation, support-access controls, and resource-complete attack tests. M4 extends the same organization boundary through storage objects, grants, scan results, and backup manifests. M5 extends it through saved mappings, mapping versions, import runs, quarantined rows, and immutable receipts. M6 extends it through jobs, attempts, extraction runs, passages, candidate fields, human reviews, and confirmed fact versions. M7 extends it through playbooks, immutable versions/rules/reviews, and append-only case linkage. Managed-provider configuration, MFA policy enforcement, defense-in-depth RLS evaluation, rate limiting, secrets infrastructure, and deployment validation remain external/operational gates rather than inferred passes.
+M3 adds authenticated principals, memberships, deny-by-default authorization policies, revocation, support-access controls, and resource-complete attack tests. M4 extends the same organization boundary through storage objects, grants, scan results, and backup manifests. M5 extends it through saved mappings, mapping versions, import runs, quarantined rows, and immutable receipts. M6 extends it through jobs, attempts, extraction runs, passages, candidate fields, human reviews, and confirmed fact versions. M7 extends it through playbooks, immutable versions/rules/reviews, and append-only case linkage. The replacement M1 graph slice extends it through portfolios, property links, parcels, unit summaries, scopes, aliases, relationships, and versions. Managed-provider configuration, MFA policy enforcement, defense-in-depth RLS evaluation, rate limiting, secrets infrastructure, and deployment validation remain external/operational gates rather than inferred passes.
 
 ## Persistence adapters
 
 - Production schema: `db/production/schema.ts`
 - Production migrations: `drizzle-production/`
 - Production repository: `lib/production/repository.ts`
+- Property-graph service: `lib/production/property-graph-service.ts`
 - Explicit seed migration: `lib/production/seed-migration.ts`
+- Explicit California graph fixture: `lib/fixtures/california-property-graph.ts`
 - Sandbox schema: `db/schema.ts`
 - Sandbox repository: `lib/repository.ts`
 
@@ -75,4 +79,4 @@ The contract suite uses PGlite as an embedded PostgreSQL-compatible engine becau
 
 ## Next architecture boundary
 
-The published M7 renewal/playbook tree is locally validated reusable foundation. The replacement milestone sequence restarts at M0 doctrine/release reconciliation, then fills the production property graph and California brokerage wedge before adding the governed California source register. Profiles, interventions, capital planning, funding, independent verification, model mapping, market commitments, recognition delivery/outcomes, programme analytics, and operational hardening remain unimplemented or incomplete. Production remains closed to customer data until managed PostgreSQL/PostGIS, OIDC, private storage/scanning, deployment, backup/restore, security, and rights-cleared external gates are validated.
+The published M7 renewal/playbook tree and the locally implemented M1 property-graph slice are reusable foundations. The next product sequence closes the California brokerage wedge and identity/data-access roles before adding the governed California source register. Profiles, interventions, capital planning, funding, independent verification, model mapping, market commitments, recognition delivery/outcomes, programme analytics, and operational hardening remain unimplemented or incomplete. Production remains closed to customer data until managed PostgreSQL/PostGIS, OIDC, private storage/scanning, deployment, backup/restore, security, and rights-cleared external gates are validated.

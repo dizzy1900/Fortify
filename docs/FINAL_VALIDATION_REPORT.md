@@ -1,6 +1,22 @@
 # Final validation report
 
-Status: **the M0 doctrine/release foundation and preserved Colorado M1–M7 renewal foundation were locally validated on August 1, 2026**. This is not a production-readiness, resilience-effectiveness, verification, model-acceptance, funding, legal-correctness, carrier-acceptance, customer-validation, programme-validation, or market-validation claim.
+Status: **the replacement M1 governed property-graph/data-right slice, M0 doctrine/release foundation, and preserved Colorado M1–M7 renewal foundation were locally validated on August 1, 2026**. This is not a production-readiness, resilience-effectiveness, verification, model-acceptance, funding, legal-correctness, carrier-acceptance, customer-validation, programme-validation, or market-validation claim.
+
+## Replacement north-star M1 property-graph local-validation addendum
+
+One consolidated `npm run verify` invocation exited 0 with approved localhost binding: ESLint, strict TypeScript, 13 Vitest files/50 tests, a 225-file secret scan, the 20-page/39-API production build, 12/12 deterministic sandbox checks, the 18-pattern claims scan, and 14/14 serial Playwright scenarios across desktop Chromium and Pixel 7 passed. Production schema regeneration reported 73 tables and no drift; `npm audit --omit=dev` reported 0 vulnerabilities; `git diff --check` passed.
+
+The M1 migration adds eight tenant-owned tables for property portfolios and membership, parcels, unit summaries, typed physical scopes, reviewed aliases, cross-property relationships, and immutable property snapshots. Exactly 147 database guards/triggers now enforce tenant ownership across every new reference, portfolio properties belonging to the portfolio client, unit-summary buildings belonging to the selected property, scope references to the same property, required scope targets, immediate version lineage, and version update/delete rejection. The deny-by-default registry covers all 69 current resource classes.
+
+Every new graph record retains source system, optional source-record identifier, effective period, confidentiality state, one of ten contract-ready data-right classes, and a rights-recorded flag. Cross-customer use remains `prohibited` by default. The rights flag records the tenant's stated right for the specific source/use; it is not a Fortify legal determination. Consent, cohort, de-identification, suppression, and benchmark execution are explicitly unimplemented.
+
+`PropertyGraphService` verifies tenant-owned parents, writes the graph plus audit event and idempotency receipt in one transaction, and exposes tenant-scoped readback. The two authenticated production APIs admit no sandbox fallback. The deterministic California fixture runs under `org-fortify-california-fixture`, separate from the preserved Colorado `org-fortify-sandbox`; exact replay is proven and a California-context read does not return Colorado records. Direct cross-tenant parcel and portfolio-link writes fail at the database layer. Property v2 without the immediate predecessor fails, and valid recorded versions cannot be updated.
+
+The responsive `/property-graph` workspace exposes functional portfolio/property selectors and property, physical-scope, immutable-version, and rights/provenance views. Its two fictional California properties have two parcels with `geometry_status=unavailable`, null boundary payloads, six explicit scope nodes, reviewed aliases/relationship, and hash-bound version snapshots. Desktop 1280, tablet 834, and Pixel 7 mobile screenshots were inspected: tenant/source boundaries, insufficient spatial state, identity, rights, and caveats were legible with no measured horizontal overflow or observed clipping/collision.
+
+The first otherwise-complete sandboxed validation reached Playwright and was denied a local bind with `listen EPERM 127.0.0.1:3000`; the approved identical full invocation then exited 0. The initial full test run also caught a stale expected resource count of 61 after the eight new classes were registered; correcting the inventory assertion made the all-resource tenant-mismatch test pass for 69/69 classes.
+
+No rights-cleared California portfolio, approved parcel boundary, managed PostgreSQL/PostGIS deployment, RLS policy, geospatial query/performance result, backup/restore exercise, or customer validation is present. The nullable EPSG:4326-ready GeoJSON contract and PGlite trigger suite are local implementation evidence only. M1 is locally validated but is neither deployment-validated nor externally validated.
 
 ## Product-doctrine M0 local-validation addendum
 
