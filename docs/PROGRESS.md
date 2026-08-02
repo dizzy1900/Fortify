@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M10 — The programme-cohort, recognition-graph, tenant-analytics, source-lineage, and exact-report slice is implemented and locally validated. It does not prove programme effectiveness, caused loss reduction, broker savings, cross-customer authority, insurance or pricing outcomes, customer use, deployment, or external validation. M11 production integrations are next.
+M10 — The programme-cohort, recognition-graph, tenant-analytics, source-lineage, and exact-report slice is implemented, locally validated, and published as stacked draft PR [#17](https://github.com/dizzy1900/Fortify/pull/17). It does not prove programme effectiveness, caused loss reduction, broker savings, cross-customer authority, insurance or pricing outcomes, customer use, deployment, or external validation. M11 production integrations are next.
 
 ## Replacement north-star M10 locally validated
 
@@ -13,6 +13,7 @@ M10 — The programme-cohort, recognition-graph, tenant-analytics, source-lineag
 - Added policy fields for opt-in, contractual reference, de-identification, minimum cohort, suppression, retention, and deletion treatment. The tenant-scoped execution service and database both reject every cross-customer query even when a draft opt-in policy exists; separate cross-tenant authority is intentionally not implemented.
 - Added the responsive `/programme-intelligence` workspace with functional programme, recognition-graph, analytics/report, and rights/privacy controls plus populated, loading, error, empty, insufficient-evidence, maintenance, and privacy-blocked states. Desktop, 834-pixel tablet, and Pixel 7 screenshots were inspected without clipping, collision, or measured document-width overflow.
 - Local release evidence: ESLint and strict TypeScript pass; 22 Vitest files/82 tests pass; the 382-file secret scan passes; the 29-page/123-API production build passes; deterministic evaluation remains 12/12; the 18-pattern claims scan passes; and the complete 48/48 Playwright suite passes serially across desktop, tablet, and mobile. Production schema generation reports 180 tables/no drift, and `npm audit --audit-level=moderate` reports 0 vulnerabilities.
+- Published branch `codex/m10-programme-analytics-recognition-graph` as stacked draft PR [#17](https://github.com/dizzy1900/Fortify/pull/17) against refreshed `codex/m9-recognition-submissions-outcomes`. The initial implementation head and remote SHA matched at `e903543ba2b254baaf0062a51349f83452f36f2b`; local `git merge-tree --write-tree` produced `0e6e2521c991e9b777e1620e91b0086019d5b8b6`, and GitHub reported `MERGEABLE`. The separate `UNSTABLE` aggregate reflected queued/running checks, not a merge conflict.
 - All programme sponsors, cohort decisions, graph events, baselines, metrics, benefits, reports, sources, and outcomes are deterministic fictional fixtures. No customer-confirmed real baseline, contractual cross-customer right, real programme participation/effect, broker savings, resilience effect, insurer response, managed deployment, or external validation has been established.
 
 ## Replacement north-star M9 locally validated
