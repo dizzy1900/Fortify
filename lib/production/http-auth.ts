@@ -38,6 +38,10 @@ import {
   BrokerageCaseStateError,
   BrokerageCaseValidationError,
 } from "@/lib/production/brokerage-case-service";
+import {
+  GovernedSourceStateError,
+  GovernedSourceValidationError,
+} from "@/lib/production/governed-source-service";
 
 export const SESSION_COOKIE_NAME =
   process.env.NODE_ENV === "production"
@@ -137,6 +141,10 @@ export function authenticationFailure(error: unknown) {
   if (error instanceof BrokerageCaseValidationError)
     return Response.json({ error: error.message }, { status: 400 });
   if (error instanceof BrokerageCaseStateError)
+    return Response.json({ error: error.message }, { status: 409 });
+  if (error instanceof GovernedSourceValidationError)
+    return Response.json({ error: error.message }, { status: 400 });
+  if (error instanceof GovernedSourceStateError)
     return Response.json({ error: error.message }, { status: 409 });
   const message =
     error instanceof AuthenticationError

@@ -46,6 +46,16 @@ type RequirementVersion = {
   title: string;
   scopeType: string;
 };
+type PublishedSourceVersion = {
+  id: string;
+  sourceId: string;
+  title: string;
+  issuingAuthority: string;
+  officialUrl: string;
+  versionLabel: string;
+  verifyCurrentStatus: string;
+  publishedAt: string;
+};
 type Playbook = { id: string; name: string; description: string };
 type Version = {
   id: string;
@@ -59,6 +69,7 @@ type Version = {
   policyForm: string | null;
   effectiveFrom: string;
   effectiveTo: string | null;
+  governedSourceVersionId: string | null;
   sourceName: string;
   sourceUrl: string;
   sourceVersion: string;
@@ -95,6 +106,7 @@ type Workspace = {
   markets: Market[];
   programs: Program[];
   requirementVersions: RequirementVersion[];
+  publishedSourceVersions: PublishedSourceVersion[];
   playbooks: Playbook[];
   versions: Version[];
   requirements: PlaybookRequirement[];
@@ -229,6 +241,18 @@ const fixtureWorkspace: Workspace = {
   ],
   programs: [],
   requirementVersions: fixtureRequirementVersions,
+  publishedSourceVersions: [
+    {
+      id: "source-version-fictional-destination-guide",
+      sourceId: "source-fictional-destination-guide",
+      title: "Fictional broker-authored destination guide",
+      issuingAuthority: "Alpine Community Insurance — fictional",
+      officialUrl: "https://example.test/fictional-destination-guide",
+      versionLabel: "2026.2",
+      verifyCurrentStatus: "verified_current",
+      publishedAt: "2026-07-28T16:20:00.000Z",
+    },
+  ],
   playbooks: [
     {
       id: "playbook-fixture-summit",
@@ -250,6 +274,7 @@ const fixtureWorkspace: Workspace = {
       policyForm: "HOA master policy",
       effectiveFrom: "2026-07-01",
       effectiveTo: "2027-06-30",
+      governedSourceVersionId: "source-version-fictional-destination-guide",
       sourceName: "Fictional destination evidence guide",
       sourceUrl: "https://example.test/fictional-destination-guide",
       sourceVersion: "2026.2",
@@ -456,6 +481,9 @@ export function MarketPlaybookWorkspace({ mode }: { mode: RuntimeMode }) {
   );
   const [effectiveFrom, setEffectiveFrom] = useState("2027-07-01");
   const [effectiveTo, setEffectiveTo] = useState("2028-06-30");
+  const [governedSourceVersionId, setGovernedSourceVersionId] = useState(
+    sandbox ? "source-version-fictional-destination-guide" : "",
+  );
   const [sourceName, setSourceName] = useState(
     sandbox ? "Broker-verified destination guide" : "",
   );
@@ -504,6 +532,7 @@ export function MarketPlaybookWorkspace({ mode }: { mode: RuntimeMode }) {
     setPolicyForm(version.policyForm ?? "");
     setEffectiveFrom(version.effectiveFrom);
     setEffectiveTo(version.effectiveTo ?? "");
+    setGovernedSourceVersionId(version.governedSourceVersionId ?? "");
     setSourceName(version.sourceName);
     setSourceUrl(version.sourceUrl);
     setSourceVersion(version.sourceVersion);
@@ -790,7 +819,13 @@ export function MarketPlaybookWorkspace({ mode }: { mode: RuntimeMode }) {
   };
 
   const createDraft = async () => {
-    if (!workspace || !marketId || !selectedRequirementIds.length) return;
+    if (
+      !workspace ||
+      !marketId ||
+      !governedSourceVersionId ||
+      !selectedRequirementIds.length
+    )
+      return;
     setPending("create");
     setError(null);
     const requirements = selectedRequirementIds.map(
@@ -855,6 +890,7 @@ export function MarketPlaybookWorkspace({ mode }: { mode: RuntimeMode }) {
           policyForm: policyForm || null,
           effectiveFrom,
           effectiveTo: effectiveTo || null,
+          governedSourceVersionId,
           sourceName,
           sourceUrl,
           sourceVersion,
@@ -922,6 +958,7 @@ export function MarketPlaybookWorkspace({ mode }: { mode: RuntimeMode }) {
               policyForm: policyForm || undefined,
               effectiveFrom,
               effectiveTo: effectiveTo || undefined,
+              governedSourceVersionId,
               sourceName,
               sourceUrl,
               sourceVersion,
@@ -1418,26 +1455,57 @@ export function MarketPlaybookWorkspace({ mode }: { mode: RuntimeMode }) {
             </div>
             <div className="builder-section-heading">
               <div>
-                <strong>Source and citation</strong>
+                <strong>Published source pin</strong>
                 <span>
-                  Approval is locked until verify-current is explicit.
+                  Source metadata is copied from an immutable governed version.
                 </span>
               </div>
               <ShieldCheck size={17} />
             </div>
             <div className="builder-grid">
+              <label className="wide">
+                Governed source version
+                <select
+                  value={governedSourceVersionId}
+                  onChange={(event) => {
+                    const id = event.target.value;
+                    const source = workspace?.publishedSourceVersions.find(
+                      (item) => item.id === id,
+                    );
+                    setGovernedSourceVersionId(id);
+                    setSourceName(source?.title ?? "");
+                    setSourceUrl(source?.officialUrl ?? "");
+                    setSourceVersion(source?.versionLabel ?? "");
+                    setSourceCitation(
+                      source
+                        ? `${source.issuingAuthority} — ${source.title} (${source.versionLabel})`
+                        : "",
+                    );
+                    setVerifyCurrent(
+                      source?.verifyCurrentStatus === "verified_current",
+                    );
+                  }}
+                >
+                  <option value="">Select a published verified-current source</option>
+                  {workspace?.publishedSourceVersions.map((source) => (
+                    <option key={source.id} value={source.id}>
+                      {source.issuingAuthority} · {source.title} · {source.versionLabel}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label>
                 Source name
                 <input
                   value={sourceName}
-                  onChange={(event) => setSourceName(event.target.value)}
+                  readOnly
                 />
               </label>
               <label>
                 Source version
                 <input
                   value={sourceVersion}
-                  onChange={(event) => setSourceVersion(event.target.value)}
+                  readOnly
                 />
               </label>
               <label className="wide">
@@ -1445,7 +1513,7 @@ export function MarketPlaybookWorkspace({ mode }: { mode: RuntimeMode }) {
                 <input
                   type="url"
                   value={sourceUrl}
-                  onChange={(event) => setSourceUrl(event.target.value)}
+                  readOnly
                 />
               </label>
               <label className="wide">
@@ -1453,14 +1521,19 @@ export function MarketPlaybookWorkspace({ mode }: { mode: RuntimeMode }) {
                 <textarea
                   rows={2}
                   value={sourceCitation}
-                  onChange={(event) => setSourceCitation(event.target.value)}
+                  readOnly
                 />
               </label>
               <label className="verify-current wide">
                 <input
                   type="checkbox"
                   checked={verifyCurrent}
-                  onChange={(event) => setVerifyCurrent(event.target.checked)}
+                  readOnly={!sandbox}
+                  onChange={
+                    sandbox
+                      ? (event) => setVerifyCurrent(event.target.checked)
+                      : undefined
+                  }
                 />
                 <span>
                   <strong>Verified current</strong>
@@ -1697,6 +1770,7 @@ export function MarketPlaybookWorkspace({ mode }: { mode: RuntimeMode }) {
                 !canAdmin ||
                 !name.trim() ||
                 !marketId ||
+                !governedSourceVersionId ||
                 !selectedRequirementIds.length ||
                 pending !== null
               }

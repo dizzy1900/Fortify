@@ -1,8 +1,8 @@
 # Production data model
 
-The PostgreSQL schema contains 78 normalized tables in the locally validated M3 brokerage tree. It is a reusable tenant, access, property, renewal/appeal, evidence-request, immutable packet, storage, document, market-playbook, and governed property-identity foundation for the Resilience Investment and Insurance Recognition OS—not a claim that the expanded domain is implemented.
+The PostgreSQL schema contains 84 normalized tables in the locally validated M4 source-governance tree. It is a reusable tenant, access, property, renewal/appeal, governed-source, evidence-request, immutable packet, storage, document, market-playbook, and governed property-identity foundation for the Resilience Investment and Insurance Recognition OS—not a claim that the expanded domain is implemented.
 
-California production work must still extend this model with governed policy/programme/model sources; typed evidence levels; target profiles; intervention specifications; baseline conditions; resilience projects and capital plans; funding programmes/commitments/milestones; independent verifiers/findings/certificates; external models and input mappings; explicit market/funder commitments; recognition submissions and separate evidence/model/rating/underwriting/placement/funding responses; longitudinal maintenance/outcomes; programme cohorts; consent/cohort data-right controls; and recognition-graph events. Each new customer-controlled resource requires tenant columns, authorization, database guards, audit coupling, and attack tests before it counts as implemented.
+California production work must still extend this model with typed evidence levels; target profiles; intervention specifications; baseline conditions; resilience projects and capital plans; funding programmes/commitments/milestones; independent verifiers/findings/certificates; external models and input mappings; explicit market/funder commitments; recognition submissions and separate evidence/model/rating/underwriting/placement/funding responses; longitudinal maintenance/outcomes; programme cohorts; consent/cohort data-right controls; and recognition-graph events. Each new customer-controlled resource requires tenant columns, authorization, database guards, audit coupling, and attack tests before it counts as implemented.
 
 ## Organizations and access foundation
 
@@ -63,6 +63,12 @@ An import never destroys rejected rows, prior receipts, or created-record histor
 
 ## Sources and requirements
 
+- `governed_sources`: stable tenant-owned source identity, class, issuing authority, jurisdiction, official URL, authority tier, and review owner.
+- `governed_source_versions`: immutable version/dates/hash/snapshot and storage reference/rights/redistribution/summary/verify-current/extraction/human-confirmation/author/change/predecessor record.
+- `governed_source_reviews`: immutable independent approval or changes-requested decision with exact-source comparison and rights confirmation.
+- `governed_source_publications`: separate immutable human publication or rejection decision.
+- `governed_source_dependencies`: exact published-version reliance or reference pins for typed playbook-version and renewal-case consumers.
+- `source_change_alerts`: immutable immediate-successor impact snapshot and review owner.
 - `source_documents`: immutable original-version metadata, checksum, clean storage reference, source system, classification/version/confidence, supersession, processing status, and synthetic flag.
 - `source_passages`: immutable page/segment/region provenance, extraction run, passage kind, and extractor version.
 - `requirement_sets`: market/program scope plus source URL and verify-current state.
@@ -72,7 +78,7 @@ An import never destroys rejected rows, prior receipts, or created-record histor
 ## Market playbooks and readiness
 
 - `market_playbooks`: stable tenant-owned playbook identity and description.
-- `playbook_versions`: immutable destination/program/jurisdiction/peril/property-class/policy-form scope, effective period, source/version/citation, verify-current state, author, content hash, change summary, and predecessor.
+- `playbook_versions`: immutable destination/program/jurisdiction/peril/property-class/policy-form scope, effective period, exact governed-source-version pin plus historical source snapshot, author, content hash, change summary, and predecessor.
 - `playbook_requirements`: immutable required/recommended and blocking semantics plus accepted evidence/source types, freshness, scope, review authority, deadline, template/delivery configuration, and caveat.
 - `playbook_applicability_rules`: bounded field/operator/value conditions; no arbitrary executable code.
 - `playbook_version_reviews`: one append-only independent human approval or changes-requested decision per version.

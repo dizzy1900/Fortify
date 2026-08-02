@@ -117,6 +117,7 @@ test("public page and all workspace routes are healthy", async ({ page }) => {
     "/access",
     "/imports",
     "/documents",
+    "/sources",
     "/playbooks",
     "/community",
     "/policy",
@@ -545,6 +546,48 @@ test("market playbooks preserve blockers, immutable versions, and independent re
       testInfo.project.name === "chromium"
         ? "test-results/visual-inspection/market-playbooks-desktop.png"
         : "test-results/visual-inspection/market-playbooks-mobile.png",
+    fullPage: true,
+  });
+});
+
+test("California source register preserves publication gates and successor impact", async ({ page }, testInfo) => {
+  await page.goto("/sources");
+  await expect(page.getByRole("heading", { name: "Source register" })).toBeVisible();
+  await expect(page.getByText("Fail-closed publication", { exact: true })).toBeVisible();
+  await expect(page.getByText("Published versions", { exact: true })).toBeVisible();
+  await expect(page.getByText("Blocked candidates", { exact: true })).toBeVisible();
+  await expect(page.getByText("Safer from Wildfires", { exact: true }).first()).toBeVisible();
+
+  await page.getByRole("button", { name: /Defensible Space Zones/ }).click();
+  await expect(page.getByText("Candidate · non-operative", { exact: true }).last()).toBeVisible();
+  await expect(page.getByText(/Model-assisted candidate is unreviewed/)).toBeVisible();
+
+  await page.getByRole("button", { name: /Safer from Wildfires/ }).click();
+  await page.getByRole("button", { name: "Stage successor" }).click();
+  await expect(page.getByRole("heading", { name: "Stage a source change" })).toBeVisible();
+  await page.getByRole("button", { name: "Register non-operative candidate" }).click();
+  await expect(page.getByText(/Candidate registered as non-operative/)).toBeVisible();
+  await page.getByRole("button", { name: "Record independent approval" }).click();
+  await expect(page.getByText(/Independent review recorded/)).toBeVisible();
+  await page.getByRole("button", { name: "Publish immutable version" }).click();
+  await expect(page.getByText(/Published\. Any predecessor reliance is preserved/)).toBeVisible();
+
+  await page.getByRole("button", { name: "Change impact" }).click();
+  await expect(page.getByRole("heading", { name: "Impact queue" })).toBeVisible();
+  await expect(page.getByText(/Profiles unavailable/i).first()).toBeVisible();
+  await expect(page.getByText(/Reports unavailable/i).first()).toBeVisible();
+  await expect(page.getByText(/no automatic mutation occurred/)).toBeVisible();
+
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  );
+  expect(overflow).toBe(false);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({
+    path:
+      testInfo.project.name === "chromium"
+        ? "test-results/visual-inspection/source-register-desktop.png"
+        : "test-results/visual-inspection/source-register-mobile.png",
     fullPage: true,
   });
 });
