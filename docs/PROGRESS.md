@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M1 — The governed California property-graph/data-right slice is locally validated on August 1, 2026 and ready for stacked publication after draft PR #7. The prior M1–M7 renewal implementation remains a locally validated reusable foundation and published stacked PR series; it is not evidence that profiles, interventions, capital plans, funding, verification, model mapping, recognition commitments, recognition submissions, programme administration, deployment, or external validation exist.
+M1 — The governed California property-graph/data-right slice is locally validated and published as draft PR #8 on August 1, 2026, stacked directly after draft PR #7. The prior M1–M7 renewal implementation remains a locally validated reusable foundation and published stacked PR series; it is not evidence that profiles, interventions, capital plans, funding, verification, model mapping, recognition commitments, recognition submissions, programme administration, deployment, or external validation exist.
 
 ## Replacement north-star M1 locally validated
 
@@ -14,6 +14,7 @@ M1 — The governed California property-graph/data-right slice is locally valida
 - One consolidated `npm run verify` passed ESLint, strict TypeScript, 13 files/50 tests, a 225-file secret scan, the 20-page/39-API build, 12/12 deterministic evaluation, the 18-pattern claims scan, and 14/14 serial desktop/mobile Playwright scenarios. Production schema generation reported 73 tables/no drift, `npm audit --omit=dev` reported 0 vulnerabilities, and `git diff --check` passed.
 - Visually inspected the property workspace at 1280-pixel desktop, 834-pixel tablet, and Pixel 7 mobile sizes. Identity, insufficient spatial state, scope, rights, and provenance remained legible with no measured overflow or observed clipping.
 - Managed PostgreSQL/PostGIS, defense-in-depth RLS, live property boundaries, rights-cleared California input, performance/load testing, and customer validation remain explicit deployment/external gates.
+- Exact local merge-tree preflight against refreshed `origin/codex/resilience-os-foundation` succeeded. GitHub readback for draft PR #8 reported the intended base/head and `MERGEABLE`; `UNSTABLE` is the check state, not a merge conflict.
 
 ## Replacement north-star M0 locally validated
 
@@ -109,7 +110,7 @@ M1 — The governed California property-graph/data-right slice is locally valida
 ## Next
 
 - Keep draft PR #7 stacked on M7 until the predecessor is ready; local merge-tree and GitHub both report the exact M0 stack conflict-free at publication.
-- Publish the M1 graph slice stacked on draft PR #7, then begin M2 resilience roles, portfolio assignment, and purpose-specific data-access logging without weakening the current tenant boundary.
+- Keep draft PR #8 stacked on draft PR #7, then begin M2 resilience roles, portfolio assignment, and purpose-specific data-access logging without weakening the current tenant boundary.
 - Validate the property graph against the selected managed PostgreSQL/PostGIS provider and evaluate defense-in-depth RLS; the local PGlite and nullable EPSG:4326-ready GeoJSON contracts are not provider, PostGIS, or performance evidence.
 - Validate rights-cleared brokerage exports and correspondence against the generic adapters; fixture compatibility is not certification. Validate any external OCR/document-intelligence provider only after licensing, egress, retention, credentials, security, latency, cost, and error behavior are approved.
 - Validate the M2 migration and contract suite against the selected managed PostgreSQL service; PGlite is PostgreSQL-compatible local evidence, not production-provider evidence.

@@ -18,6 +18,8 @@ The first otherwise-complete sandboxed validation reached Playwright and was den
 
 No rights-cleared California portfolio, approved parcel boundary, managed PostgreSQL/PostGIS deployment, RLS policy, geospatial query/performance result, backup/restore exercise, or customer validation is present. The nullable EPSG:4326-ready GeoJSON contract and PGlite trigger suite are local implementation evidence only. M1 is locally validated but is neither deployment-validated nor externally validated.
 
+Publication used branch `codex/m1-california-property-graph` stacked on refreshed `origin/codex/resilience-os-foundation`. Exact local merge-tree preflight succeeded. GitHub draft PR #8 readback reported the intended base/head and `MERGEABLE`; the separate `UNSTABLE` status is check state and is not a merge-conflict result.
+
 ## Product-doctrine M0 local-validation addendum
 
 The authoritative objective now defines Fortify as a California-first Resilience Investment and Insurance Recognition OS. Product doctrine, repository operating rules, architecture/data-model boundaries, milestone plan, evidence hierarchy, external-validation gates, and the empty-by-design California source register were reconciled. The public entry now presents the California product direction while labelling the existing Colorado renewal workflow as a fictional sandbox. A new prohibited-claims guard covers 18 direct guarantee, Fortify-certification/risk-score, automatic-recognition, and unsupported loss-reduction patterns in runtime source and generated text artifacts; its focused regression proves bounded language passes and a direct guarantee fails. The guard runs in local verification and both relevant CI jobs.
