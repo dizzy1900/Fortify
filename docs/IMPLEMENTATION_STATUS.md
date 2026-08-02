@@ -4,7 +4,7 @@ Measured on August 1, 2026 against [COMMERCIAL_NORTH_STAR.md](./COMMERCIAL_NORTH
 
 ## Current state
 
-Fortify now has two explicit runtime modes. `sandbox` preserves the deterministic fictional demo in a tenant-marked SQLite `DemoState`; `production` requires PostgreSQL and uses normalized tenant records, OIDC-compatible identity, opaque server sessions, deny-by-default authorization, and a private S3-compatible evidence boundary without falling back to sandbox routes, local blob paths, or role switching. Managed storage, malware scanning, backup/restore, and deployment validation have not been exercised, so Fortify is still not a customer-data-ready system.
+Fortify now has two explicit runtime modes. `sandbox` preserves the deterministic fictional demo in a tenant-marked SQLite `DemoState`; `production` requires PostgreSQL and uses normalized tenant records, OIDC-compatible identity, opaque server sessions, deny-by-default authorization, a private S3-compatible evidence boundary, and a clean-object-only portfolio import service without falling back to sandbox routes, local blob paths, or role switching. Managed storage, malware scanning, backup/restore, and deployment validation have not been exercised, so Fortify is still not a customer-data-ready system.
 
 ## Milestone ledger
 
@@ -12,9 +12,9 @@ Fortify now has two explicit runtime modes. `sandbox` preserves the deterministi
 |---|---|---|---|
 | M1 Repository, CI, status | Complete locally; GitHub run pending publication | Commercial brief, production plan, status ledger, CI workflow, blank-SQLite migration test, repository secret scan, GitHub settings checklist, and responsive-header repair; full local validation passed | Publish the workflow, read back GitHub checks, and apply owner settings; these are repository validation/administration gates, not missing M1 code |
 | M2 PostgreSQL and sandbox isolation | Implemented locally; managed PostgreSQL validation pending | 32-table normalized PostgreSQL schema; 43 database triggers; explicit tenant context; transactional audit/idempotency/concurrency controls; deterministic sandbox migration; production routes do not fall back to `DemoState`; 6 PostgreSQL contract tests pass in PGlite | Run the migration and isolation suite against the selected managed PostgreSQL service and record provider-specific backup/restore and operational evidence |
-| M3 Identity and authorization | Implemented locally; managed OIDC validation pending | 11 organization roles; OIDC/PKCE/state/nonce adapter; explicit local provider; opaque sessions; invitations; membership/session revocation; service/API, external-case, and support principals; 44-resource deny-by-default registry after M4; direct tenant guards; protected production routes; attack tests pass | Configure the selected managed provider in staging, register redirects, enforce/test its MFA policy, validate secret handling/rate limits, and decide/validate defense-in-depth RLS |
+| M3 Identity and authorization | Implemented locally; managed OIDC validation pending | 11 organization roles; OIDC/PKCE/state/nonce adapter; explicit local provider; opaque sessions; invitations; membership/session revocation; service/API, external-case, and support principals; 49-resource deny-by-default registry after the M5 foundation; direct tenant guards; protected production routes; attack tests pass | Configure the selected managed provider in staging, register redirects, enforce/test its MFA policy, validate secret handling/rate limits, and decide/validate defense-in-depth RLS |
 | M4 Object storage | Implemented locally; managed providers and restore drill pending | Private tenant-prefixed S3-compatible adapter; signed PUT/GET; exact size/MIME/SHA-256/encryption checks; quarantine/content-signature/malware lifecycle; clean-only immutable evidence; expiring/revocable grants; retention/legal hold/deletion; audit; exact-byte fixture backup and restore; 4 storage contract tests pass | Validate a selected private bucket, credentials/CORS/KMS, live malware provider, retention/object-lock/lifecycle, operational deletion, independent backup destination, monitored restore drill, and redacted logging in staging |
-| M5 Portfolio/SOV import | Not started | Three deterministic seeded communities | CSV/XLSX/SOV mapping, preview, identity resolution, quarantine, idempotency, receipts and rollback |
+| M5 Portfolio/SOV import | Implemented locally; managed-provider and rights-cleared external validation pending | Clean-object CSV/XLSX parsing; immutable saved mappings; generic AMS plus Applied Epic-compatible and AMS360-compatible fixture boundaries; stable-ID/address/building reconciliation; dry-run rejected/ambiguous quarantine; explicit human commit; idempotent reruns; immutable receipts; non-destructive transactional rollback; 7 authenticated production APIs; responsive broker workspace with loading/error/empty/populated/review/receipt/rollback states; 6 contract tests and 2 viewport workflow scenarios pass | Exercise a rights-cleared real brokerage export and selected managed storage/scanner/database path; do not represent fixture schemas as certified vendor integrations; production data remains prohibited until the separate deployment/security gates pass |
 | M6 Document pipeline | Not started | Text/text-PDF deterministic notice parser with human confirmation | Durable scan/classify/OCR/extract/review/version pipeline with source-region provenance |
 | M7 Playbooks/readiness | Not started | Versioned demo references plus one fixed six-component weighted heuristic | Versioned market playbooks and destination-specific deterministic blockers/statuses |
 | M8 Renewal/external evidence | Partial demo only | Guided local workflow, tasks, and demo roles | Production assignments, communications, bulk workflow, scoped contributor access, expiry/revocation/consent |
@@ -33,12 +33,12 @@ Fortify now has two explicit runtime modes. `sandbox` preserves the deterministi
 | Production database | `pg`/Drizzle adapter, generated migration, health query, and deterministic seed migration | Implemented locally; managed PostgreSQL validation pending |
 | Authentication | Sandbox role switch is isolated; production uses OIDC-compatible identity and opaque server-side sessions | Implemented locally; managed-provider/MFA validation pending |
 | Server authorization | Session/credential-derived principals and deny-by-default role/scope/case policy at route, service, and repository boundaries | Implemented locally; staging attack/rate-limit validation pending |
-| Tenant isolation | Required authorized `TenantContext`, organization predicates, 61 same-organization/immutability triggers, and 44-resource cross-tenant policy tests | Implemented locally; managed PostgreSQL/RLS evaluation pending |
+| Tenant isolation | Required authorized `TenantContext`, organization predicates, 72 same-organization/immutability triggers, and 49-resource cross-tenant policy tests | Implemented locally; managed PostgreSQL/RLS evaluation pending |
 | Object storage | Sandbox local adapter is isolated; production uses a private tenant-prefixed S3-compatible adapter and normalized storage lifecycle | Implemented locally; managed provider/scanner/restore validation pending |
 | Durable jobs | Synchronous request processing | Not implemented |
 | Notice intelligence | Hard-coded deterministic parser | Partial demo only |
 | Readiness | Fixed universal weighted calculation | Must be replaced |
-| Import | Deterministic seed/reset only | Not implemented |
+| Import | Clean-object CSV/XLSX parser, saved mappings, dry-run row quarantine, stable-ID reconciliation, human-confirmed commit, receipts, rollback service, authenticated API orchestration, and broker workspace | Implemented locally; managed deployment and rights-cleared external validation pending |
 | External collaboration | Shared local demo views | Not implemented |
 | Delivery | Local generated files | Not implemented |
 | Outcome feedback graph | Fictional in-memory-shaped records | Not implemented |
@@ -59,19 +59,19 @@ The production rewrite must continue to prove:
 
 ## Validation evidence
 
-Current M1-M4 evidence from August 1, 2026:
+Current M1-M5 local evidence from August 1, 2026:
 
 | Gate | Measured result |
 |---|---|
-| Consolidated local gate | `npm run verify` exited 0 |
+| Consolidated local gate | All constituent gates passed; the initial `npm run verify` reached Playwright then the managed sandbox denied the local server bind with `EPERM`; the exact full browser suite passed after rerun with permitted `127.0.0.1:3000` binding |
 | ESLint | Passed |
 | Strict TypeScript | Passed |
-| Unit/integration/migration | 8 files, 31 tests passed; M4 adds storage traversal/tenant/metadata/scan/evidence/grant/deletion/backup/S3-command coverage |
-| Repository secret guard | Passed across 155 tracked and untracked, non-ignored files |
-| Production build | Next.js 16.2.12 webpack build passed; 16 page routes and 21 API routes compiled |
+| Unit/integration/migration | 9 files, 37 tests passed; M5 adds CSV/XLSX parsing, mapping/version immutability, duplicate and ambiguity quarantine, clean-object and cross-tenant suggestion guards, idempotency, normalized graph commit, receipt immutability, and transactional rollback coverage |
+| Repository secret guard | Passed across 177 tracked and untracked, non-ignored files |
+| Production build | Next.js 16.2.12 webpack build passed; 17 product page routes and 28 API routes compiled |
 | Deterministic evaluation | 12/12 checks passed; reset digest `db9db21485615453`; PDF 11,602 bytes; ZIP 51,723 bytes; manifest hash `47c5de9b8c2da8dfc040951b57697a2081fec8f1b3817e5148480aefaf9aef9a` |
-| Guided browser suite | 4/4 passed serially on desktop Chromium and Pixel 7 profiles |
-| Real UI inspection | Preserved sign-in and guided workspace regression-tested at desktop Chromium and Pixel 7 sizes; all public/workspace routes healthy; M4 adds protected APIs rather than a new visible control |
+| Guided browser suite | 6/6 passed serially on desktop Chromium and Pixel 7 profiles, including the full portfolio preview/confirm/receipt/rollback walkthrough |
+| Real UI inspection | Portfolio-import populated and rolled-back states inspected at desktop Chromium and Pixel 7 sizes; no document overflow observed; all public/workspace routes remained healthy |
 | Production dependency audit | `npm audit --omit=dev --audit-level=high`: 0 vulnerabilities |
 | Diff hygiene | `git diff --check` passed after the final documentation update |
 

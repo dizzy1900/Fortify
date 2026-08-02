@@ -5,6 +5,9 @@ import path from "node:path";
 test.beforeEach(async ({ request }) => {
   await request.post("/api/reset");
   await fs.mkdir(path.resolve("artifacts/screenshots"), { recursive: true });
+  await fs.mkdir(path.resolve("test-results/visual-inspection"), {
+    recursive: true,
+  });
 });
 
 test("broker-to-underwriter guided demo", async ({ page }, testInfo) => {
@@ -109,6 +112,7 @@ test("public page and all workspace routes are healthy", async ({ page }) => {
     "/sign-in",
     "/demo",
     "/portfolio",
+    "/imports",
     "/community",
     "/policy",
     "/notice",
@@ -127,4 +131,60 @@ test("public page and all workspace routes are healthy", async ({ page }) => {
     expect(response?.status(), route).toBe(200);
     await expect(page.locator("body")).not.toBeEmpty();
   }
+});
+
+test("portfolio import walkthrough preserves quarantine, confirmation, receipts, and rollback", async ({ page }, testInfo) => {
+  await page.goto("/imports");
+  await expect(
+    page.getByRole("heading", {
+      name: "Turn a property book into a reviewable evidence graph.",
+    }),
+  ).toBeVisible();
+  await expect(page.getByText("Fictional fixture walkthrough")).toBeVisible();
+  await expect(page.getByText("Clean object", { exact: true }).first()).toBeVisible();
+
+  await page.getByRole("button", { name: "Generate preview" }).click();
+  await expect(page.getByText("Synthetic dry run complete")).toBeVisible();
+  await expect(page.getByText("PROP-100").first()).toBeVisible();
+  await page.getByRole("button", { name: "ambiguous", exact: true }).click();
+  await expect(page.getByText("PROP-200")).toBeVisible();
+  await expect(page.getByText("PROP-100")).not.toBeVisible();
+  await page.getByRole("button", { name: "all", exact: true }).click();
+
+  await page
+    .getByLabel(/I reviewed the source, mapping, accepted rows, and quarantine/)
+    .check();
+  await page.getByRole("button", { name: "Commit accepted rows" }).click();
+  await expect(page.getByText("2 accepted rows committed")).toBeVisible();
+  await expect(page.getByText("commit", { exact: true })).toBeVisible();
+
+  await page
+    .getByLabel("Rollback reason")
+    .fill("Synthetic source version superseded during review");
+  await page
+    .getByRole("button", { name: "Rollback import-owned records" })
+    .click();
+  await expect(
+    page.getByText("Import rolled back without destructive deletion"),
+  ).toBeVisible();
+  await expect(page.getByText("rollback", { exact: true })).toBeVisible();
+
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  );
+  expect(overflow).toBe(false);
+  await page.evaluate(() => {
+    (document.activeElement as HTMLElement | null)?.blur();
+    window.scrollTo(0, 0);
+  });
+  if (testInfo.project.name === "chromium")
+    await page.screenshot({
+      path: "test-results/visual-inspection/portfolio-import-desktop.png",
+      fullPage: true,
+    });
+  else
+    await page.screenshot({
+      path: "test-results/visual-inspection/portfolio-import-mobile.png",
+      fullPage: true,
+    });
 });

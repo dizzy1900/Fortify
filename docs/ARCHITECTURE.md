@@ -19,6 +19,8 @@ Production authentication uses an OIDC-compatible provider adapter with authoriz
 
 Production evidence bytes use `ObjectStorageAdapter`, with a private S3-compatible AWS SDK v3 implementation and a deterministic test implementation. Uploads are tenant-prefixed, signed, exact-metadata checked, quarantined, content-signature checked, scanned, and promoted only when clean. Evidence versions can be created only from clean objects. See [OBJECT_STORAGE.md](./OBJECT_STORAGE.md).
 
+Portfolio/SOV imports consume only clean scanned storage objects. `PortfolioImportService` parses CSV or XLSX bytes, applies an immutable tenant-owned mapping version, quarantines rejected or ambiguous rows, and writes normalized client/community/property/location/building/policy records only after explicit human confirmation. Import rows and hash-bound receipts are retained across idempotent replay and non-destructive rollback. Authenticated production routes expose organization-scoped workspace options, clean-object mapping suggestion, immutable mapping save, preview, readback, commit, and rollback. The `/imports` client can upload through the M4 signed quarantine path but cannot parse the object until an independently configured scanner promotes it clean. Generic AMS CSV is schema-configurable; the Applied Epic-compatible and AMS360-compatible adapters are fixture boundaries, not certified or live vendor integrations.
+
 ## Transaction doctrine
 
 Consequential mutations use one PostgreSQL transaction for:
@@ -42,7 +44,7 @@ Audit hashes bind the preceding tenant audit hash, organization, actor, action, 
 - Sandbox data is owned by `org-fortify-sandbox`, whose row is constrained to `environment=sandbox` and `synthetic=true`.
 - Cross-customer analytics opt-in defaults to false.
 
-M3 adds authenticated principals, memberships, deny-by-default authorization policies, revocation, support-access controls, and resource-complete attack tests. M4 extends the same organization boundary through storage objects, grants, scan results, and backup manifests. Managed-provider configuration, MFA policy enforcement, defense-in-depth RLS evaluation, rate limiting, secrets infrastructure, and deployment validation remain external/operational gates rather than inferred passes.
+M3 adds authenticated principals, memberships, deny-by-default authorization policies, revocation, support-access controls, and resource-complete attack tests. M4 extends the same organization boundary through storage objects, grants, scan results, and backup manifests. M5 extends it through saved mappings, mapping versions, import runs, quarantined rows, and immutable receipts. Managed-provider configuration, MFA policy enforcement, defense-in-depth RLS evaluation, rate limiting, secrets infrastructure, and deployment validation remain external/operational gates rather than inferred passes.
 
 ## Persistence adapters
 
@@ -61,4 +63,4 @@ The contract suite uses PGlite as an embedded PostgreSQL-compatible engine becau
 
 ## Next architecture boundary
 
-M5 introduces portfolio/SOV import through the secure upload boundary. Production remains closed to customer data until managed PostgreSQL, OIDC, private object storage, malware scanning, backup/restore, and the remaining security/deployment gates are validated.
+M5 is implemented locally, with managed-provider and rights-cleared brokerage validation still outstanding. M6 introduces durable document-processing jobs. Production remains closed to customer data until managed PostgreSQL, OIDC, private object storage, malware scanning, backup/restore, and the remaining security/deployment gates are validated.

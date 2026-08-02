@@ -1,6 +1,6 @@
 # Production data model
 
-The PostgreSQL schema contains 48 normalized tables. It is a forward foundation for the Colorado wildfire renewal workflow, not a claim that every later workflow is implemented.
+The PostgreSQL schema contains 53 normalized tables. It is a forward foundation for the Colorado wildfire renewal workflow, not a claim that every later workflow is implemented.
 
 ## Organizations and access foundation
 
@@ -26,7 +26,17 @@ The PostgreSQL schema contains 48 normalized tables. It is a forward foundation 
 - `locations`: normalized address and geospatial coordinates.
 - `buildings`: stable building identity within a property.
 
-Ambiguous records are not merged by name. Future import reconciliation must create reviewed identifiers/relationships.
+Ambiguous records are not merged by name. Import reconciliation creates reviewed identifiers only after explicit human confirmation.
+
+## Portfolio import
+
+- `import_mappings`: stable tenant-owned mapping identity and current-version pointer.
+- `import_mapping_versions`: immutable CSV/XLSX sheet, header, column, constant, schema-version, and content-hash configuration.
+- `portfolio_imports`: clean storage object, book, source boundary, idempotency request hash, counts, state, and created-entity ownership ledger.
+- `import_rows`: exact spreadsheet row number, raw/normalized values, accepted/rejected/ambiguous state, errors, warnings, candidates, and applied entities.
+- `import_receipts`: immutable hash-bound preview, commit, and rollback summaries.
+
+An import never destroys rejected rows, prior receipts, or created-record history. Rollback archives or marks only records owned by that import; it does not delete the import ledger. AMS records are authoritative unless tenant configuration says otherwise, and names alone never authorize a merge.
 
 ## Insurance and cases
 

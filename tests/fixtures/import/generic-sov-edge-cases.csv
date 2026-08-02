@@ -1,0 +1,5 @@
+Client ID,Client Name,Community ID,Community Name,Property ID,Property Name,Property Class,Address 1,City,State,Zip Code,Building,Year Built,Units,Building Count,Policy Number,Expiration Date,Currency
+CLI-300,Edge Case Management,COM-300,Pine Commons,PROP-300,Pine Commons,Condominium,55 Pine Avenue,Denver,CO,80203,North,2001,40,2,PN-300,2027-04-01,USD
+CLI-300,Edge Case Management,COM-300,Pine Commons,PROP-301,Pine Commons Annex,Condominium,55 Pine Ave,Denver,CO,80203,South,2004,20,1,PN-301,2027-04-01,USD
+CLI-400,Invalid Rows LLC,COM-400,Broken Row,,Missing Identity,Condominium,900 Error Road,Denver,CO,80204,Main,2000,12,1,PN-400,2027-05-01,USD
+CLI-500,Invalid Rows LLC,COM-500,Invalid Units,PROP-500,Invalid Units,Multifamily,901 Error Road,Denver,CO,80204,Main,2000,twelve,1,PN-500,2027-05-01,USX

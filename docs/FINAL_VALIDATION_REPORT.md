@@ -2,6 +2,22 @@
 
 Status: **customer-demo-ready MVP; local validation passed on August 1, 2026**. This is not a production-readiness, legal-correctness, carrier-acceptance, or market-validation claim.
 
+## Production transformation M5 local-implementation addendum
+
+The portfolio/SOV import milestone was locally validated on August 1, 2026. ESLint, strict TypeScript, 9 Vitest files/37 tests, a 177-file secret scan, the 17-page/28-API Next.js production build, 12/12 deterministic evaluation checks, and 6/6 serial Playwright scenarios on desktop Chromium and Pixel 7 profiles passed. `npm audit --omit=dev --audit-level=high` reported 0 vulnerabilities.
+
+The first consolidated `npm run verify` reached its final Playwright step and then the managed sandbox denied the standalone server bind with `listen EPERM 127.0.0.1:3000`. The exact six-scenario suite was rerun with the approved local-bind permission and passed. This was an execution-environment denial, not counted as a passing consolidated command.
+
+The production schema now applies 53 normalized tables and exactly 72 triggers. Five new tables retain saved mappings, immutable mapping versions, import runs, row-level raw/normalized quarantine, and immutable preview/commit/rollback receipts. The deny-by-default registry covers 49 resource classes. Direct database guards reject cross-tenant mapping, clean-object, book, row, and receipt references.
+
+The parser reads actual CSV bytes and XLSX workbooks with named sheets, non-default header rows, spreadsheet dates, quoted CSV fields, blank-row handling, file/row/column limits, address normalization, stable external identifiers, and explicit unit, year, date, and ISO-currency validation. The commit service does not merge solely by name: conflicting identifiers and normalized-address collisions remain ambiguous, rejected rows remain retained, and only explicitly human-confirmed accepted rows create normalized client, community, property, identifier, location, building, and policy records. Exact request/content hashes provide idempotent replay, and rollback marks only import-owned records while retaining history.
+
+Seven authenticated production API routes expose organization-scoped workspace options, mapping suggestion from clean exact-readback bytes, immutable mapping save, preview, import readback, human-confirmed commit, and rollback. The responsive `/imports` workspace includes upload-to-quarantine, explicit scanner state, clean-object/book selection, mapping review, row-state filters, confirmation language, receipts, recent imports, and reason-bound rollback. Loading, error, empty, populated, ambiguous, rejected, committed, and rolled-back states are implemented. The sandbox route is visibly fictional and never persists the walkthrough.
+
+The production standalone UI was exercised through the complete synthetic preview, quarantine review, accepted-row confirmation, receipt, and rollback sequence on desktop Chromium and Pixel 7. A first mobile run detected document overflow from a grid item's table min-content width; the grid/panel containment was repaired and the exact mobile scenario then passed without document overflow. Both final viewport screenshots were visually inspected: mapping fields, row states, receipt hashes, safety boundaries, and rollback language were legible with no observed collision or clipping.
+
+The XLSX fixture was authored through the repository spreadsheet workflow, inspected for typed values and formula errors, rendered, and visually checked at both worksheet tabs. Applied Epic-compatible and AMS360-compatible CSVs are synthetic fixture boundaries only. No rights-cleared customer export, vendor certification, vendor API, screen scraping, or managed storage/scanner/database path has been validated. M5 is implemented locally but remains neither deployment-validated nor externally validated.
+
 ## Production transformation M4 addendum
 
 The secure object-storage and evidence-upload milestone was locally validated on August 1, 2026. `npm run verify` exited 0 after ESLint, strict TypeScript, 8 Vitest files/31 tests, a 155-file secret scan, the production build, 12/12 deterministic evaluation checks, and 4/4 serial Playwright scenarios on desktop Chromium and Pixel 7 profiles. `npm audit --omit=dev --audit-level=high` reported 0 vulnerabilities.

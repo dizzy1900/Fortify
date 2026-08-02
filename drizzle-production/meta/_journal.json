@@ -36,6 +36,20 @@
       "when": 1785612740543,
       "tag": "0004_tidy_scourge",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1785614613527,
+      "tag": "0005_youthful_killraven",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785614837684,
+      "tag": "0006_typical_madrox",
+      "breakpoints": true
     }
   ]
 }
