@@ -5521,3 +5521,20 @@ export const auditEvents = pgTable(
     ),
   ],
 );
+
+export const requestRateLimitWindows = pgTable(
+  "request_rate_limit_windows",
+  {
+    bucketHash: text("bucket_hash").primaryKey(),
+    scope: text("scope").notNull(),
+    windowStart: timestamp("window_start", { withTimezone: true, mode: "string" }).notNull(),
+    requestCount: integer("request_count").notNull(),
+    requestLimit: integer("request_limit").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    index("request_rate_limit_expiry_idx").on(table.expiresAt),
+    check("request_rate_limit_counts_check", sql`${table.requestCount} > 0 and ${table.requestLimit} > 0`),
+  ],
+);

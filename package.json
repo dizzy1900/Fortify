@@ -11,8 +11,10 @@
     "postbuild": "node scripts/prepare-standalone.mjs",
     "start": "next start",
     "lint": "eslint . --ignore-pattern .next --ignore-pattern output --ignore-pattern test-results --ignore-pattern playwright-report",
-    "typecheck": "tsc --noEmit",
+    "format:check": "prettier --check proxy.ts app/api/ready/route.ts lib/production/environment.ts lib/production/observability.ts lib/production/rate-limit.ts lib/production/encrypted-backup.ts scripts/backup-production.ts scripts/restore-production.ts scripts/run-bounded-tests.mjs scripts/validate-production-flow.mjs scripts/validate-operations.mjs tests/operational-hardening.test.ts e2e/operational-hardening.spec.ts .github/workflows/ci.yml .github/workflows/release.yml docs/SECURITY_AND_PRIVACY.md docs/THREAT_MODEL.md docs/DATA_FLOW.md docs/OPERATIONS_RUNBOOK.md docs/INCIDENT_RESPONSE.md docs/BACKUP_RESTORE_REPORT.md docs/PAID_PILOT_RUNBOOK.md docs/ROI_MEASUREMENT.md docs/LAUNCH_READINESS.md docs/SECURITY_QUESTIONNAIRE.md docs/SUBPROCESSORS.md docs/production-flow-evidence.json",
+    "typecheck": "tsc --noEmit --incremental false",
     "test": "vitest run",
+    "test:bounded": "node scripts/run-bounded-tests.mjs",
     "test:migration": "vitest run tests/migration.test.ts",
     "test:e2e": "playwright test",
     "security:secrets": "node scripts/scan-secrets.mjs",
@@ -21,11 +23,15 @@
     "db:generate:production": "drizzle-kit generate --config drizzle-production.config.ts",
     "db:migrate:production": "node --import tsx scripts/migrate-production.ts",
     "db:seed:production-sandbox": "node --import tsx scripts/seed-production-sandbox.ts",
+    "db:backup:production": "node --import tsx scripts/backup-production.ts",
+    "db:restore:production": "node --import tsx scripts/restore-production.ts",
     "worker:documents:once": "node --import tsx scripts/run-document-worker.ts",
     "demo:reset": "node --import tsx scripts/reset-demo.ts",
     "demo:evaluate": "node --import tsx scripts/evaluate-demo.ts",
     "artifacts:generate": "node --import tsx scripts/generate-artifacts.ts",
-    "verify": "npm run lint && npm run typecheck && npm run test && npm run security:secrets && npm run build && npm run demo:evaluate && npm run security:claims && npm run test:e2e"
+    "validate:production-flow": "node scripts/validate-production-flow.mjs",
+    "validate:operations": "node scripts/validate-operations.mjs",
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run test:bounded && npm run validate:production-flow && npm run validate:operations && npm run security:secrets && npm run build && npm run demo:evaluate && npm run security:claims && npm run test:e2e"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1101.0",
@@ -47,6 +53,7 @@
     "sharp": "0.35.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@electric-sql/pglite": "^0.5.4",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "4.2.1",

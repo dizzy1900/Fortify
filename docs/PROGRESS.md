@@ -2,7 +2,16 @@
 
 ## Current milestone
 
-M11 — The production-integration control plane is implemented, locally validated, and published as stacked draft PR [#18](https://github.com/dizzy1900/Fortify/pull/18). It does not prove any live provider connection, credential, vendor semantic, external data right, provider availability, customer use, deployment, or external acceptance. M12 operational hardening and launch validation are next.
+M12 — The operational-hardening and launch-contract slice is implemented and locally validated on top of stacked draft PR [#18](https://github.com/dizzy1900/Fortify/pull/18). It does not prove a managed deployment, production RLS role, live identity/storage/provider infrastructure, PITR or managed restore, alert operation, security certification, customer use, or external acceptance.
+
+## M12 locally implemented this cycle
+
+- Added a Next 16 proxy with a per-request nonce CSP, strict production transport/frame/content/referrer/browser-permission headers, stable request ids, and fail-closed origin/fetch-metadata protection for cookie-authenticated mutations. Authenticated, local-auth, and webhook paths now use PostgreSQL-backed HMAC rate buckets that store no raw IP address or credential.
+- Added recursive structured-log redaction, keyed pseudonyms, strict production environment inspection, separate liveness/readiness, bounded PostgreSQL pool/connect/query/statement timeouts, and a production migration that enables one `fortify_tenant_isolation` RLS policy on all 185 tenant-owned tables.
+- Added AES-256-GCM authenticated logical-backup envelopes, exact digest readback, explicit isolated-target restore tooling, object-backup preservation, retention/legal-hold operations, a protected immutable-image release workflow, and security/threat/data-flow/incident/operations/restore/pilot/ROI/questionnaire/subprocessor/launch documents. Managed PITR and production restore remain unvalidated.
+- Added a bounded-memory CI runner that executes each test file in a fresh process after live GitHub logs showed hosted PGlite worker exhaustion, and native build prerequisites after the hosted container job showed `better-sqlite3` could not compile without Python. Docker is unavailable locally, so the image repair remains a hosted-PR gate.
+- Added Axe WCAG gates, responsive overflow checks, and a cross-platform visual baseline. The new gate found and repaired measured contrast defects in portfolio, integration, and programme surfaces.
+- The final consolidated `npm run verify` passed formatting, ESLint, strict TypeScript, all 24 isolated Vitest files/93 tests, 33/33 mapped normalized-PostgreSQL fixture steps, 13 operational artifacts plus RLS/CSP/CSRF/readiness checks, the 432-file secret scan, the 30-page/134-API production build, 12/12 deterministic evaluation, the 18-pattern claims scan, and 56 Playwright passes with four intentional tablet/mobile skips for Chromium-owned Axe and visual baselines. `npm audit --audit-level=moderate`, ZIP CRC, six-page PDF inspection, screenshot inspection, and `git diff --check` also passed. The first consolidated browser phase was blocked only by the restricted sandbox's `listen EPERM` on `127.0.0.1:3000`; the complete command was then rerun outside that socket restriction and passed end to end.
 
 ## Replacement north-star M11 locally validated
 
