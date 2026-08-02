@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M11 — The production-integration control plane is implemented and locally validated; publication is pending. It does not prove any live provider connection, credential, vendor semantic, external data right, provider availability, customer use, deployment, or external acceptance. M12 operational hardening and launch validation are next.
+M11 — The production-integration control plane is implemented, locally validated, and published as stacked draft PR [#18](https://github.com/dizzy1900/Fortify/pull/18). It does not prove any live provider connection, credential, vendor semantic, external data right, provider availability, customer use, deployment, or external acceptance. M12 operational hardening and launch validation are next.
 
 ## Replacement north-star M11 locally validated
 
@@ -15,6 +15,7 @@ M11 — The production-integration control plane is implemented and locally vali
 - One consolidated `npm run verify` passed ESLint, strict TypeScript, 23 Vitest files/89 tests, a 403-file secret scan, the 30-page/133-API production build, 12/12 deterministic evaluation, the 18-pattern claims scan, and 51/51 serial Playwright scenarios across desktop Chromium, 834-pixel tablet, and Pixel 7. Schema regeneration reported 189 tables/no drift; `npm audit --audit-level=moderate` reported 0 vulnerabilities; `git diff --check` passed.
 - Desktop, tablet, and mobile integration captures were inspected without clipping, collision, or document-width overflow. The preserved portfolio, packet, and maintenance captures remained legible. All six preserved Letter PDF pages were rendered and visually inspected; the 17-entry ZIP passed CRC/content inventory, and the embedded PDF retained exact SHA-256 `6b8f29f6c8e41a725dfe37d79831f093c9c60c3c042306dd494856e8da5bea21`.
 - Every provider, mailbox, event, connection, health check, schema, receipt, and external response in the local flow is deterministic fixture evidence. Live Graph/Gmail/Drive/AMS/property/model/verifier implementations, credentials, customer schemas, data rights, webhook senders, throughput, monitoring, managed secrets, staging operation, and semantic acceptance remain external or M12 gates.
+- Published branch `codex/m11-production-integrations` as stacked draft PR [#18](https://github.com/dizzy1900/Fortify/pull/18) against refreshed `codex/m10-programme-analytics-recognition-graph`. The initial implementation head and remote SHA matched at `10c52242b8326347f06b86f5c08ddd072278e510`; ahead/behind was `0/1`; local `git merge-tree --write-tree` produced `453d03a60add18af24c404905c9edea17a46e91a` without conflicts; and GitHub reported the intended base/head and `MERGEABLE`. The separate `UNSTABLE` aggregate reflected queued/running checks, not a merge conflict.
 
 ## Replacement north-star M10 locally validated
 
