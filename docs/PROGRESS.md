@@ -2,9 +2,9 @@
 
 ## Current milestone
 
-M7 — The independent-verifier, credential, scoped-assignment, method, signed-finding, exception/corrective-action, certificate, and maintenance-provenance slice is implemented and locally validated on August 1, 2026. Publication is pending on the current branch stacked directly on M6 draft PR [#13](https://github.com/dizzy1900/Fortify/pull/13). It does not prove a real credential, inspection, physical condition, risk reduction, compliance, designation, insurance treatment, programme acceptance, customer use, deployment, or external validation.
+M7 — The independent-verifier, credential, scoped-assignment, method, signed-finding, exception/corrective-action, certificate, and maintenance-provenance slice is implemented, locally validated, and published as stacked draft PR [#14](https://github.com/dizzy1900/Fortify/pull/14) on August 1, 2026. GitHub and the local merge-tree preflight report no conflicts with the M6 base. It does not prove a real credential, inspection, physical condition, risk reduction, compliance, designation, insurance treatment, programme acceptance, customer use, deployment, or external validation.
 
-## Replacement north-star M7 locally validated
+## Replacement north-star M7 locally validated and published
 
 - Expanded normalized production persistence from 119 to 136 tables and from 325 to 386 unique guards/triggers. The deny-by-default registry now covers 132 resource classes and exact case-, portfolio-, project-, and verifier-assignment scope.
 - Added verifier organizations, verifier identities, versioned credentials with exact issuer/source/version/jurisdiction/scope/expiry, and independent credential reviews. Expired, revoked, unreviewed, or unverifiable credentials block assignment and token resolution.
