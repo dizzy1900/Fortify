@@ -17,6 +17,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
+# The standalone server invokes Node directly; package-manager tooling is build-stage only.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 RUN groupadd --system --gid 1001 fortify && useradd --system --uid 1001 --gid fortify fortify
 COPY --from=builder --chown=fortify:fortify /app/.next/standalone ./
 COPY --from=builder --chown=fortify:fortify /app/.next/static ./.next/static
