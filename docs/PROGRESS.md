@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M9 — The market-specific recognition-submission, secure-reviewer, separated-response, case-closure, and maintenance-roll-forward slice is implemented and locally validated on `codex/m9-recognition-submissions-outcomes`. Publication evidence is recorded after remote and pull-request readback. It does not prove recipient delivery, reviewer identity, insurer/model/rating/underwriting/placement/funding treatment, customer use, deployment, or external validation.
+M9 — The market-specific recognition-submission, secure-reviewer, separated-response, case-closure, and maintenance-roll-forward slice is implemented, locally validated, and published in stacked draft PR [#16](https://github.com/dizzy1900/Fortify/pull/16). It does not prove recipient delivery, reviewer identity, insurer/model/rating/underwriting/placement/funding treatment, customer use, deployment, or external validation.
 
 ## Replacement north-star M9 locally validated
 
@@ -14,6 +14,7 @@ M9 — The market-specific recognition-submission, secure-reviewer, separated-re
 - Added the responsive `/recognition` workspace with functioning submission, secure-review, decisions, and maintenance tabs; blocked/confirmed/delivered/clarification/accepted/corrected/pending/revoked scenarios; and meaningful populated, loading, error, and empty behavior. Desktop, 834-pixel tablet, and Pixel 7 captures were inspected without clipping, collision, or measured document-width overflow.
 - Local gates pass: ESLint, strict TypeScript, 21 Vitest files/80 tests, a 362-file secret scan, the 28-page/112-API production build, 12/12 deterministic evaluation, the 18-pattern claims scan, and the complete 45-scenario serial Playwright suite across desktop, tablet, and mobile. Production schema generation reports 168 tables/no drift; `npm audit --audit-level=moderate` reports 0 vulnerabilities.
 - The preserved six-page PDF rendered cleanly at every page; the 17-entry ZIP passed CRC and content-inventory review. Exact artifact evidence remains the 11,602-byte PDF, 51,723-byte ZIP, and manifest hash `47c5de9b8c2da8dfc040951b57697a2081fec8f1b3817e5148480aefaf9aef9a`.
+- Published branch `codex/m9-recognition-submissions-outcomes` as stacked draft PR [#16](https://github.com/dizzy1900/Fortify/pull/16) against refreshed `codex/m8-model-mapping-commitments`. The initial implementation head and remote SHA matched at `70d59d0791a64697f0e9685f2f01051eb2d2259c`; local `git merge-tree --write-tree` produced `36a79fa3ab327ba976da20bbd1e89601890ba4ba`, and GitHub reported `MERGEABLE`. The separate `UNSTABLE` aggregate reflected queued/running checks, not a merge conflict.
 - All organizations, recipients, delivery receipts, reviewers, decisions, corrections, closure events, and maintenance records are deterministic fictional fixtures. No live delivery, recipient custody or acceptance, counterparty authority, insurance/financial outcome, customer reliance, managed deployment, or external validation has been established. M10 programme administration, analytics, ROI measurement, and recognition-graph instrumentation is next.
 
 ## Replacement north-star M8 locally validated
