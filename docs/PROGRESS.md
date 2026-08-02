@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M6 — The governed funding-programme, deterministic-eligibility, blended-capital, commitment, milestone, scoped-collaboration, stakeholder-ledger, and export-only disbursement slice is locally validated on August 1, 2026. It does not prove a real programme rule, sponsor commitment, customer cost, payment, physical completion, external contributor use, programme acceptance, deployment, or external validation. Publication evidence will be added after the stacked draft PR is created.
+M6 — The governed funding-programme, deterministic-eligibility, blended-capital, commitment, milestone, scoped-collaboration, stakeholder-ledger, and export-only disbursement slice is locally validated and published as stacked draft PR [#13](https://github.com/dizzy1900/Fortify/pull/13) on August 1, 2026. It does not prove a real programme rule, sponsor commitment, customer cost, payment, physical completion, external contributor use, programme acceptance, deployment, or external validation.
 
 ## Replacement north-star M6 locally validated
 
