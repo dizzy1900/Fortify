@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   boolean,
   check,
   date,
@@ -1109,7 +1110,22 @@ export const sourceDocuments = pgTable(
     caseId: text("case_id").references(() => renewalCases.id, {
       onDelete: "restrict",
     }),
+    storageObjectId: text("storage_object_id").references(
+      () => storageObjects.id,
+      { onDelete: "restrict" },
+    ),
+    supersedesSourceDocumentId: text("supersedes_source_document_id").references(
+      (): AnyPgColumn => sourceDocuments.id,
+      { onDelete: "restrict" },
+    ),
+    versionNumber: integer("version_number").notNull().default(1),
     documentType: text("document_type").notNull(),
+    classificationConfidence: numeric("classification_confidence", {
+      precision: 5,
+      scale: 4,
+    }),
+    classifierKey: text("classifier_key"),
+    classifierVersion: text("classifier_version"),
     filename: text("filename").notNull(),
     mimeType: text("mime_type").notNull(),
     storageKey: text("storage_key"),
@@ -1129,7 +1145,150 @@ export const sourceDocuments = pgTable(
       table.organizationId,
       table.sha256,
     ),
+    index("source_documents_org_storage_idx").on(
+      table.organizationId,
+      table.storageObjectId,
+    ),
+    check(
+      "source_documents_version_check",
+      sql`${table.versionNumber} >= 1`,
+    ),
     check("source_documents_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const documentProcessingJobs = pgTable(
+  "document_processing_jobs",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    sourceDocumentId: text("source_document_id")
+      .notNull()
+      .references(() => sourceDocuments.id, { onDelete: "restrict" }),
+    pipelineVersion: text("pipeline_version").notNull(),
+    status: text("status").notNull().default("queued"),
+    attemptCount: integer("attempt_count").notNull().default(0),
+    maxAttempts: integer("max_attempts").notNull().default(3),
+    availableAt: timestamp("available_at", {
+      withTimezone: true,
+      mode: "string",
+    })
+      .notNull()
+      .defaultNow(),
+    leaseOwner: text("lease_owner"),
+    leaseExpiresAt: timestamp("lease_expires_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    lastErrorCode: text("last_error_code"),
+    lastErrorMessage: text("last_error_message"),
+    completedAt: timestamp("completed_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    deadLetteredAt: timestamp("dead_lettered_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+  },
+  (table) => [
+    uniqueIndex("document_processing_jobs_org_document_pipeline_unique").on(
+      table.organizationId,
+      table.sourceDocumentId,
+      table.pipelineVersion,
+    ),
+    index("document_processing_jobs_org_queue_idx").on(
+      table.organizationId,
+      table.status,
+      table.availableAt,
+    ),
+    check(
+      "document_processing_jobs_status_check",
+      sql`${table.status} in ('queued', 'running', 'retry_scheduled', 'succeeded', 'dead_letter')`,
+    ),
+    check(
+      "document_processing_jobs_attempts_check",
+      sql`${table.attemptCount} >= 0 and ${table.maxAttempts} between 1 and 10 and ${table.attemptCount} <= ${table.maxAttempts}`,
+    ),
+    check("document_processing_jobs_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const documentProcessingAttempts = pgTable(
+  "document_processing_attempts",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    jobId: text("job_id")
+      .notNull()
+      .references(() => documentProcessingJobs.id, { onDelete: "restrict" }),
+    attemptNumber: integer("attempt_number").notNull(),
+    workerId: text("worker_id").notNull(),
+    status: text("status").notNull(),
+    providerKey: text("provider_key"),
+    providerVersion: text("provider_version"),
+    errorCode: text("error_code"),
+    errorMessage: text("error_message"),
+    startedAt: timestamp("started_at", { withTimezone: true, mode: "string" })
+      .notNull(),
+    finishedAt: timestamp("finished_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+  },
+  (table) => [
+    uniqueIndex("document_processing_attempts_job_number_unique").on(
+      table.organizationId,
+      table.jobId,
+      table.attemptNumber,
+    ),
+    check(
+      "document_processing_attempts_status_check",
+      sql`${table.status} in ('running', 'succeeded', 'failed_retryable', 'failed_terminal')`,
+    ),
+    check("document_processing_attempts_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const documentExtractionRuns = pgTable(
+  "document_extraction_runs",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    sourceDocumentId: text("source_document_id")
+      .notNull()
+      .references(() => sourceDocuments.id, { onDelete: "restrict" }),
+    jobId: text("job_id")
+      .notNull()
+      .references(() => documentProcessingJobs.id, { onDelete: "restrict" }),
+    providerKey: text("provider_key").notNull(),
+    providerVersion: text("provider_version").notNull(),
+    extractorKey: text("extractor_key").notNull(),
+    extractorVersion: text("extractor_version").notNull(),
+    inputSha256: text("input_sha256").notNull(),
+    modelDerived: boolean("model_derived").notNull().default(false),
+    pageCount: integer("page_count").notNull(),
+    warnings: jsonb("warnings").$type<string[]>().notNull().default([]),
+    status: text("status").notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true, mode: "string" })
+      .notNull(),
+    completedAt: timestamp("completed_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+  },
+  (table) => [
+    uniqueIndex("document_extraction_runs_job_extractor_unique").on(
+      table.organizationId,
+      table.jobId,
+      table.extractorKey,
+      table.extractorVersion,
+    ),
+    check(
+      "document_extraction_runs_status_check",
+      sql`${table.status} in ('running', 'succeeded', 'failed')`,
+    ),
+    check("document_extraction_runs_lifecycle_check", lifecycleValues),
   ],
 );
 
@@ -1141,8 +1300,20 @@ export const sourcePassages = pgTable(
     sourceDocumentId: text("source_document_id")
       .notNull()
       .references(() => sourceDocuments.id, { onDelete: "restrict" }),
+    extractionRunId: text("extraction_run_id").references(
+      () => documentExtractionRuns.id,
+      { onDelete: "restrict" },
+    ),
     pageNumber: integer("page_number"),
     segment: text("segment"),
+    region: jsonb("region").$type<{
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      rotation?: number;
+    }>(),
+    passageKind: text("passage_kind").notNull().default("paragraph"),
     textContent: text("text_content").notNull(),
     extractorVersion: text("extractor_version").notNull(),
     confidence: numeric("confidence", { precision: 5, scale: 4 }),
@@ -1161,6 +1332,127 @@ export const sourcePassages = pgTable(
       table.sourceDocumentId,
     ),
     check("source_passages_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const extractedFields = pgTable(
+  "extracted_fields",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    sourceDocumentId: text("source_document_id")
+      .notNull()
+      .references(() => sourceDocuments.id, { onDelete: "restrict" }),
+    extractionRunId: text("extraction_run_id")
+      .notNull()
+      .references(() => documentExtractionRuns.id, { onDelete: "restrict" }),
+    sourcePassageId: text("source_passage_id").references(
+      () => sourcePassages.id,
+      { onDelete: "restrict" },
+    ),
+    fieldKey: text("field_key").notNull(),
+    fieldLabel: text("field_label").notNull(),
+    candidateOrdinal: integer("candidate_ordinal").notNull().default(1),
+    value: text("value").notNull(),
+    valueType: text("value_type").notNull().default("text"),
+    confidence: numeric("confidence", { precision: 5, scale: 4 }).notNull(),
+    modelDerived: boolean("model_derived").notNull().default(false),
+  },
+  (table) => [
+    uniqueIndex("extracted_fields_run_key_ordinal_unique").on(
+      table.organizationId,
+      table.extractionRunId,
+      table.fieldKey,
+      table.candidateOrdinal,
+    ),
+    index("extracted_fields_org_document_idx").on(
+      table.organizationId,
+      table.sourceDocumentId,
+    ),
+    check(
+      "extracted_fields_confidence_check",
+      sql`${table.confidence} >= 0 and ${table.confidence} <= 1`,
+    ),
+    check("extracted_fields_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const extractedFieldReviews = pgTable(
+  "extracted_field_reviews",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    extractedFieldId: text("extracted_field_id")
+      .notNull()
+      .references(() => extractedFields.id, { onDelete: "restrict" }),
+    action: text("action").notNull(),
+    reviewedValue: text("reviewed_value"),
+    reviewerSubject: text("reviewer_subject").notNull(),
+    reviewerPrincipalType: text("reviewer_principal_type").notNull(),
+    note: text("note"),
+    reviewedAt: timestamp("reviewed_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+  },
+  (table) => [
+    index("extracted_field_reviews_org_field_idx").on(
+      table.organizationId,
+      table.extractedFieldId,
+      table.reviewedAt,
+    ),
+    check(
+      "extracted_field_reviews_action_check",
+      sql`${table.action} in ('confirmed', 'corrected', 'rejected')`,
+    ),
+    check("extracted_field_reviews_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const documentFacts = pgTable(
+  "document_facts",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    sourceDocumentId: text("source_document_id")
+      .notNull()
+      .references(() => sourceDocuments.id, { onDelete: "restrict" }),
+    extractedFieldId: text("extracted_field_id")
+      .notNull()
+      .references(() => extractedFields.id, { onDelete: "restrict" }),
+    reviewId: text("review_id")
+      .notNull()
+      .references(() => extractedFieldReviews.id, { onDelete: "restrict" }),
+    sourcePassageId: text("source_passage_id").references(
+      () => sourcePassages.id,
+      { onDelete: "restrict" },
+    ),
+    factKey: text("fact_key").notNull(),
+    value: text("value").notNull(),
+    versionNumber: integer("version_number").notNull(),
+    supersedesFactId: text("supersedes_fact_id").references(
+      (): AnyPgColumn => documentFacts.id,
+      { onDelete: "restrict" },
+    ),
+    confirmedBy: text("confirmed_by").notNull(),
+    confirmedAt: timestamp("confirmed_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    correctionReason: text("correction_reason"),
+  },
+  (table) => [
+    uniqueIndex("document_facts_org_document_key_version_unique").on(
+      table.organizationId,
+      table.sourceDocumentId,
+      table.factKey,
+      table.versionNumber,
+    ),
+    check(
+      "document_facts_version_check",
+      sql`${table.versionNumber} >= 1`,
+    ),
+    check("document_facts_lifecycle_check", lifecycleValues),
   ],
 );
 

@@ -19,6 +19,8 @@ Open `http://localhost:3000`, choose **Enter fictional demo**, and follow the pe
 
 Open `/imports` for the clearly labeled synthetic portfolio-import walkthrough. In production mode the same route requires an organization session and operates only on tenant-scoped books, saved mappings, and clean scanned storage objects.
 
+Open `/documents` for the synthetic durable-processing and human fact-review walkthrough. In production mode document intake accepts only independently scanned clean objects, workers run under explicit service-account scope, and extracted candidates cannot become facts without a recorded human decision.
+
 ## Validation
 
 ```bash
@@ -42,14 +44,16 @@ Final files appear under `output/pdf/` and `output/packets/`. The deterministic 
 
 - Next.js App Router, strict TypeScript, Tailwind CSS, and accessible native controls.
 - Explicit `sandbox` and `production` runtime modes; production fails closed without PostgreSQL configuration and never falls back to the demo blob.
-- Normalized 53-table Drizzle/PostgreSQL production schema with tenant-scoped repositories, transaction/audit coupling, optimistic concurrency, idempotency, immutable versions, cross-tenant database guards, and an explicit seed migration.
+- Normalized 59-table Drizzle/PostgreSQL production schema with tenant-scoped repositories, transaction/audit coupling, optimistic concurrency, idempotency, immutable versions, cross-tenant database guards, and an explicit seed migration.
 - OIDC-compatible production identity, opaque server-side sessions, invitations, organization roles, service/API credentials, external case grants, explicit support access, and deny-by-default policy checks.
 - Private S3-compatible production storage with tenant prefixes, short-lived signed operations, exact checksum/MIME/size/encryption checks, quarantine/scanning state, immutable clean evidence registration, retention/legal-hold deletion controls, access audit, and an exact-byte fixture backup contract.
 - Portfolio/SOV import foundation for clean scanned CSV/XLSX objects: immutable saved mappings, stable external identifiers, address/building reconciliation, dry-run quarantine, idempotent commit, append-only receipts, and non-destructive rollback. Generic AMS, Applied Epic-compatible, and AMS360-compatible boundaries are fixture-backed only.
 - Authenticated portfolio-import APIs and a responsive broker workspace cover secure upload-to-quarantine, clean-object selection, mapping review/versioning, dry-run row filters, explicit human confirmation, receipts, history, and rollback without bypassing malware scanning.
+- PostgreSQL-backed document jobs provide leases, bounded retries, dead-letter review, manual retry authorization, provider/classifier/extractor versioning, immutable page/segment/region provenance, multiple candidate values, confidence and model-derived disclosure, and superseding human-confirmed fact versions.
+- The default production document provider is deterministic and offline: plain text and selectable PDFs only. Scans, images, rotated regions, and tables are covered by exact-hash fixtures and an injected external-provider contract; no live OCR provider or usage right is implied.
 - Drizzle/SQLite remains only for the deterministic organization-scoped sandbox and local regression story.
 - `LocalFileStorageAdapter` remains sandbox-only; production storage uses the S3-compatible adapter and fails closed without explicit bucket configuration.
-- Deterministic local text and text-based-PDF intake; no OCR or model dependency.
+- Deterministic local text and selectable-PDF intake; no OCR or model dependency in the default runtime.
 - MapLibre renders local GeoJSON with no tile server or token.
 - `pdf-lib` and JSZip create byte-deterministic submission files with a machine-readable manifest and exhibits.
 

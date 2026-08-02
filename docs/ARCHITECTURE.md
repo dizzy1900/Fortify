@@ -21,6 +21,10 @@ Production evidence bytes use `ObjectStorageAdapter`, with a private S3-compatib
 
 Portfolio/SOV imports consume only clean scanned storage objects. `PortfolioImportService` parses CSV or XLSX bytes, applies an immutable tenant-owned mapping version, quarantines rejected or ambiguous rows, and writes normalized client/community/property/location/building/policy records only after explicit human confirmation. Import rows and hash-bound receipts are retained across idempotent replay and non-destructive rollback. Authenticated production routes expose organization-scoped workspace options, clean-object mapping suggestion, immutable mapping save, preview, readback, commit, and rollback. The `/imports` client can upload through the M4 signed quarantine path but cannot parse the object until an independently configured scanner promotes it clean. Generic AMS CSV is schema-configurable; the Applied Epic-compatible and AMS360-compatible adapters are fixture boundaries, not certified or live vendor integrations.
 
+Document intake follows the same clean-object boundary. `DocumentPipelineService` records a source version and a PostgreSQL job in one tenant-scoped transaction, then a separately scoped service-account worker claims the job with a lease. Attempts, extraction runs, passages, candidates, reviews, and facts remain normalized and immutable. Retries are bounded; stale leases return to the queue; terminal failures enter an explicit dead-letter state; a broker-authorized manual retry adds only one recorded attempt. Provider, classifier, and extractor keys/versions are stored with exact source hashes, page/segment/region citations, confidence, and model-derived flags. A candidate becomes a fact only after a human confirmation or correction, and a correction creates a superseding fact version.
+
+`LocalSelectableTextProvider` is the default offline production adapter for plain text and selectable PDFs. It does not invent OCR, PDF-native geometry, or image support. Exact-hash fixtures exercise scans, rotations, tables, images, conflicts, and low-confidence/model-derived candidates; `ExternalDocumentIntelligenceProvider` is an injected boundary that requires separate rights, credentials, security review, and staging validation.
+
 ## Transaction doctrine
 
 Consequential mutations use one PostgreSQL transaction for:
@@ -44,7 +48,7 @@ Audit hashes bind the preceding tenant audit hash, organization, actor, action, 
 - Sandbox data is owned by `org-fortify-sandbox`, whose row is constrained to `environment=sandbox` and `synthetic=true`.
 - Cross-customer analytics opt-in defaults to false.
 
-M3 adds authenticated principals, memberships, deny-by-default authorization policies, revocation, support-access controls, and resource-complete attack tests. M4 extends the same organization boundary through storage objects, grants, scan results, and backup manifests. M5 extends it through saved mappings, mapping versions, import runs, quarantined rows, and immutable receipts. Managed-provider configuration, MFA policy enforcement, defense-in-depth RLS evaluation, rate limiting, secrets infrastructure, and deployment validation remain external/operational gates rather than inferred passes.
+M3 adds authenticated principals, memberships, deny-by-default authorization policies, revocation, support-access controls, and resource-complete attack tests. M4 extends the same organization boundary through storage objects, grants, scan results, and backup manifests. M5 extends it through saved mappings, mapping versions, import runs, quarantined rows, and immutable receipts. M6 extends it through jobs, attempts, extraction runs, passages, candidate fields, human reviews, and confirmed fact versions. Managed-provider configuration, MFA policy enforcement, defense-in-depth RLS evaluation, rate limiting, secrets infrastructure, and deployment validation remain external/operational gates rather than inferred passes.
 
 ## Persistence adapters
 
@@ -63,4 +67,4 @@ The contract suite uses PGlite as an embedded PostgreSQL-compatible engine becau
 
 ## Next architecture boundary
 
-M5 is implemented locally, with managed-provider and rights-cleared brokerage validation still outstanding. M6 introduces durable document-processing jobs. Production remains closed to customer data until managed PostgreSQL, OIDC, private object storage, malware scanning, backup/restore, and the remaining security/deployment gates are validated.
+M6 is implemented locally, with live OCR/document-intelligence rights, managed-worker operation, managed-provider validation, and rights-cleared document evaluation still outstanding. M7 introduces destination-specific playbooks and deterministic readiness blockers. Production remains closed to customer data until managed PostgreSQL, OIDC, private object storage, malware scanning, backup/restore, and the remaining security/deployment gates are validated.

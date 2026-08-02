@@ -113,6 +113,7 @@ test("public page and all workspace routes are healthy", async ({ page }) => {
     "/demo",
     "/portfolio",
     "/imports",
+    "/documents",
     "/community",
     "/policy",
     "/notice",
@@ -187,4 +188,72 @@ test("portfolio import walkthrough preserves quarantine, confirmation, receipts,
       path: "test-results/visual-inspection/portfolio-import-mobile.png",
       fullPage: true,
     });
+});
+
+test("document workspace preserves provenance, human review, corrections, and dead-letter control", async ({ page }, testInfo) => {
+  await page.goto("/documents");
+  await expect(
+    page.getByRole("heading", { name: "Document intake and fact review" }),
+  ).toBeVisible();
+  await expect(page.getByText("Synthetic sandbox", { exact: true })).toBeVisible();
+  await expect(page.getByText("Clean scanned objects only")).toBeVisible();
+
+  await page.getByRole("button", { name: /Policy candidate 1/ }).click();
+  await expect(page.getByText("Policy: FICTIONAL-COA-2048")).toBeVisible();
+  await expect(page.getByText(/Page 1 · line-4/)).toBeVisible();
+  await page.getByRole("button", { name: "Save immutable review" }).click();
+  await expect(
+    page.getByText("Candidate confirmed by a human reviewer with its source citation."),
+  ).toBeVisible();
+
+  await page.getByRole("radio", { name: "corrected" }).check();
+  await page.getByLabel("Corrected value").fill("FICTIONAL-COA-2049");
+  await page
+    .getByLabel(/Review note/)
+    .fill("Synthetic human correction after checking page 1.");
+  await page.getByRole("button", { name: "Save immutable review" }).click();
+  await expect(
+    page.getByText("Human correction saved as a superseding fact version."),
+  ).toBeVisible();
+  await expect(page.getByText("Fact v2")).toBeVisible();
+  await expect(page.getByText("FICTIONAL-COA-2049")).toBeVisible();
+
+  await page.getByRole("button", { name: /Required evidence candidate 1/ }).click();
+  await expect(page.getByText(/Page 2 · table-r3-c2/)).toBeVisible();
+  await expect(page.getByText(/Model-derived candidate; human review mandatory/)).toBeVisible();
+  await page.getByRole("button", { name: "Save immutable review" }).click();
+  await expect(
+    page.getByText("Candidate confirmed by a human reviewer with its source citation."),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Retry +1" }).click();
+  await expect(
+    page.getByText("Dead-letter retry recorded with one additional bounded attempt."),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Queue durable processing" }).click();
+  await expect(page.getByText(/Synthetic job queued/)).toBeVisible();
+  await page
+    .getByLabel("Source document")
+    .selectOption({ label: "v1 · fictional-carrier-notice.pdf · review_required" });
+  await page.getByRole("button", { name: /Policy candidate 1/ }).click();
+  await expect(page.getByText("Fact v2")).toBeVisible();
+
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  );
+  expect(overflow).toBe(false);
+  await page.evaluate(() => {
+    (document.activeElement as HTMLElement | null)?.blur();
+    document
+      .querySelectorAll<HTMLElement>(".document-table-wrap")
+      .forEach((element) => element.scrollTo({ left: 0 }));
+    window.scrollTo(0, 0);
+  });
+  await page.screenshot({
+    path:
+      testInfo.project.name === "chromium"
+        ? "test-results/visual-inspection/document-review-desktop.png"
+        : "test-results/visual-inspection/document-review-mobile.png",
+    fullPage: true,
+  });
 });

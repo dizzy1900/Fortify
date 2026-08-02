@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Archive, Building2, CalendarDays, ChevronLeft, ChevronRight, ClipboardCheck, FileCheck2, FileText, Gauge, History, Home, LayoutDashboard, Menu, PackageCheck, RotateCcw, Settings, ShieldCheck, UploadCloud, X } from "lucide-react";
+import { Archive, Building2, CalendarDays, ChevronLeft, ChevronRight, ClipboardCheck, FileCheck2, FileSearch, FileText, Gauge, History, Home, LayoutDashboard, Menu, PackageCheck, RotateCcw, Settings, ShieldCheck, UploadCloud, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useDemo } from "./demo-provider";
 
 const nav = [
-  ["Portfolio", "/portfolio", LayoutDashboard], ["SOV import", "/imports", UploadCloud], ["Community", "/community", Building2], ["Policy timeline", "/policy", CalendarDays], ["Carrier notice", "/notice", FileText], ["Requirement crosswalk", "/requirements", ClipboardCheck], ["Evidence room", "/evidence", Archive], ["Renewal case", "/case", Gauge], ["Packet builder", "/packet", PackageCheck], ["Underwriter review", "/underwriter", ShieldCheck], ["Outcome", "/outcomes", FileCheck2], ["Maintenance", "/maintenance", CalendarDays], ["Reports & audit", "/reports", History], ["Settings", "/settings", Settings],
+  ["Portfolio", "/portfolio", LayoutDashboard], ["SOV import", "/imports", UploadCloud], ["Document intake", "/documents", FileSearch], ["Community", "/community", Building2], ["Policy timeline", "/policy", CalendarDays], ["Carrier notice", "/notice", FileText], ["Requirement crosswalk", "/requirements", ClipboardCheck], ["Evidence room", "/evidence", Archive], ["Renewal case", "/case", Gauge], ["Packet builder", "/packet", PackageCheck], ["Underwriter review", "/underwriter", ShieldCheck], ["Outcome", "/outcomes", FileCheck2], ["Maintenance", "/maintenance", CalendarDays], ["Reports & audit", "/reports", History], ["Settings", "/settings", Settings],
 ] as const;
 const guide = [
   ["Find the case in danger", "/portfolio"], ["Confirm the carrier notice", "/notice"], ["Review the crosswalk", "/requirements"], ["Assign missing-evidence work", "/case"], ["Disposition a contradiction", "/evidence"], ["Generate the real packet", "/packet"], ["Request underwriter clarification", "/underwriter"], ["Respond and record the outcome", "/outcomes"], ["Show next-year reuse", "/maintenance"],

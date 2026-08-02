@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M5 — Portfolio/SOV import is locally implemented on August 1, 2026. Rights-cleared brokerage-export and managed-provider validation remain external. Managed PostgreSQL, OIDC/MFA, private object storage, malware scanning, and operational restore validation also remain external; M6 durable document processing is the next code milestone.
+M6 — Durable document processing and human fact review are locally implemented on August 1, 2026. Rights-cleared document/provider and managed-worker validation remain external. Managed PostgreSQL, OIDC/MFA, private object storage, malware scanning, and operational restore validation also remain external; M7 destination-specific playbooks/readiness is the next code milestone.
 
 ## Completed baseline
 
@@ -64,13 +64,23 @@ M5 — Portfolio/SOV import is locally implemented on August 1, 2026. Rights-cle
 - Authored and visually inspected the XLSX fixture at `tests/fixtures/import/fortify-sov-fixture.xlsx`; formula/error inspection found no workbook errors. Added edge-case CSV fixtures and 6 service/contract tests.
 - Full local validation passed: ESLint, strict TypeScript, 9 files/37 tests, 177-file secret scan, 17-page/28-API production build, 12/12 deterministic evaluation, 6/6 serial desktop/mobile Playwright scenarios, and `npm audit --omit=dev --audit-level=high` with 0 vulnerabilities. The import workspace was visually inspected at both viewports after repairing a measured mobile table-overflow defect.
 
+## M6 locally implemented this cycle
+
+- Expanded the production schema from 53 to 59 tables and from 72 to 100 tenant/immutability triggers for durable jobs, immutable attempts and extraction runs, source passages with regions, multiple extracted candidates, human reviews, and superseding fact versions.
+- Added clean-object-only, exact-byte/hash-bound intake and a PostgreSQL job service with idempotency, worker leases, stale-lease recovery, bounded retry schedules, explicit dead letter, and reason-bound manual +1 retry.
+- Added deterministic provider/classifier/extractor contracts. The offline production adapter supports plain text and selectable PDFs without invented geometry; exact-hash fixtures cover scans, rotated regions, tables, images, conflicts, low confidence, and model-derived candidates. The external-provider boundary is injection-only and carries no live right or credential claim.
+- Added immutable page/segment/region provenance, provider/classifier/extractor versions, multiple candidate ordinals, confidence and derivation disclosure, human confirmation/correction/rejection, and append-only superseding fact versions. Service accounts cannot confirm facts.
+- Added 4 authenticated production APIs, a separately scoped one-job worker command, and the responsive `/documents` workspace with quarantine/clean-object boundaries, durable ledger, dead-letter control, filtering/pagination, side-by-side citation review, immutable decisions, fact history, and meaningful production/sandbox states.
+- Added 4 service/contract tests covering the document matrix, retry/dead-letter behavior, attempt/candidate immutability, model-derived human gates, corrections/supersession, unscanned/unsupported objects, and cross-tenant rejection.
+- Full local validation passed: ESLint, strict TypeScript, 10 files/41 tests, 192-file secret scan, 18-page/32-API production build, 12/12 deterministic evaluation, 8/8 serial desktop/mobile Playwright scenarios, production schema regeneration with no drift, and `npm audit --omit=dev` with 0 vulnerabilities. All six deterministic PDF pages and the 17-entry ZIP were inspected; desktop/mobile document states were visually checked without observed overflow or clipping.
+
 ## Next
 
-- Validate one rights-cleared real brokerage export against the generic adapter and validate vendor-specific boundaries only with appropriate rights and current vendor documentation; fixture compatibility is not certification.
-- Begin M6 with a PostgreSQL-backed durable job contract, retry/dead-letter behavior, and a versioned notice/document intake pipeline that preserves page/region provenance and human confirmation.
+- Begin M7 with versioned destination-specific playbooks and deterministic blockers/statuses that replace the universal weighted readiness heuristic without creating a risk or outcome score.
+- Validate rights-cleared brokerage exports and correspondence against the generic adapters; fixture compatibility is not certification. Validate any external OCR/document-intelligence provider only after licensing, egress, retention, credentials, security, latency, cost, and error behavior are approved.
 - Validate the M2 migration and contract suite against the selected managed PostgreSQL service; PGlite is PostgreSQL-compatible local evidence, not production-provider evidence.
 - Configure and validate a managed OIDC provider, redirect registration, MFA policy, secrets, session behavior, and rate limits in staging.
-- Validate the new GitHub workflow and configure required checks after publication; owner-only settings remain listed in `docs/GITHUB_SETTINGS_CHECKLIST.md`.
+- With explicit approval, repair the diagnosed Node slim-image native build prerequisite and isolate the SQLite/Vitest worker-shutdown issue; CodeQL/security already passed. Configure owner-only settings listed in `docs/GITHUB_SETTINGS_CHECKLIST.md`.
 - Do not ingest live customer data. Managed object storage/malware/retention/restore validation, incident controls, managed PostgreSQL/OIDC validation, and the remaining production milestones are not yet complete.
 
 ## Status discipline
