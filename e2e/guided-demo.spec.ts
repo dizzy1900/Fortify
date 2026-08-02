@@ -123,6 +123,7 @@ test("public page and all workspace routes are healthy", async ({ page }) => {
     "/funding",
     "/verification",
     "/model-recognition",
+    "/recognition",
     "/community",
     "/policy",
     "/notice",
@@ -755,4 +756,37 @@ test("model recognition keeps proposals, external acceptance, and review-only co
   await page.getByRole("button", { name: "Input mapping" }).click();
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: testInfo.project.name === "chromium" ? "test-results/visual-inspection/model-recognition-desktop.png" : testInfo.project.name === "tablet" ? "test-results/visual-inspection/model-recognition-tablet.png" : "test-results/visual-inspection/model-recognition-mobile.png", fullPage: true });
+});
+
+test("market recognition preserves exact delivery, scoped review, correspondence, and separate outcomes", async ({ page }, testInfo) => {
+  await page.goto("/recognition");
+  await expect(page.getByRole("heading", { name: "Deliver exact evidence. Preserve the market’s exact answer." })).toBeVisible();
+  await expect(page.getByText("Recognition is recorded, never predicted", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Delivery is not acceptance/)).toBeVisible();
+  await expect(page.locator(".market-recognition-gate strong").getByText("Clarification answered", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Inspect receipt chain" }).click();
+  await expect(page.getByText(/recipient acceptance remains unclaimed/)).toBeVisible();
+
+  await page.getByRole("button", { name: "Secure reviewer" }).click();
+  await expect(page.getByRole("heading", { name: "Original language retained" })).toBeVisible();
+  await expect(page.getByText(/Please identify which roof photographs/)).toBeVisible();
+  await page.getByRole("button", { name: "Revoke access" }).click();
+  await expect(page.locator(".market-recognition-gate strong").getByText("Reviewer access revoked", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Decisions" }).click();
+  await expect(page.getByRole("heading", { name: "No category fills another" })).toBeVisible();
+  await expect(page.getByText("Unknown", { exact: true })).toBeVisible();
+  await expect(page.getByText("No determination supplied", { exact: true })).toBeVisible();
+  await expect(page.getByText("Explicitly unavailable", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Highlight correction" }).click();
+  await expect(page.locator(".market-recognition-gate strong").getByText("Correction appended", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Maintenance" }).click();
+  await expect(page.getByRole("heading", { name: "Closed · outcome pending" })).toBeVisible();
+  await page.getByRole("button", { name: "Queue human review" }).click();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+  expect(overflow).toBe(false);
+  await page.getByRole("button", { name: "Submission" }).click();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: testInfo.project.name === "chromium" ? "test-results/visual-inspection/market-recognition-desktop.png" : testInfo.project.name === "tablet" ? "test-results/visual-inspection/market-recognition-tablet.png" : "test-results/visual-inspection/market-recognition-mobile.png", fullPage: true });
 });
