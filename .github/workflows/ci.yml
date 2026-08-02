@@ -32,10 +32,6 @@ jobs:
       - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck
-      - name: Run PostgreSQL-heavy tests in bounded-memory shards
-        run: npm run test:bounded
-      - name: Verify blank sandbox migration explicitly
-        run: npm run test:migration
       - run: npm run build
       - run: npm run demo:evaluate
       - run: npm run security:claims
@@ -49,10 +45,73 @@ jobs:
             output/pdf/*.pdf
             output/packets/*.zip
 
+  contracts:
+    name: Contract tests (${{ matrix.label }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - label: access-control
+            target: tests/access-control-service.test.ts
+          - label: brokerage-case
+            target: tests/brokerage-case.test.ts
+          - label: document-pipeline
+            target: tests/document-pipeline.test.ts
+          - label: funding-project
+            target: tests/funding-project.test.ts
+          - label: governed-source
+            target: tests/governed-source.test.ts
+          - label: identity-authorization
+            target: tests/identity-authorization.test.ts
+          - label: integrations
+            target: tests/integrations.test.ts
+          - label: market-playbook
+            target: tests/market-playbook.test.ts
+          - label: model-recognition
+            target: tests/model-recognition.test.ts
+          - label: operational-hardening
+            target: tests/operational-hardening.test.ts
+          - label: portfolio-import
+            target: tests/portfolio-import.test.ts
+          - label: production-data-plane
+            target: tests/production-data-plane.test.ts
+          - label: programme-analytics
+            target: tests/programme-analytics.test.ts
+          - label: property-graph
+            target: tests/property-graph.test.ts
+          - label: recognition-submission
+            target: tests/recognition-submission.test.ts
+          - label: resilience-planning
+            target: tests/resilience-planning.test.ts
+          - label: secure-object-storage
+            target: tests/secure-object-storage.test.ts
+          - label: verification-governance
+            target: tests/verification-governance.test.ts
+          - label: lightweight-repository
+            target: >-
+              tests/artifacts.test.ts tests/domain.test.ts tests/migration.test.ts
+              tests/prohibited-claims.test.ts tests/repository.test.ts tests/runtime.test.ts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Run one host-isolated contract shard
+        env:
+          TEST_TARGETS: ${{ matrix.target }}
+        run: >-
+          npx vitest run --pool=threads --maxWorkers=1 --no-file-parallelism
+          $TEST_TARGETS
+
   browser:
     name: Guided browser regression
     runs-on: ubuntu-latest
-    needs: quality
+    needs: [quality, contracts]
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
@@ -124,7 +183,7 @@ jobs:
   release-contract:
     name: Accessibility, visual, and production-flow contracts
     runs-on: ubuntu-latest
-    needs: quality
+    needs: [quality, contracts]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
