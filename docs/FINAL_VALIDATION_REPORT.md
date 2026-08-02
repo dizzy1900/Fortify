@@ -18,6 +18,8 @@ The first focused browser invocation used the stale standalone build and correct
 
 No managed OIDC/MFA provider, PostgreSQL/RLS policy, private object store/KMS/scanner, production secrets/rate limits, operational backup restore, or authorized customer/partner role workflow has been validated. MFA capability is metadata, not an enforced policy claim. The synthetic users and assignments are not real relationships or authority. M2 is locally validated but neither deployment-validated nor externally validated.
 
+Publication used branch `codex/m2-resilience-access-control` stacked on refreshed `origin/codex/m1-california-property-graph`. Exact local ancestry, ahead/behind, `git diff --check`, and merge-tree preflights succeeded; the initial published head and remote SHA both resolved to `9509720e3672e0aaedb9cdc783a74d78bba51093`. GitHub draft PR #9 readback reported the intended base/head and `MERGEABLE`; the separate `UNSTABLE` aggregate reflected four queued CI checks and is not a merge-conflict result.
+
 ## Replacement north-star M1 property-graph local-validation addendum
 
 One consolidated `npm run verify` invocation exited 0 with approved localhost binding: ESLint, strict TypeScript, 13 Vitest files/50 tests, a 225-file secret scan, the 20-page/39-API production build, 12/12 deterministic sandbox checks, the 18-pattern claims scan, and 14/14 serial Playwright scenarios across desktop Chromium and Pixel 7 passed. Production schema regeneration reported 73 tables and no drift; `npm audit --omit=dev` reported 0 vulnerabilities; `git diff --check` passed.

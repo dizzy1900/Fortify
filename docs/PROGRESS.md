@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M2 — The identity and secure-evidence slice is locally validated on August 1, 2026 and ready for publication as the next branch stacked directly after draft PR #8. The prior M1–M7 renewal implementation remains a locally validated reusable foundation and published stacked PR series; it is not evidence that profiles, interventions, capital plans, funding, verification, model mapping, recognition commitments, recognition submissions, programme administration, deployment, or external validation exist.
+M2 — The identity and secure-evidence slice is locally validated on August 1, 2026 and published as draft PR #9, stacked directly after draft PR #8. The prior M1–M7 renewal implementation remains a locally validated reusable foundation and published stacked PR series; it is not evidence that profiles, interventions, capital plans, funding, verification, model mapping, recognition commitments, recognition submissions, programme administration, deployment, or external validation exist.
 
 ## Replacement north-star M2 locally validated
 
@@ -15,6 +15,7 @@ M2 — The identity and secure-evidence slice is locally validated on August 1, 
 - Complete local release gates passed: ESLint, strict TypeScript, 237-file secret scan, 21-page/42-API build, 12/12 deterministic evaluation, 18-pattern claims scan, 16/16 serial desktop/mobile Playwright scenarios, 75-table schema regeneration/no drift, exactly 157 migrated guards/triggers, and `npm audit --audit-level=moderate` with 0 vulnerabilities.
 - Browser inspection covered 1280-pixel desktop, 834-pixel tablet, and Pixel 7 mobile. The first mobile role matrix used an inner horizontal scroll; it was converted to fully labeled stacked rows, rebuilt, rerun, and re-inspected with no measured document overflow.
 - Managed OIDC/MFA, PostgreSQL/RLS, private bucket/KMS/scanner, secrets, rate limits, operational restore, and authorized customer/partner role validation remain deployment/external gates. No live customer, contractor, verifier, insurer, lender, or programme user has validated this slice.
+- Publication used `codex/m2-resilience-access-control` stacked on refreshed `origin/codex/m1-california-property-graph`. The exact local merge-tree preflight succeeded, remote SHA readback matched the published head, and GitHub draft PR #9 reported the intended base/head and `MERGEABLE`; its separate `UNSTABLE` aggregate reflected queued checks, not a merge conflict.
 
 ## Replacement north-star M1 locally validated
 
@@ -122,7 +123,7 @@ M2 — The identity and secure-evidence slice is locally validated on August 1, 
 ## Next
 
 - Keep draft PR #7 stacked on M7 until the predecessor is ready; local merge-tree and GitHub both report the exact M0 stack conflict-free at publication.
-- Publish the M2 identity/access branch stacked on draft PR #8, verify exact ancestry/local merge tree/GitHub mergeability, then begin the production California brokerage wedge without weakening the tenant or assignment boundary.
+- Keep draft PR #9 stacked directly on draft PR #8; exact ancestry, local merge-tree preflight, remote head SHA, and GitHub mergeability were verified at publication. Begin the production California brokerage wedge without weakening the tenant or assignment boundary.
 - Validate the property graph against the selected managed PostgreSQL/PostGIS provider and evaluate defense-in-depth RLS; the local PGlite and nullable EPSG:4326-ready GeoJSON contracts are not provider, PostGIS, or performance evidence.
 - Validate rights-cleared brokerage exports and correspondence against the generic adapters; fixture compatibility is not certification. Validate any external OCR/document-intelligence provider only after licensing, egress, retention, credentials, security, latency, cost, and error behavior are approved.
 - Validate the M2 migration and contract suite against the selected managed PostgreSQL service; PGlite is PostgreSQL-compatible local evidence, not production-provider evidence.
