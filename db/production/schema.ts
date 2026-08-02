@@ -2179,7 +2179,7 @@ export const governedSourceDependencies = pgTable(
     ),
     check(
       "governed_source_dependencies_consumer_check",
-      sql`${table.consumerType} in ('playbook_version', 'renewal_case', 'target_profile_version')`,
+      sql`${table.consumerType} in ('playbook_version', 'renewal_case', 'target_profile_version', 'external_model_version', 'market_commitment_version')`,
     ),
     check(
       "governed_source_dependencies_relationship_check",
@@ -4003,6 +4003,375 @@ export const propertyConditionEvents = pgTable(
     index("property_condition_events_org_property_idx").on(table.organizationId, table.propertyId, table.observedAt),
     check("property_condition_events_state_check", sql`${table.conditionState} in ('observed_conforming', 'observed_degraded', 'insufficient_evidence', 'not_observed')`),
     check("property_condition_events_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const modelProviders = pgTable(
+  "model_providers",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    canonicalKey: text("canonical_key").notNull(),
+    name: text("name").notNull(),
+    providerType: text("provider_type").notNull(),
+    website: text("website"),
+    status: text("status").notNull().default("active"),
+    limitations: text("limitations").notNull(),
+  },
+  (table) => [
+    uniqueIndex("model_providers_org_key_unique").on(table.organizationId, table.canonicalKey),
+    check("model_providers_type_check", sql`${table.providerType} in ('catastrophe_model', 'property_risk_model', 'insurer_model', 'programme_model', 'other')`),
+    check("model_providers_status_check", sql`${table.status} in ('active', 'suspended', 'inactive')`),
+    check("model_providers_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const externalModels = pgTable(
+  "external_models",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    providerId: text("provider_id").notNull().references(() => modelProviders.id, { onDelete: "restrict" }),
+    canonicalKey: text("canonical_key").notNull(),
+    name: text("name").notNull(),
+    peril: text("peril").notNull(),
+    description: text("description").notNull(),
+  },
+  (table) => [
+    uniqueIndex("external_models_org_key_unique").on(table.organizationId, table.canonicalKey),
+    check("external_models_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const externalModelVersions = pgTable(
+  "external_model_versions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    modelId: text("model_id").notNull().references(() => externalModels.id, { onDelete: "restrict" }),
+    versionNumber: integer("version_number").notNull(),
+    versionLabel: text("version_label").notNull(),
+    geography: jsonb("geography").$type<string[]>().notNull().default([]),
+    propertyClasses: jsonb("property_classes").$type<string[]>().notNull().default([]),
+    effectiveFrom: date("effective_from", { mode: "string" }).notNull(),
+    effectiveTo: date("effective_to", { mode: "string" }),
+    sourceVersionId: text("source_version_id").notNull().references(() => governedSourceVersions.id, { onDelete: "restrict" }),
+    methodologySummary: text("methodology_summary").notNull(),
+    usageRights: text("usage_rights").notNull(),
+    redistributionRestrictions: text("redistribution_restrictions").notNull(),
+    limitations: text("limitations").notNull(),
+    status: text("status").notNull().default("draft"),
+    authorSubject: text("author_subject").notNull(),
+    supersedesVersionId: text("supersedes_version_id").references((): AnyPgColumn => externalModelVersions.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    uniqueIndex("external_model_versions_org_model_number_unique").on(table.organizationId, table.modelId, table.versionNumber),
+    check("external_model_versions_number_check", sql`${table.versionNumber} >= 1`),
+    check("external_model_versions_status_check", sql`${table.status} in ('draft', 'active', 'superseded', 'withdrawn')`),
+    check("external_model_versions_effective_check", sql`${table.effectiveTo} is null or ${table.effectiveTo} >= ${table.effectiveFrom}`),
+    check("external_model_versions_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const externalModelVersionReviews = pgTable(
+  "external_model_version_reviews",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    modelVersionId: text("model_version_id").notNull().references(() => externalModelVersions.id, { onDelete: "restrict" }),
+    decision: text("decision").notNull(),
+    reviewerSubject: text("reviewer_subject").notNull(),
+    sourceRightsAndDefinitionsChecked: boolean("source_rights_and_definitions_checked").notNull().default(false),
+    note: text("note").notNull(),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("external_model_reviews_org_version_unique").on(table.organizationId, table.modelVersionId),
+    check("external_model_reviews_decision_check", sql`${table.decision} in ('approved', 'changes_requested', 'rejected')`),
+    check("external_model_reviews_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const externalModelVersionPublications = pgTable(
+  "external_model_version_publications",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    modelVersionId: text("model_version_id").notNull().references(() => externalModelVersions.id, { onDelete: "restrict" }),
+    decision: text("decision").notNull(),
+    publisherSubject: text("publisher_subject").notNull(),
+    humanConfirmed: boolean("human_confirmed").notNull().default(false),
+    note: text("note").notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("external_model_publications_org_version_unique").on(table.organizationId, table.modelVersionId),
+    check("external_model_publications_decision_check", sql`${table.decision} in ('published', 'rejected')`),
+    check("external_model_publications_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const modelInputDefinitions = pgTable(
+  "model_input_definitions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    modelVersionId: text("model_version_id").notNull().references(() => externalModelVersions.id, { onDelete: "restrict" }),
+    inputKey: text("input_key").notNull(),
+    label: text("label").notNull(),
+    dataType: text("data_type").notNull(),
+    unit: text("unit"),
+    allowedValues: jsonb("allowed_values").$type<string[]>().notNull().default([]),
+    definition: text("definition").notNull(),
+    supportStatus: text("support_status").notNull(),
+    transformationBoundary: text("transformation_boundary").notNull(),
+    requiredByModel: boolean("required_by_model").notNull().default(false),
+  },
+  (table) => [
+    uniqueIndex("model_inputs_org_version_key_unique").on(table.organizationId, table.modelVersionId, table.inputKey),
+    check("model_inputs_type_check", sql`${table.dataType} in ('string', 'number', 'boolean', 'enum', 'date')`),
+    check("model_inputs_support_check", sql`${table.supportStatus} in ('supported', 'unsupported', 'requires_provider_confirmation')`),
+    check("model_inputs_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const modelOutputDefinitions = pgTable(
+  "model_output_definitions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    modelVersionId: text("model_version_id").notNull().references(() => externalModelVersions.id, { onDelete: "restrict" }),
+    outputKey: text("output_key").notNull(),
+    label: text("label").notNull(),
+    dataType: text("data_type").notNull(),
+    unit: text("unit"),
+    definition: text("definition").notNull(),
+    limitations: text("limitations").notNull(),
+  },
+  (table) => [
+    uniqueIndex("model_outputs_org_version_key_unique").on(table.organizationId, table.modelVersionId, table.outputKey),
+    check("model_outputs_type_check", sql`${table.dataType} in ('string', 'number', 'boolean', 'enum', 'date', 'object')`),
+    check("model_outputs_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const modelOutputRecords = pgTable(
+  "model_output_records",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    propertyId: text("property_id").notNull().references(() => properties.id, { onDelete: "restrict" }),
+    modelVersionId: text("model_version_id").notNull().references(() => externalModelVersions.id, { onDelete: "restrict" }),
+    outputDefinitionId: text("output_definition_id").notNull().references(() => modelOutputDefinitions.id, { onDelete: "restrict" }),
+    evidenceVersionId: text("evidence_version_id").references(() => evidenceVersions.id, { onDelete: "restrict" }),
+    recordedValue: jsonb("recorded_value").$type<Record<string, unknown>>().notNull(),
+    asOfDate: date("as_of_date", { mode: "string" }).notNull(),
+    sourceAuthority: text("source_authority").notNull(),
+    sourceReference: text("source_reference").notNull(),
+    assumptions: jsonb("assumptions").$type<string[]>().notNull().default([]),
+    limitations: text("limitations").notNull(),
+    importedBy: text("imported_by").notNull(),
+    humanConfirmed: boolean("human_confirmed").notNull().default(false),
+  },
+  (table) => [
+    index("model_output_records_org_property_idx").on(table.organizationId, table.propertyId, table.asOfDate),
+    check("model_output_records_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const modelInputMappings = pgTable(
+  "model_input_mappings",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    propertyId: text("property_id").notNull().references(() => properties.id, { onDelete: "restrict" }),
+    projectInterventionId: text("project_intervention_id").notNull().references(() => projectInterventions.id, { onDelete: "restrict" }),
+    verificationFindingId: text("verification_finding_id").notNull().references(() => verificationFindings.id, { onDelete: "restrict" }),
+    verificationCertificateId: text("verification_certificate_id").references(() => verificationCertificates.id, { onDelete: "restrict" }),
+    modelVersionId: text("model_version_id").notNull().references(() => externalModelVersions.id, { onDelete: "restrict" }),
+    inputDefinitionId: text("input_definition_id").notNull().references(() => modelInputDefinitions.id, { onDelete: "restrict" }),
+    preInterventionValue: jsonb("pre_intervention_value").$type<Record<string, unknown>>().notNull(),
+    proposedPostInterventionValue: jsonb("proposed_post_intervention_value").$type<Record<string, unknown>>().notNull(),
+    transformationMethod: text("transformation_method").notNull(),
+    methodologyVersion: text("methodology_version").notNull(),
+    confidence: text("confidence").notNull(),
+    source: text("source").notNull(),
+    limitations: text("limitations").notNull(),
+    authorSubject: text("author_subject").notNull(),
+    proposedAt: timestamp("proposed_at", { withTimezone: true, mode: "string" }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    index("model_input_mappings_org_property_idx").on(table.organizationId, table.propertyId, table.proposedAt),
+    check("model_input_mappings_confidence_check", sql`${table.confidence} in ('low', 'medium', 'high', 'not_assessed')`),
+    check("model_input_mappings_expiry_check", sql`${table.expiresAt} is null or ${table.expiresAt} > ${table.proposedAt}`),
+    check("model_input_mappings_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const modelInputMappingEvidenceLinks = pgTable(
+  "model_input_mapping_evidence_links",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    mappingId: text("mapping_id").notNull().references(() => modelInputMappings.id, { onDelete: "restrict" }),
+    evidenceVersionId: text("evidence_version_id").notNull().references(() => evidenceVersions.id, { onDelete: "restrict" }),
+    relationship: text("relationship").notNull(),
+  },
+  (table) => [
+    uniqueIndex("model_mapping_evidence_org_pair_unique").on(table.organizationId, table.mappingId, table.evidenceVersionId),
+    check("model_mapping_evidence_relationship_check", sql`${table.relationship} in ('supports', 'contradicts', 'context_only')`),
+    check("model_mapping_evidence_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const modelInputMappingReviews = pgTable(
+  "model_input_mapping_reviews",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    mappingId: text("mapping_id").notNull().references(() => modelInputMappings.id, { onDelete: "restrict" }),
+    decision: text("decision").notNull(),
+    reviewerSubject: text("reviewer_subject").notNull(),
+    modelDocumentationChecked: boolean("model_documentation_checked").notNull().default(false),
+    verificationChecked: boolean("verification_checked").notNull().default(false),
+    note: text("note").notNull(),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("model_mapping_reviews_org_mapping_unique").on(table.organizationId, table.mappingId),
+    check("model_mapping_reviews_decision_check", sql`${table.decision} in ('approved_for_submission', 'changes_requested', 'unsupported')`),
+    check("model_mapping_reviews_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const modelInputMappingEvents = pgTable(
+  "model_input_mapping_events",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    mappingId: text("mapping_id").notNull().references(() => modelInputMappings.id, { onDelete: "restrict" }),
+    eventType: text("event_type").notNull(),
+    acceptedValue: jsonb("accepted_value").$type<Record<string, unknown>>(),
+    reason: text("reason").notNull(),
+    sourceAuthority: text("source_authority").notNull(),
+    sourceReference: text("source_reference").notNull(),
+    decidedBy: text("decided_by").notNull(),
+    humanConfirmed: boolean("human_confirmed").notNull().default(false),
+    occurredAt: timestamp("occurred_at", { withTimezone: true, mode: "string" }).notNull(),
+    supersedesEventId: text("supersedes_event_id").references((): AnyPgColumn => modelInputMappingEvents.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    check("model_mapping_events_type_check", sql`${table.eventType} in ('submitted', 'accepted_by_model_market', 'accepted_with_modification', 'rejected', 'unsupported', 'expired')`),
+    check("model_mapping_events_value_check", sql`(${table.eventType} in ('accepted_by_model_market', 'accepted_with_modification') and ${table.acceptedValue} is not null) or (${table.eventType} not in ('accepted_by_model_market', 'accepted_with_modification') and ${table.acceptedValue} is null)`),
+    check("model_mapping_events_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const recognitionOrganizations = pgTable(
+  "recognition_organizations",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    canonicalKey: text("canonical_key").notNull(),
+    legalName: text("legal_name").notNull(),
+    organizationType: text("organization_type").notNull(),
+    status: text("status").notNull().default("active"),
+    limitations: text("limitations").notNull(),
+  },
+  (table) => [
+    uniqueIndex("recognition_organizations_org_key_unique").on(table.organizationId, table.canonicalKey),
+    check("recognition_organizations_type_check", sql`${table.organizationType} in ('insurer', 'mga', 'reinsurer', 'lender', 'public_programme', 'philanthropic_funder', 'property_operator')`),
+    check("recognition_organizations_status_check", sql`${table.status} in ('active', 'suspended', 'inactive')`),
+    check("recognition_organizations_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const marketCommitments = pgTable(
+  "market_commitments",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    committingOrganizationId: text("committing_organization_id").notNull().references(() => recognitionOrganizations.id, { onDelete: "restrict" }),
+    canonicalKey: text("canonical_key").notNull(),
+    name: text("name").notNull(),
+    commitmentType: text("commitment_type").notNull(),
+  },
+  (table) => [
+    uniqueIndex("market_commitments_org_key_unique").on(table.organizationId, table.canonicalKey),
+    check("market_commitments_type_check", sql`${table.commitmentType} in ('evidence_review_commitment', 'response_service_level', 'approved_rating_treatment', 'underwriting_reconsideration', 'quote_review', 'capacity_allocation', 'grant_payment', 'milestone_payment', 'financing_product', 'reinsurance_portfolio_review', 'data_sharing_commitment')`),
+    check("market_commitments_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const marketCommitmentVersions = pgTable(
+  "market_commitment_versions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    commitmentId: text("commitment_id").notNull().references(() => marketCommitments.id, { onDelete: "restrict" }),
+    versionNumber: integer("version_number").notNull(),
+    profileVersionId: text("profile_version_id").notNull().references(() => targetProfileVersions.id, { onDelete: "restrict" }),
+    modelVersionId: text("model_version_id").references(() => externalModelVersions.id, { onDelete: "restrict" }),
+    geography: jsonb("geography").$type<string[]>().notNull().default([]),
+    propertyClasses: jsonb("property_classes").$type<string[]>().notNull().default([]),
+    evidenceRequired: jsonb("evidence_required").$type<string[]>().notNull().default([]),
+    exclusions: jsonb("exclusions").$type<string[]>().notNull().default([]),
+    responseOrFinancialAction: text("response_or_financial_action").notNull(),
+    authorityScope: text("authority_scope").notNull(),
+    effectiveFrom: date("effective_from", { mode: "string" }).notNull(),
+    effectiveTo: date("effective_to", { mode: "string" }),
+    sourceVersionId: text("source_version_id").notNull().references(() => governedSourceVersions.id, { onDelete: "restrict" }),
+    status: text("status").notNull().default("draft"),
+    limitations: text("limitations").notNull(),
+    authorSubject: text("author_subject").notNull(),
+    supersedesVersionId: text("supersedes_version_id").references((): AnyPgColumn => marketCommitmentVersions.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    uniqueIndex("market_commitment_versions_org_commitment_number_unique").on(table.organizationId, table.commitmentId, table.versionNumber),
+    check("market_commitment_versions_number_check", sql`${table.versionNumber} >= 1`),
+    check("market_commitment_versions_authority_check", sql`${table.authorityScope} in ('review_only', 'rating_treatment', 'underwriting_action', 'financial_action', 'data_sharing')`),
+    check("market_commitment_versions_status_check", sql`${table.status} in ('draft', 'published', 'superseded', 'withdrawn')`),
+    check("market_commitment_versions_effective_check", sql`${table.effectiveTo} is null or ${table.effectiveTo} >= ${table.effectiveFrom}`),
+    check("market_commitment_versions_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const marketCommitmentReviews = pgTable(
+  "market_commitment_reviews",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    commitmentVersionId: text("commitment_version_id").notNull().references(() => marketCommitmentVersions.id, { onDelete: "restrict" }),
+    decision: text("decision").notNull(),
+    reviewerSubject: text("reviewer_subject").notNull(),
+    sourceAndScopeChecked: boolean("source_and_scope_checked").notNull().default(false),
+    note: text("note").notNull(),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("market_commitment_reviews_org_version_unique").on(table.organizationId, table.commitmentVersionId),
+    check("market_commitment_reviews_decision_check", sql`${table.decision} in ('approved', 'changes_requested', 'rejected')`),
+    check("market_commitment_reviews_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const marketCommitmentPublications = pgTable(
+  "market_commitment_publications",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    commitmentVersionId: text("commitment_version_id").notNull().references(() => marketCommitmentVersions.id, { onDelete: "restrict" }),
+    decision: text("decision").notNull(),
+    publisherSubject: text("publisher_subject").notNull(),
+    humanConfirmed: boolean("human_confirmed").notNull().default(false),
+    note: text("note").notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("market_commitment_publications_org_version_unique").on(table.organizationId, table.commitmentVersionId),
+    check("market_commitment_publications_decision_check", sql`${table.decision} in ('published', 'rejected')`),
+    check("market_commitment_publications_lifecycle_check", lifecycleValues),
   ],
 );
 

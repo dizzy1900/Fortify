@@ -2,7 +2,7 @@
 
 ## North-star alignment
 
-The target system is a California-first Resilience Investment and Insurance Recognition OS. The existing normalized renewal data plane plus the locally validated governed-source, resilience-planning, funding, and project-execution layers are reusable foundations, not the completed domain. Future bounded contexts must add independent verification, external-model mappings, explicit market commitments, recognition submissions, separate response taxonomies, longitudinal maintenance, programme administration, and recognition-graph events without collapsing their authority.
+The target system is a California-first Resilience Investment and Insurance Recognition OS. The existing normalized renewal data plane plus the locally validated governed-source, resilience-planning, funding/project-execution, independent-verification, and external-model/commitment layers are reusable foundations, not the completed domain. Future bounded contexts must add recognition submissions, separate response taxonomies, longitudinal outcomes, programme administration, and recognition-graph events without collapsing their authority.
 
 The deterministic Colorado workflow remains an isolated sandbox and second-jurisdiction regression. Production jurisdiction, hazard, source, profile, model, market, programme, property class, and effective-period logic must remain first-class. PostGIS is introduced only when parcel, building, landscape, route, or shared-infrastructure spatial relationships materially require it; no map or coordinate is treated as fabricated risk intelligence.
 
@@ -41,6 +41,8 @@ Document intake follows the same clean-object boundary. `DocumentPipelineService
 
 `BrokerageCaseService` composes only normalized production records. It loads tenant-scoped imported client/community/property/policy/case context, one human-confirmed case-linked notice, governed evidence-request versions, exact evidence-version bytes, contradictions, and immutable submissions. Draft evidence requests require an authenticated member and explicit confirmation; issue is a controlled one-way transition with expiry and an explicit off-platform-delivery or scoped-principal boundary. Packet generation independently reads every evidence byte, verifies its recorded hash and size, produces deterministic PDF/ZIP/manifest/letter bytes, writes each object under the tenant prefix, independently reads it back, and commits storage, scan, submission, artifact, audit, and idempotency records in one transaction. Request versions and submission artifacts cannot be updated or deleted. Four authenticated APIs and the responsive `/brokerage` workspace expose the workflow without importing or falling back to `DemoState`.
 
+`ModelRecognitionService` registers rights-bounded external providers, model versions, input/output definitions, and human-confirmed externally supplied outputs. A model version becomes active only after separate author, reviewer, and publisher actions against an exact published, current governed source. Input mappings bind one property, intervention, conforming approved finding, exact finding-linked evidence versions, active model/input definition, immutable pre/proposed values, recipe, confidence, limitations, and expiry. Append-only human-confirmed events keep submission and external acceptance separate; modified accepted values never overwrite proposals. The same bounded context registers explicit market commitments with committing organization, profile/model applicability, geography/property class/evidence/exclusions, authority scope, effective period, source, review, and publication. Review-only types cannot imply insurance, rating, underwriting, or financial authority. See [MODEL_MAPPING_SPEC.md](./MODEL_MAPPING_SPEC.md) and [MARKET_COMMITMENT_SPEC.md](./MARKET_COMMITMENT_SPEC.md).
+
 ## Transaction doctrine
 
 Consequential mutations use one PostgreSQL transaction for:
@@ -77,6 +79,7 @@ M3 adds authenticated principals, memberships, deny-by-default authorization pol
 - Governed-source service: `lib/production/governed-source-service.ts`
 - Resilience-planning service: `lib/production/resilience-planning-service.ts`
 - Funding/project service: `lib/production/funding-project-service.ts`
+- Model/commitment service: `lib/production/model-recognition-service.ts`
 - Explicit seed migration: `lib/production/seed-migration.ts`
 - Explicit California graph fixture: `lib/fixtures/california-property-graph.ts`
 - Sandbox schema: `db/schema.ts`
@@ -90,4 +93,4 @@ The contract suite uses PGlite as an embedded PostgreSQL-compatible engine becau
 
 ## Next architecture boundary
 
-The published M7 renewal/playbook tree and locally validated replacement M1 property-graph, M2 identity/access, M3 brokerage, M4 governed-source, M5 resilience-planning, and M6 funding/project-execution slices are reusable foundations. The next product sequence starts M7 independent verification. Real sponsor/payment operation, independent verification, model mapping, market commitments, recognition delivery/outcomes, programme analytics, and operational hardening remain unimplemented, external, or incomplete. Production remains closed to customer data until managed PostgreSQL/PostGIS, OIDC/MFA, private storage/scanning, deployment, backup/restore, security, rights-cleared source/data, and external gates are validated.
+The published M7 renewal/playbook tree and locally validated replacement M1–M8 slices are reusable foundations. M9 recognition submission and outcome separation is next. Real sponsor/payment operation, authorized independent verification, external model/provider validation, counterparty commitments, recognition delivery/outcomes, programme analytics, and operational hardening remain external or incomplete. Production remains closed to customer data until managed PostgreSQL/PostGIS, OIDC/MFA, private storage/scanning, deployment, backup/restore, security, rights-cleared source/data, and external gates are validated.

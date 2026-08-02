@@ -1,8 +1,8 @@
 # Production data model
 
-The PostgreSQL schema contains 119 normalized tables in the locally validated M6 funding/project-execution tree. It is a reusable tenant, access, property, renewal/appeal, governed-source, evidence-request, immutable packet, storage, document, market-playbook, target-profile, intervention, capital-planning, funding, commitment, milestone, external-project-access, and benefit-ledger foundation for the Resilience Investment and Insurance Recognition OS—not a claim that later verification, model, recognition, or programme-administration domains are implemented.
+The PostgreSQL schema contains 153 normalized tables in the locally validated M8 external-model-mapping and market-commitment tree. It is a reusable tenant, access, property, renewal/appeal, governed-source, evidence-request, immutable packet, storage, document, market-playbook, target-profile, intervention, capital-planning, funding, project-execution, independent-verification, external-model, input-mapping, and explicit-commitment foundation for the Resilience Investment and Insurance Recognition OS—not a claim that recognition submission/outcomes, programme administration, integrations, or operational launch are implemented.
 
-California production work must still extend this model beyond the implemented typed evidence levels, target profiles, intervention specifications, baseline conditions, resilience projects, capital plans, funding programmes/commitments/milestones, scoped collaborators, and instruction exports with independent verifiers/findings/certificates; external models and input mappings; explicit market commitments; recognition submissions and separate evidence/model/rating/underwriting/placement/funding responses; longitudinal maintenance/outcomes; programme cohorts; consent/cohort data-right controls; and recognition-graph events. Each new customer-controlled resource requires tenant columns, authorization, database guards, audit coupling, and attack tests before it counts as implemented.
+California production work must still extend this model beyond the implemented typed evidence levels, planning/funding/execution, independent verification, external model/input mapping, and explicit market commitments with recognition submissions and separate evidence/model/rating/underwriting/placement/funding responses; longitudinal outcomes; programme cohorts; consent/cohort data-right controls; and recognition-graph events. Each new customer-controlled resource requires tenant columns, authorization, database guards, audit coupling, and attack tests before it counts as implemented.
 
 ## Organizations and access foundation
 
@@ -111,6 +111,26 @@ No capital-plan field stores a composite ROI or risk score. Planning state is de
 - `stakeholder_benefit_ledger_entries`: immutable stakeholder, expected benefit category, cost, contribution, evidence level, source, timeframe, uncertainty, commitment, realized response, and explicit correction lineage.
 
 See [FUNDING_AND_MILESTONES.md](./FUNDING_AND_MILESTONES.md). No table stores bank credentials, custody, settlement state, an aggregate ROI score, or a prediction of funding or insurance acceptance.
+
+## Independent verification
+
+- `verification_organizations`, `verifiers`, versioned `verifier_credentials`, and `verifier_credential_reviews`: substantive-verifier identity, credential source/version/scope/expiry, currentness, limitations, and independent review.
+- `verification_assignments` and `verification_conflict_declarations`: project/profile-scoped expiring access, digest-only capability, purpose/permissions, reinspection lineage, and signed conflict state.
+- `verification_methods`, immutable `verification_findings`, `verification_finding_evidence_links`, and `verification_finding_reviews`: exact method/version, observations, one authoritative impact/treatment evidence level, evidence pins, signature hash, limitations, and independent review.
+- `verification_exceptions` and `verification_corrective_actions`: explicit failure and append-only corrective lineage.
+- `verification_certificates`, `verification_certificate_events`, `maintenance_obligations`, `maintenance_obligation_events`, and `property_condition_events`: human-issued evidence-readiness record, revocation/expiry history, exact refresh obligations/evidence, and longitudinal observed/insufficient condition state.
+
+Fortify manages workflow and provenance; the identified verifier authors the substantive conclusion. No verification record is a Fortify risk score, compliance certificate, designation, insurance decision, or future-performance claim.
+
+## External models, mappings, and market commitments
+
+- `model_providers`, `external_models`, immutable `external_model_versions`, `external_model_version_reviews`, and `external_model_version_publications`: provider/model identity, version/geography/property/effective scope, exact source, methodology, rights, redistribution restrictions, limitations, and three-human activation.
+- `model_input_definitions` and `model_output_definitions`: exact version-owned field definitions, units/allowed values, support status, transformation boundary, and output limitations.
+- `model_output_records`: human-confirmed externally supplied property/model output with source authority/reference, as-of date, assumptions, optional exact evidence, and limitations.
+- `model_input_mappings`, `model_input_mapping_evidence_links`, `model_input_mapping_reviews`, and `model_input_mapping_events`: property/intervention/finding/model/input lineage; immutable pre/proposed values; exact finding-linked evidence; recipe/confidence/source/limits/expiry; independent review; and append-only submitted, accepted, modified, rejected, unsupported, or expired state.
+- `recognition_organizations`, `market_commitments`, immutable `market_commitment_versions`, `market_commitment_reviews`, and `market_commitment_publications`: named committing party/type; profile/model/geography/property/evidence/exclusion scope; exact action/authority/effective/source/limitation record; and three-human publication.
+
+Proposed and accepted values are never collapsed. Review-only commitments cannot carry rating, underwriting, or financial authority. See [MODEL_MAPPING_SPEC.md](./MODEL_MAPPING_SPEC.md) and [MARKET_COMMITMENT_SPEC.md](./MARKET_COMMITMENT_SPEC.md).
 
 ## Document processing and facts
 
