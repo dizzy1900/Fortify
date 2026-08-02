@@ -18,6 +18,8 @@ Artifact regression remained deterministic: the PDF is six US Letter pages and 1
 
 The California publisher fixtures contain metadata and bounded summaries only. They are not archived rights-cleared source snapshots, legal review, proof of current requirements, customer source-policy approval, or operational change monitoring. No managed deployment or external review has been validated. M4 is locally validated but neither deployment-validated nor externally validated.
 
+Publication used branch `codex/m4-california-source-register` stacked on refreshed `origin/codex/m3-live-brokerage-wedge`. Exact ancestry and ahead/behind checks passed, `git diff --check` passed, and local `git merge-tree --write-tree` produced `bdc16c3759af4f3c16a13e96641447ea3ae7ec26` without conflicts. The initial published implementation head and remote SHA both resolved to `cc817994b22e54d23011b378d869e6d9c1d6a718`. GitHub draft PR #11 readback reported base `codex/m3-live-brokerage-wedge`, head `codex/m4-california-source-register`, draft state, and “No conflicts with base branch; merging can be performed automatically.”
+
 ## Replacement north-star M3 live-brokerage local-validation addendum
 
 The complete local release surface passed against the final lockfile: ESLint, strict TypeScript, 15 Vitest files/60 tests, a 250-file secret scan, the 22-page/46-API production build, 12/12 deterministic sandbox checks, the 18-pattern claims scan, and 18/18 serial Playwright scenarios across desktop Chromium and Pixel 7. Production schema regeneration reported 78 tables and no drift; the migrated database exposed exactly 168 unique guards/triggers. `npm audit --audit-level=moderate` reported 0 vulnerabilities. Final diff and merge-tree evidence are recorded at publication.

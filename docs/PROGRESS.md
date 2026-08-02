@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M4 — The governed California source register and source-pinned playbook slice is locally validated on August 1, 2026. Publication is pending on a branch stacked directly after M3 draft PR #10. The prior M1–M7 renewal implementation remains a locally validated reusable foundation and published stacked PR series; M4 does not prove legal currentness, redistribution rights, customer acceptance, governed profiles, interventions, capital plans, funding, verification, model mapping, recognition commitments, live recognition delivery/outcomes, programme administration, deployment, or external validation.
+M4 — The governed California source register and source-pinned playbook slice is locally validated on August 1, 2026 and published as draft PR #11, stacked directly after M3 draft PR #10. The prior M1–M7 renewal implementation remains a locally validated reusable foundation and published stacked PR series; M4 does not prove legal currentness, redistribution rights, customer acceptance, governed profiles, interventions, capital plans, funding, verification, model mapping, recognition commitments, live recognition delivery/outcomes, programme administration, deployment, or external validation.
 
 ## Replacement north-star M4 locally validated
 
@@ -15,6 +15,7 @@ M4 — The governed California source register and source-pinned playbook slice 
 - Browser inspection covered the final source workspace at 1280-pixel desktop and Pixel 7 mobile. An earlier mobile run exposed intrinsic-width overflow and pointer interception; constrained grid/card widths and stacked mobile summaries were implemented, rebuilt, rerun, and re-inspected with no observed clipping or overflow.
 - Regression artifact inspection confirmed the six-page Letter PDF remains 11,602 bytes and the 17-entry ZIP remains 51,723 bytes with manifest hash `47c5de9b8c2da8dfc040951b57697a2081fec8f1b3817e5148480aefaf9aef9a`. ZIP CRC/content checks passed, and all PDF pages were rendered and visually inspected without observed overlap, clipping, broken glyphs, or missing page structure.
 - The source fixtures are metadata-only development evidence. Rights-cleared snapshots, legal review/currentness, customer-approved source policy, monitored retrieval/change detection, profiles/reports impact consumers, managed deployment, and external validation remain explicit gates.
+- Publication used `codex/m4-california-source-register` stacked on refreshed `origin/codex/m3-live-brokerage-wedge`. The exact local merge tree `bdc16c3759af4f3c16a13e96641447ea3ae7ec26` completed without conflicts; remote readback matched initial implementation commit `cc817994b22e54d23011b378d869e6d9c1d6a718`; and GitHub draft PR #11 reported the intended base/head plus “No conflicts with base branch; merging can be performed automatically.”
 
 ## Replacement north-star M3 locally validated
 
