@@ -1,298 +1,500 @@
 # FORTIFY COMMERCIAL NORTH STAR
+## Resilience Investment and Insurance Recognition OS
 
-Treat this brief as authoritative where it conflicts with the existing demo-oriented roadmap. Persist it in `docs/COMMERCIAL_NORTH_STAR.md` and continue executing the active Goal. Do not respond with only a plan.
+Use this as the authoritative product and implementation brief.
 
-## 1. Product definition
+---
 
-Fortify is the catastrophe-property evidence and renewal control plane for specialist brokers.
+## 1. Product thesis
 
-It converts:
+Fortify is the transaction, evidence and decision infrastructure connecting physical resilience investment to insurance, financing and programme recognition.
 
-- property and building records
-- carrier notices
-- statements of values
-- loss runs
-- inspection reports
-- mitigation documentation
-- contractor records
-- photographs
-- certificates
-- prior submissions
-- underwriter correspondence
+The platform turns fragmented property information into a governed chain:
 
-into:
+1. What physical property or community is being considered?
+2. Which hazard or insurer-stated risk drivers apply?
+3. Which intervention profile is relevant?
+4. What work is proposed?
+5. Who funds it?
+6. What milestone releases funding or approval?
+7. What evidence proves the work occurred?
+8. Who independently verified it?
+9. Which external model or market input may the change affect?
+10. Which insurer, MGA, lender or programme committed to recognise it?
+11. What submission was made?
+12. What actual decision followed?
+13. What maintenance is required?
+14. What performance or claims evidence emerges later?
 
-- a persistent property evidence graph
-- a versioned market requirement crosswalk
-- an actionable renewal workflow
-- a market-specific submission
-- an auditable clarification record
-- a normalized placement outcome
-- a maintenance and renewal-ready record for the next cycle
+The initial customer-facing wedge remains a specialist broker’s catastrophe-property renewal and appeal workflow. The broader infrastructure must emerge through real use of that workflow rather than replacing it with a broad policy or marketplace concept.
 
-The initial wedge is Colorado wildfire-exposed community-association, condominium and multifamily master-policy workflow.
+### Initial one-sentence proposition
 
-The expansion path is other Western wildfire markets and then other catastrophe perils. Do not implement speculative multi-peril functionality before the initial workflow is production-ready, but design the schema so `peril`, `jurisdiction`, `market`, `program`, `property_class` and `requirement_version` are first-class concepts rather than hard-coded wildfire fields.
+> Fortify helps brokers and property operators turn verified wildfire-resilience investments into complete, market-specific insurance submissions—and preserves what each insurer recognised for the next renewal.
 
-## 2. Initial customer
+### Long-term proposition
 
-Primary customer:
-- specialist retail or wholesale insurance brokerage
-- community-association, condominium, multifamily or habitational book
+> Fortify is the system of record for how physical resilience investments become recognised financial and insurance outcomes.
+
+---
+
+## 2. Initial market and customer
+
+### Initial geography
+
+California is the initial production jurisdiction.
+
+Preserve the existing Colorado synthetic workflow as:
+
+- an isolated sandbox
+- a regression fixture
+- a second-jurisdiction architecture test
+
+Do not let Colorado-specific assumptions remain embedded in production logic.
+
+### Initial property segment
+
+Prioritise:
+
+- homeowners associations
+- condominiums
+- townhome communities
+- low-rise multifamily
+- community-association master policies
+- related habitational portfolios where the same property/evidence model applies
+
+This segment is attractive because evidence and interventions can exist at:
+
+- community level
+- parcel level
+- building level
+- unit-summary level
+- shared-landscape level
+
+### Initial economic buyer
+
+A specialist insurance brokerage or property-risk practice with:
+
 - at least 50–100 relevant renewals annually
-- multiple admitted, surplus-lines, MGA and FAIR Plan markets
-- fragmented evidence across AMS, email, files, property managers and contractors
+- California wildfire exposure
+- admitted, surplus-lines, MGA or FAIR Plan workflows
+- fragmented evidence across its AMS, email, shared drives, boards, property managers and contractors
+- recurring underwriter clarification loops
+- a willingness to contribute redacted historical or live cases
 
-Economic buyers:
+### Primary users
+
 - practice leader
 - head of placement
-- COO
-- brokerage principal
-
-Daily users:
 - account executive
 - marketer
 - renewal specialist
 - technical assistant
 
-External users:
+### External collaborators
+
 - property manager
-- HOA/condominium board representative
-- contractor or mitigation professional
+- HOA or condominium board representative
+- contractor
+- mitigation professional
 - inspector
-- underwriter or MGA reviewer
-- customer auditor
+- independent verifier
+- programme administrator
+- insurer or MGA reviewer
+- lender or funder reviewer
+- read-only auditor
+
+---
 
 ## 3. Product boundaries
 
+Fortify is not:
+
+- a wildfire catastrophe model
+- a proprietary risk score
+- an insurer or MGA
+- an insurance rating engine
+- an inspection authority
+- an official designation body
+- a contractor marketplace
+- a construction-management suite
+- a grant fund
+- a lender
+- a generic insurance-quoting platform
+- a substitute for legal, actuarial, engineering or underwriting judgement
+
 Never:
-- create or imply a Fortify wildfire-risk score
-- provide legal or actuarial advice
-- promise renewal, quote, bind, discount or premium change
-- claim affiliation with IBHS, a carrier, regulator or inspection programme
-- treat an LLM result as authoritative
-- send a submission without an explicit human confirmation gate
-- build a contractor marketplace in this phase
-- replace the broker’s AMS
-- build generic multi-carrier quoting as the core product
-- expose customer data across tenants
+
+- claim that an intervention guarantees insurance
+- claim that evidence guarantees a discount
+- imply that a complete case is safe or insurable
+- treat an external model result as ground truth without provenance
+- conflate modelled loss reduction with filed rate treatment
+- conflate filed rate treatment with underwriting eligibility
+- conflate underwriting recognition with observed loss reduction
+- let an LLM certify work, release funding, change a model input or make an insurance decision
+- automatically send a market submission without human confirmation
 - train or benchmark across tenants without explicit contractual rights
+- fabricate a carrier, programme, model or funding integration
 
 Fortify may:
-- ingest external scores and risk factors with source/version provenance
-- map evidence to configured requirements
-- describe evidence completeness and workflow readiness
-- prepare human-reviewed drafts
-- record actual responses and outcomes
-- produce de-identified aggregate analytics only when legally and contractually permitted
 
-## 4. Preserve the current strengths
+- ingest external risk scores and model results
+- store model name, version and assumptions
+- map verified evidence to candidate model inputs
+- track whether an insurer accepted that mapping
+- configure market-specific evidence requirements
+- calculate deterministic evidence readiness
+- administer funding and verification workflows
+- prepare human-reviewed submissions
+- record actual financial and insurance responses
+- aggregate de-identified derived outcomes only under approved data-rights controls
 
-Retain and regression-test:
-- deterministic seeded sandbox
-- current notice-to-packet guided story
-- real PDF and ZIP generation
-- evidence hashes and provenance
-- human confirmation gates
-- immutable audit doctrine
-- clear synthetic/production labels
-- no-overclaiming language
-- institutional light-theme visual character
-- local offline fixtures for tests
-- current route and browser coverage unless deliberately replaced by superior production routes
+---
 
-Move the demo into an isolated `sandbox` organization and explicit development/demo mode. Production users must never share its global state or see synthetic data unless they opt into the sandbox.
+## 4. Preserve and isolate the existing product
 
-## 5. Correct the current architecture
+Preserve as regression assets:
 
-### 5.1 Eliminate global DemoState persistence
+- the current guided renewal workflow
+- evidence provenance and hashing
+- notice confirmation
+- requirement crosswalk
+- task assignment
+- contradiction resolution
+- PDF and ZIP generation
+- editable submission letter
+- underwriter clarification loop
+- outcome capture
+- maintenance and year-over-year reuse
+- deterministic seed/reset
+- current automated tests
+- current institutional visual design
+- current no-overclaim language
 
-Replace the `app_state.state_json` application model.
+Move all demo-specific behaviour into an explicit sandbox:
 
-Use normalized PostgreSQL tables as the source of truth. The existing Drizzle schema is a starting point, not an immutable contract.
+- sandbox organization
+- sandbox users
+- sandbox data
+- sandbox routes or mode
+- synthetic-data banner
+- deterministic reset
+- no interaction with production customer data
+- no global current role
+- no global current case
+- no shared application-state JSON record
 
-Every customer-owned entity must carry:
-- `organization_id`
-- stable ID
-- created/updated timestamps
-- created/updated actor
-- version or revision where appropriate
-- deletion/retention status where appropriate
+Production users must never see synthetic content unless they intentionally enter the sandbox.
 
-Use transactional service and repository boundaries.
+---
 
-Implement:
-- optimistic concurrency or explicit edit locks where simultaneous edits matter
-- idempotency keys for import, delivery and webhook operations
-- database constraints
-- migration scripts
-- seed-to-normalized migration
-- test factories
-- fixtures
-- audit events generated inside the same transaction as consequential changes
+## 5. Production architecture
 
-Do not retain a production fallback that silently writes the full application to one JSON blob.
-
-### 5.2 Keep the architecture lean
+### 5.1 Preserve the lean stack
 
 Prefer:
-- one Next.js application
+
+- Next.js App Router
+- strict TypeScript
 - PostgreSQL
-- S3-compatible object storage
-- one durable PostgreSQL-backed job worker unless a measured need justifies another queue
+- Drizzle ORM unless a measured technical issue justifies changing it
+- PostGIS where geometry is material
+- private S3-compatible object storage
+- OIDC-compatible identity
+- one durable PostgreSQL-backed worker/job system
+- MapLibre for geospatial views
 - provider interfaces for external services
+- Docker-compatible deployment
+- serverless or scale-to-zero compute where practical
 
-Avoid unnecessary microservices, Redis, Kubernetes or persistent GPU infrastructure.
+Avoid:
 
-Use serverless or scale-to-zero deployment where practical, but do not compromise durable jobs, database migrations or file-processing reliability.
+- unnecessary microservices
+- Kubernetes
+- persistent idle workers where a scale-to-zero job runner works
+- permanent GPU infrastructure
+- Redis unless a measured requirement exists
+- duplicated business logic across client and server
+- vendor-specific coupling in domain logic
 
-## 6. Identity, tenancy and authorization
+### 5.2 Replace the DemoState model
 
-Implement production authentication using an OIDC-compatible provider and a local development provider.
+Remove production reliance on:
+
+- one serialized application-state object
+- one global role
+- one global case
+- in-memory current-user assumptions
+- mutation of nested JSON as the primary transaction model
+
+Use normalized tables and tenant-scoped repositories.
+
+Every customer-controlled record must include where relevant:
+
+- `organization_id`
+- stable identifier
+- version or revision
+- created timestamp
+- created actor
+- updated timestamp
+- updated actor
+- source
+- effective period
+- retention state
+- deletion state
+- confidentiality state
+
+Implement:
+
+- database constraints
+- foreign keys
+- transactional writes
+- optimistic concurrency or explicit locking
+- idempotency
+- migrations
+- normalized seed migration
+- test factories
+- tenant-scoped query helpers
+- row-level security as defence in depth where practical
+- append-only audit events written within the same transaction as consequential changes
+
+---
+
+## 6. Identity, tenancy and permissions
 
 Model:
-- identity
-- organization
-- organization membership
-- team
-- role
-- granular case assignment
-- external collaborator
-- external reviewer
-- service account
-- API credential
+
+- Identity
+- Organization
+- OrganizationMembership
+- Team
+- Client
+- PropertyPortfolio
+- ExternalCollaborator
+- ExternalReviewer
+- ServiceAccount
+- APICredential
+- SupportAccessSession
 
 Minimum roles:
+
 - organization owner
 - brokerage administrator
 - practice leader
 - broker/account executive
 - marketer
-- assistant
-- client/property manager
+- technical assistant
+- property-operator administrator
+- property manager
 - board contributor
-- evidence contributor
-- underwriter reviewer
+- contractor/evidence contributor
+- independent verifier
+- programme administrator
+- insurer/MGA reviewer
+- lender/funder reviewer
 - read-only auditor
-- Fortify support administrator with explicit support-access controls
+- Fortify support administrator with controlled access
 
 Requirements:
-- server-side authorization on every query and mutation
-- tenant-scoped repository methods
-- deny-by-default permissions
-- invitation flow
-- membership revocation
-- MFA-ready identity
+
+- server-side authorization on every mutation and sensitive query
+- deny by default
+- tenant isolation
+- case and portfolio assignment
+- invitations
+- revocation
 - session expiration
-- externally shared review links with expiry, purpose, case scope and revocation
-- no role switching in production
-- audit of permissions and support access
+- MFA-ready provider
+- scoped external links
+- review-link expiration and revocation
+- support-access justification and audit
+- no production role switching
+- no exposure of unrelated property, evidence, financial or insurer data
 
-Create automated cross-tenant attack tests for every resource class.
+Create automated cross-tenant attack tests for every major resource.
 
-## 7. Production domain model
+---
 
-Expand and normalize the current ontology.
+## 7. Core domain model
 
-At minimum include:
+Expand the existing schema around the following bounded contexts.
 
-### Organizations and books
+### 7.1 Organizations and portfolios
+
 - Organization
 - Membership
 - Team
 - Client
-- Book
+- PropertyPortfolio
 - IntegrationConnection
+- DataImport
+- ImportMapping
+- ImportReceipt
 
-### Property graph
+### 7.2 Property graph
+
 - Community
 - Property
 - Parcel
 - Building
 - UnitSummary
+- Address
 - Location
 - PropertyIdentifier
+- PropertyAlias
 - PropertyRelationship
 - PropertyVersion
 
-### Insurance
+The graph must represent whether an item applies to:
+
+- entire community
+- parcel
+- building
+- selected building group
+- unit summary
+- landscape zone
+- access route
+- shared infrastructure
+
+### 7.3 Insurance
+
 - Insured
 - Policy
 - Coverage
-- Market
-- Carrier
-- MGA
-- Program
-- WholesaleRelationship
 - Renewal
 - RenewalCase
 - AppealCase
+- Carrier
+- MGA
+- Programme
+- Market
 - SubmissionDestination
+- UnderwritingNotice
+- InsuranceDecision
 
-### Source and requirements
-- SourceDocument
-- SourcePassage
-- RequirementSet
-- Requirement
-- RequirementVersion
-- RequirementCondition
-- MarketPlaybook
-- PlaybookVersion
-- ApplicabilityRule
+### 7.4 Hazard and model context
 
-### Evidence
+- Hazard
+- Peril
+- RiskSource
+- RiskAssessment
+- RiskDriver
+- ExternalModel
+- ExternalModelVersion
+- ModelInputDefinition
+- ModelInputMapping
+- ModelOutput
+- ModelAcceptanceEvent
+
+Fortify never generates the authoritative risk score. Store external results with complete provenance.
+
+### 7.5 Target resilience profiles
+
+- TargetResiliencePerformanceProfile
+- ProfileVersion
+- ProfileApplicability
+- ProfileRequirement
+- MinimumCharacteristic
+- PreferredCharacteristic
+- PerformanceMetric
+- EvidenceRequirement
+- MaintenanceRequirement
+- RecognitionCommitment
+
+### 7.6 Interventions and projects
+
+- InterventionSpecification
+- InterventionVersion
+- InterventionMechanism
+- InterventionApplicability
+- ResilienceProject
+- ProjectIntervention
+- BaselineCondition
+- WorkScope
+- Contractor
+- ProjectMilestone
+- ProjectCost
+- ProjectDependency
+- ProjectStatus
+- CapitalPlan
+
+### 7.7 Funding and commitments
+
+- FundingProgramme
+- FundingProgrammeVersion
+- FundingEligibilityRule
+- FundingApplication
+- FundingCommitment
+- OwnerContribution
+- GrantContribution
+- FinancingContribution
+- InsurerContribution
+- ReinsurerContribution
+- MilestonePayment
+- PaymentApproval
+- DisbursementExport
+
+Do not initially move funds. Fortify records, approves and exports payment instructions or integration events.
+
+### 7.8 Evidence and verification
+
 - EvidenceItem
 - EvidenceVersion
 - EvidenceScope
 - EvidenceProvenance
 - EvidenceReview
 - EvidenceRequirementLink
-- EvidenceMarketDisposition
 - Contradiction
-- ExpirationPolicy
+- Supersession
+- VerificationOrganisation
+- Verifier
+- VerifierCredential
+- VerificationAssignment
+- VerificationMethod
+- VerificationFinding
+- VerificationCertificate
+- VerificationException
+- VerificationExpiry
 
-### Workflow
-- Task
-- Checklist
-- CaseAssignment
-- Comment
-- Mention
-- Notification
-- CommunicationThread
-- Deadline
-- ServiceLevelEvent
+### 7.9 Market recognition
 
-### Submission
-- Submission
+- MarketPlaybook
+- MarketPlaybookVersion
+- MarketRequirement
+- MarketCommitment
+- RecognitionCase
+- RecognitionSubmission
 - SubmissionVersion
 - SubmissionItem
-- SubmissionTemplate
-- GeneratedArtifact
 - Delivery
 - DeliveryReceipt
-- SecureReviewSession
+- ReviewerSession
 - ReviewerRequest
-
-### Outcome
 - MarketResponse
-- Clarification
-- Declination
+- EvidenceAcceptanceEvent
+- ModelInputAcceptance
+- RatingTreatment
+- UnderwritingTreatment
 - Quote
+- Declination
 - Bind
 - RenewalOutcome
-- ReasonTaxonomy
-- EvidenceAcceptanceEvent
+
+### 7.10 Maintenance and longitudinal outcomes
+
+- MaintenanceObligation
+- MaintenanceEvent
+- Recertification
+- EvidenceRefresh
+- PropertyConditionEvent
+- HazardEvent
+- ClaimReference
+- ObservedPerformance
 - OutcomeCorrection
 
-### Maintenance
-- MitigationAction
-- MaintenanceEvent
-- Inspection
-- Designation
-- Recertification
-- Reminder
+### 7.11 Governance
 
-### Governance
 - Consent
 - DataRight
 - RetentionPolicy
@@ -300,652 +502,1568 @@ At minimum include:
 - AuditEvent
 - ExportReceipt
 - DeletionRequest
+- DataAccessLog
 
-## 8. Portfolio and property onboarding
+---
 
-Implement:
+## 8. Evidence hierarchy
 
-### 8.1 Spreadsheet and SOV import
-Support:
-- CSV
-- XLSX
-- standard statements of values
-- configurable column mapping
-- saved mappings
-- stable external identifiers
-- address normalization
-- duplicate detection
-- building/location reconciliation
-- unit and currency validation
-- dry-run preview
-- rejected-row quarantine
-- idempotent reruns
-- import receipts
-- rollback
+Fortify must distinguish between fundamentally different forms of evidence.
 
-### 8.2 AMS boundary
-Implement:
-- generic AMS CSV adapter
-- adapter SDK
-- one production-quality Applied Epic-compatible import/export boundary using available customer exports
-- one AMS360-compatible boundary
-- documented API placeholders where proprietary credentials are unavailable
-- contract tests and fixtures
-- no screen scraping
+Create a typed `EvidenceLevel` or equivalent classification:
 
-The AMS remains authoritative for policy and client records unless explicitly configured otherwise.
+1. `physical_specification`
+   - Work meets a stated technical or engineering specification.
 
-### 8.3 Property identity
-Support:
-- broker identifiers
-- property-manager identifiers
-- APN or parcel identifiers where available
-- geocoded addresses
-- building labels
-- external inspection identifiers
-- source-specific aliases
+2. `verified_installation`
+   - An accountable verifier confirms installation or condition.
 
-Avoid merging records solely because their names are similar. Require review for ambiguous identity resolution.
+3. `modelled_vulnerability_reduction`
+   - An external model estimates reduced vulnerability or ignition probability.
 
-## 9. Secure document and evidence platform
+4. `modelled_expected_loss_reduction`
+   - An external catastrophe or actuarial model estimates lower expected loss.
 
-### 9.1 Object storage
-Implement:
-- private buckets
-- tenant prefixes
-- signed uploads/downloads
-- server-side encryption
-- checksums
-- MIME validation
-- size limits
-- filename normalization
-- malware scanning
-- quarantine
-- image metadata handling
-- retention
-- legal hold
-- deletion
-- backup
-- access audit
+5. `filed_rating_treatment`
+   - A carrier’s approved rating plan contains an applicable treatment.
 
-Never store live uploads under the application source tree.
+6. `underwriting_treatment`
+   - A carrier changes classification, eligibility, terms, capacity or review status.
 
-### 9.2 Intake channels
-Support:
-- direct upload
-- drag and drop
-- mobile photo upload
-- unique case upload link
-- property-manager request link
-- forwarded email
-- Microsoft Graph mailbox integration as the first full email connector
-- provider boundary for Gmail
-- cloud-drive import boundary
+7. `financing_or_programme_treatment`
+   - A lender, grant programme or funder changes a decision.
 
-### 9.3 Document processing
-Create an asynchronous pipeline:
+8. `observed_event_performance`
+   - Actual physical performance is observed during a hazard event.
 
-1. accept and hash original bytes
-2. validate and scan
-3. classify document
-4. extract text/OCR
-5. identify candidate fields, tables and evidence
-6. retain page/region provenance
-7. calculate confidence
-8. route uncertain fields to human review
-9. create confirmed structured records
-10. retain original and superseding versions
+9. `claims_evidence`
+   - Claims or loss outcomes are available for a suitable cohort.
 
-Use provider interfaces for OCR and document intelligence. Provide deterministic fixtures in tests.
+The UI, APIs and reports must never collapse these levels into one “proven resilience” claim.
 
-No model output becomes a confirmed fact without a recorded reviewer or a deliberately configured high-confidence automation policy approved by the tenant.
+Every benefit or impact claim must include:
 
-## 10. Notice and correspondence intelligence
-
-Replace the hard-coded notice parser with a versioned extraction framework.
-
-Support:
-- carrier notices
-- renewal questionnaires
-- nonrenewal notices
-- risk-score notices
-- mitigation-discount notices
-- underwriter emails
-- evidence requests
-- clarification messages
-- declination correspondence
-
-Extract:
-- sender
-- market
-- policy
-- dates and deadlines
-- score or classification when present
-- stated risk drivers
-- requested mitigation
-- required evidence
-- appeal rights
-- communication history
-- reason codes
-
-Every field needs:
-- value
-- source document
-- page or email segment
-- confidence
-- extractor/version
+- evidence level
+- source
+- version
+- methodology
+- date
+- applicable property/intervention
+- uncertainty
 - reviewer
-- confirmation state
-- correction history
+- whether independently verified
 
-## 11. Versioned market playbooks
+---
 
-Create an administrator-facing playbook builder.
+## 9. California policy and programme register
+
+Create a production policy-source system, not hard-coded legal copy.
+
+Initial source classes should accommodate:
+
+- California insurance regulations
+- California statutes
+- California Department of Insurance guidance
+- CAL FIRE standards or programme materials
+- FAIR Plan rules and forms
+- insurer rate-plan or mitigation documentation
+- insurer underwriting evidence requests
+- recognised third-party resilience standards
+- grant or funding programme rules
+- county or local fire-authority requirements
+
+Use only primary or officially authorised sources when building default reference content.
+
+For every source store:
+
+- issuing authority
+- title
+- source URL
+- source bytes or approved snapshot where permitted
+- version
+- effective date
+- retrieval date
+- status
+- superseding source
+- copyright or use restriction
+- short structured summary
+- review owner
+- verify-current status
+
+Do not reproduce proprietary standards wholesale.
+
+Create:
+
+- `docs/CALIFORNIA_POLICY_REGISTER.md`
+- admin workflow to publish source versions
+- notification when a relied-on source changes
+- impact analysis identifying affected profiles, playbooks, cases and reports
+
+No legal or insurer rule becomes operative solely because it was extracted by a model.
+
+---
+
+## 10. Target Resilience Performance Profiles
+
+Implement a versioned registry that defines the desired performance and evidence requirements without prescribing one vendor.
+
+A profile includes:
+
+- hazard
+- geography
+- property class
+- target population
+- baseline eligibility
+- minimum characteristics
+- preferred characteristics
+- performance conditions
+- permitted intervention classes
+- safety requirements
+- evidence requirements
+- verifier requirements
+- cost or affordability constraints
+- deployment-time constraints
+- maintenance requirements
+- model-interoperability requirements
+- insurer-recognition commitments
+- funding commitments
+- equity or grant compatibility
+- expiry
+- version
+
+Support profiles for:
+
+- individual buildings
+- multi-building communities
+- shared landscape
+- community-wide programmes
+
+Create profile states:
+
+- draft
+- technical review
+- insurer review
+- programme review
+- published
+- superseded
+- withdrawn
+
+A published profile must identify:
+
+- who authored it
+- who reviewed it
+- who recognises it
+- the exact nature of each recognition commitment
+- what it does not guarantee
+
+---
+
+## 11. Intervention specification registry
+
+Create reusable intervention specifications for established and future resilience measures.
+
+Each intervention includes:
+
+- stable concept ID
+- version
+- name
+- hazard mechanism
+- applicable property types
+- applicable building components
+- technical requirements
+- approved evidence types
+- verifier qualifications
+- estimated useful life
+- maintenance schedule
+- project dependencies
+- health and safety constraints
+- source standards
+- cost fields
+- model-input candidates
+- evidence level
+- uncertainty
+- insurer and programme recognition history
+
+Do not encode generic claims such as “reduces losses by 80%.”
+
+Store any effectiveness claim as a versioned source-backed range with its evidence level.
+
+---
+
+## 12. Resilience capital planning
+
+Build a property- and community-level capital-planning workflow.
+
+The user should be able to:
+
+1. Import or create the property portfolio.
+2. Record the baseline physical condition.
+3. Add external risk drivers.
+4. Select an applicable target profile.
+5. Identify gaps.
+6. Create candidate interventions.
+7. estimate costs and timelines.
+8. identify dependencies.
+9. identify available funding programmes.
+10. compare funding stacks.
+11. assign projects.
+12. track milestones.
+13. collect evidence.
+14. commission verification.
+15. submit the completed package for recognition.
+
+The capital plan must display separately:
+
+- physical rationale
+- technical standard
+- cost
+- funding eligibility
+- expected maintenance
+- modelled benefit, when available
+- potential rating treatment, when applicable
+- potential underwriting relevance
+- unverified assumptions
+- actual outcome once known
+
+Do not use one opaque ROI score.
+
+Provide transparent scenario comparison and allow “insufficient evidence” or “no financially attractive pathway” as valid results.
+
+---
+
+## 13. Stakeholder benefit ledger
+
+Create a ledger that makes fragmented benefits explicit.
+
+Potential stakeholders:
+
+- property owner
+- HOA or condominium association
+- resident or tenant
+- insurer
+- reinsurer
+- lender
+- local government
+- state programme
+- utility or infrastructure operator
+- philanthropic funder
+- neighbouring community
+
+Record:
+
+- stakeholder
+- expected benefit category
+- expected cost
+- funding contribution
+- source and evidence level
+- timeframe
+- uncertainty
+- commitment
+- realised financial or operational response
+- corrections
+
+Never assume that:
+
+- premium savings equal total resilience value
+- all parties benefit
+- a positive aggregate benefit is a strict Pareto improvement
+- modelled public benefit will be paid to the property owner
+
+Use the ledger to explain why a blended funding stack may be required.
+
+---
+
+## 14. Funding and milestone workflow
+
+Support programmes funded by:
+
+- public grant
+- insurer
+- reinsurer
+- lender
+- property owner
+- philanthropic or impact fund
+- local government
+- mixed capital stack
+
+A programme must be configurable around:
+
+- geography
+- property class
+- hazard
+- target profile
+- eligible interventions
+- income or affordability rules
+- maximum award
+- cost share
+- application window
+- evidence requirements
+- review process
+- milestones
+- payment conditions
+- maintenance obligations
+- reporting requirements
+
+Milestones may include:
+
+- baseline assessment complete
+- profile selected
+- work plan approved
+- permit or technical review complete
+- installation complete
+- verification passed
+- certificate issued
+- market submission delivered
+- insurance response recorded
+- maintenance revalidated
+
+Require explicit human approval for any payment or disbursement export.
+
+Implement an integration boundary for future payment systems; do not hold customer funds in the MVP.
+
+---
+
+## 15. Verification operating system
+
+Build a neutral independent-verification workflow.
+
+Support:
+
+- verifier organization
+- credential
+- credential version and expiry
+- conflict-of-interest declaration
+- assignment
+- inspection method
+- desktop review
+- site visit
+- photographic evidence
+- geolocation
+- timestamp
+- measurement
+- exceptions
+- corrective action
+- reinspection
+- certificate
+- expiry
+- revocation
+
+Every verification conclusion must trace to:
+
+- profile
+- intervention specification
+- evidence
+- verifier
+- method
+- date
+- exception
+- human signature or approval
+
+Fortify manages the workflow and provenance. It does not claim that Fortify itself performed the substantive inspection unless the business deliberately develops and licenses that capability later.
+
+---
+
+## 16. External model mapping
+
+Implement a model-neutral mapping layer.
+
+For each external model store:
+
+- provider
+- model name
+- version
+- geography
+- supported property classes
+- input definitions
+- output definitions
+- effective period
+- source documentation
+- limitations
+- usage rights
+
+A `ModelInputMapping` includes:
+
+- property
+- intervention
+- evidence
+- verifier
+- model/version
+- candidate input variable
+- pre-intervention value
+- proposed post-intervention value
+- transformation method
+- confidence
+- source
+- reviewer
+- market acceptance status
+- accepted value, if different
+- reason for rejection or modification
+
+The system may propose a mapping but may not claim that the insurer or model provider accepted it.
+
+Create clear states:
+
+- proposed
+- internally reviewed
+- submitted
+- accepted by model/market
+- accepted with modification
+- rejected
+- unsupported
+- expired
+
+Do not build an internal catastrophe model in this Goal.
+
+---
+
+## 17. Market commitments and recognition agreements
+
+Create a registry for explicit commitments from:
+
+- insurer
+- MGA
+- reinsurer
+- lender
+- public programme
+- philanthropic funder
+- property operator
+
+Commitment types may include:
+
+- evidence-review commitment
+- response service level
+- approved rating treatment
+- underwriting reconsideration
+- quote review
+- capacity allocation
+- grant payment
+- milestone payment
+- financing product
+- reinsurance portfolio review
+- data-sharing commitment
+
+Every commitment must include:
+
+- committing organization
+- applicable profile
+- applicable geography
+- applicable property class
+- effective period
+- evidence required
+- exclusions
+- response or financial action
+- legal/contract source
+- status
+- limitations
+
+Do not translate “will review” into “will insure.”
+
+---
+
+## 18. Market playbooks and recognition cases
+
+Extend the existing requirements crosswalk into market-specific recognition playbooks.
 
 A playbook is scoped by:
-- tenant
-- market/carrier/MGA/program
+
+- carrier/MGA/programme
+- policy/product
 - jurisdiction
-- peril
+- hazard
 - property class
-- policy form or programme
+- target profile
 - effective period
 
 It can express:
-- required items
-- recommended items
-- blocking items
-- conditional items
-- accepted evidence types
-- evidence freshness
-- scope requirements
-- source requirements
-- review authority
-- deadlines
-- template requirements
-- delivery requirements
 
-Use a bounded deterministic condition system. Do not use arbitrary JavaScript or model-generated executable code.
+- required evidence
+- blocking evidence
+- recommended evidence
+- accepted source types
+- acceptable verifier types
+- freshness
+- scope
+- model mapping
+- rate-treatment prerequisites
+- underwriting-review prerequisites
+- deadlines
+- submission templates
+- delivery method
+- appeal or reconsideration process
+
+Use deterministic bounded applicability rules.
 
 Preserve:
-- source and citation
+
+- source
 - version
-- author/reviewer
-- effective date
+- author
+- reviewer
+- effective period
+- prior version
 - change diff
-- prior-case linkage
+- observed historical responses
 
-## 12. Evidence readiness
+---
 
-Replace the universal weighted formula with:
+## 19. Evidence readiness
 
-- deterministic requirement status
-- blocking conditions
-- required/recommended distinctions
+Replace the fixed universal weighted readiness formula.
+
+Calculate deterministic states for:
+
+- profile completeness
+- intervention implementation
+- evidence completeness
 - evidence freshness
-- scope matching
-- contradiction state
-- reviewer state
-- destination-specific readiness
-- explicit unresolved caveats
+- evidence scope
+- verifier status
+- unresolved contradiction
+- model-mapping status
+- funding milestone status
+- market-specific submission readiness
+- maintenance validity
+
+Use:
+
+- required
+- recommended
+- conditional
+- blocking
+- not applicable
+- pending review
+- satisfied
+- expired
+- contradictory
+- unsupported
 
 An optional summary indicator may exist, but it must:
-- be configurable
-- expose its calculation
-- be labelled submission/evidence readiness
-- never imply underwriting risk or acceptance probability
-- not hide a blocking requirement behind an average
 
-## 13. Renewal and appeal workflow
+- expose its method
+- never hide blockers
+- be destination-specific where relevant
+- be called evidence, project or submission readiness
+- never imply insurance eligibility, risk reduction or compliance
 
-Implement:
-- case opening from policy renewal date or notice
-- reusable case templates
-- market strategy
-- case owner and team
-- task dependencies
-- deadline calculation
-- reminders and escalation
-- external evidence requests
-- communications
-- client-facing progress
-- quality-review stage
-- final confirmation stage
-- submission versioning
-- clarification loop
-- outcome capture
-- renewal closure
-- next-year roll-forward
+---
 
-Add bulk workflow for portfolios with many communities.
+## 20. Production broker workflow
 
-## 14. External collaboration
+Implement the complete broker journey:
 
-### Property manager and board
+1. Create or import property portfolio.
+2. Import policies, renewals and notices.
+3. Identify cases requiring attention.
+4. Review external insurer/model risk drivers.
+5. select applicable target profile.
+6. assess existing evidence.
+7. create intervention and capital plan.
+8. invite property manager or board.
+9. track funding and project milestones.
+10. collect implementation evidence.
+11. assign independent verification.
+12. map verified changes to market requirements and model inputs.
+13. generate a market-specific recognition submission.
+14. confirm destination and contents.
+15. deliver through email or secure review link.
+16. receive clarification or evidence disposition.
+17. record rating, underwriting, quote, bind or no-change outcome.
+18. close the renewal.
+19. roll valid evidence and maintenance obligations into the next cycle.
+
+Support portfolio-level bulk operations for multiple communities.
+
+---
+
+## 21. External contributor experiences
+
+### Property manager or board
+
 Provide:
+
 - branded secure request
-- no-account or lightweight-account options
-- exact requested items
+- case-specific requested actions
+- exact property/building scope
+- due dates
 - upload guidance
-- due date
-- property/building scope
-- progress
+- project progress
+- funding status where authorised
 - clarification
-- consent and terms
-- mobile usability
+- maintenance calendar
+- lightweight account or secure no-account link
 
-### Underwriter or market reviewer
+### Contractor
+
 Provide:
-- expiring secure link
+
+- assigned work scope
+- intervention specification
+- required completion evidence
+- upload
+- invoice and building schedule
+- certifications
+- exception reporting
+- no access to insurance strategy or unrelated data
+
+### Verifier
+
+Provide:
+
+- assignment
+- profile and intervention requirements
+- source evidence
+- review tools
+- finding
+- exception
+- certificate
+- signature or approval
+- conflict declaration
+
+### Insurer or MGA reviewer
+
+Provide:
+
+- expiring secure review session
 - submission summary
 - evidence index
-- source previews
-- accepted/request-clarification/rejected actions
-- comments
-- download controls
-- watermarking where configured
+- verifier information
+- model mapping
+- profile
+- unresolved caveats
+- accept/request clarification/reject actions
+- structured reason taxonomy
+- comment
+- download control
 - review receipt
-- no access to unrelated customer records
+- no access to unrelated records
 
-## 15. Submission generation and delivery
-
-Preserve the existing PDF/ZIP quality and add:
-
-- tenant templates
-- market templates
-- cover letter
-- risk narrative
-- community/building summary
-- SOV export
-- requirement-to-evidence matrix
-- evidence index
-- mitigation register
-- caveats
-- hashes
-- source appendix
-- document redaction
-- optional ACORD-compatible field export where licensed and permitted
-- secure data room
-- email delivery
-- download receipt
-- immutable submission version
-
-A submission may be regenerated only as a new version.
-
-Require explicit human confirmation of:
-- destination
-- included documents
-- included fields
-- caveats
-- message
-- permissions
-
-## 16. Response and placement outcomes
-
-Model actual events:
-
-- received
-- opened
-- acknowledgement
-- clarification requested
-- additional evidence requested
-- evidence accepted
-- evidence rejected
-- no appetite
-- declined
-- referred
-- quoted
-- revised quote
-- bound
-- renewed
-- nonrenewed
-- withdrawn
-- lost to competitor
-- no response
-
-Create a normalized reason taxonomy while preserving original language.
-
-Allow correction and superseding records; never silently overwrite an outcome.
-
-## 17. Moat-enabling acceptance graph
-
-For every destination and requirement, record:
-
-- playbook/version
-- submission/version
-- property and property class
-- peril
-- evidence item/version
-- evidence type
-- source type
-- scope
-- age
-- reviewer status
-- clarification
-- disposition
-- market response
-- final placement status
-
-Create tenant-only analytics first.
-
-Build cross-customer analytics only behind:
-- explicit contractual opt-in
-- minimum cohort sizes
-- de-identification
-- suppression of sensitive market/client data
-- documented governance
-- testable non-disclosure controls
-
-Do not expose unsupported predictions. Begin with descriptive evidence such as:
-- “This market requested a scope clarification in 4 of your last 7 similar cases.”
-- “Invoices without building schedules were returned in 3 cases.”
-- “This evidence type has not yet been reviewed by this destination.”
-
-## 18. Portfolio analytics and ROI
-
-Measure:
-- renewal cases opened
-- time to first complete packet
-- time to market
-- manual touches
-- overdue tasks
-- missing evidence at opening
-- clarification loops
-- packet versions
-- evidence reuse
-- evidence expiry
-- market response time
-- quote and bind counts
-- outcome completeness
-- user adoption
-- external contributor completion
-- underwriter reviewer use
-- estimated hours saved based on customer-confirmed baseline
-
-Do not attribute premium movement to Fortify without a valid methodology.
-
-Create an exportable pilot report comparing baseline and product workflow.
-
-## 19. Administration and configuration
-
-Build production administration for:
-- organizations
-- users
-- roles
-- teams
-- markets
-- playbooks
-- templates
-- integrations
-- products/plans
-- usage limits
-- retention
-- support access
-- feature flags
-- audit review
-- import jobs
-- failed processing
-- data export/deletion
-
-Support manual enterprise invoicing and entitlement management. Do not prioritise a self-serve Stripe funnel over the initial enterprise workflow.
-
-## 20. API and integrations
+### Funder or programme reviewer
 
 Provide:
-- versioned REST or typed RPC API
-- OpenAPI where appropriate
-- webhooks
-- scoped API keys
-- idempotency
-- pagination
-- rate limiting
-- integration health
-- sync receipts
-- retry/dead-letter handling
-- schema versioning
 
-Initial integration priorities:
-1. CSV/XLSX/SOV
-2. Microsoft Graph email
-3. secure external links
-4. object storage
-5. AMS export/import
-6. property-management CSV/API boundary
-7. risk and inspection providers
+- eligibility summary
+- milestone evidence
+- verifier output
+- payment recommendation
+- human approval
+- export receipt
+- no insurance decision authority
 
-## 21. Security and reliability
+---
+
+## 22. Submission generation
+
+Preserve the existing deterministic PDF/ZIP capability and expand it.
+
+Generate:
+
+- recognition case cover
+- property and portfolio summary
+- policy and market context
+- external risk-driver summary
+- applicable target profile
+- intervention register
+- funding and project milestone summary
+- verification register
+- model-input mapping
+- requirement-to-evidence matrix
+- evidence index
+- caveats
+- requested insurer action
+- maintenance plan
+- source and version register
+- hashes and provenance
+- exhibits
+- editable accompanying letter
+- machine-readable manifest
+
+A submission must:
+
+- be versioned
+- preserve exact submitted bytes
+- have a content hash
+- record destination
+- record delivery
+- require human confirmation
+- never be destructively overwritten
+
+---
+
+## 23. Outcome taxonomy
+
+Do not use one generic “accepted” result.
+
+Model separately:
+
+### Evidence response
+
+- accepted
+- partially accepted
+- clarification required
+- rejected
+- stale
+- wrong scope
+- unsupported source
+- unverifiable
+- not applicable
+
+### Model response
+
+- input accepted
+- input modified
+- mapping rejected
+- model does not represent intervention
+- model version changed
+- no response
+
+### Rating response
+
+- filed discount applied
+- factor changed
+- discount not applicable
+- filing does not recognise intervention
+- insufficient evidence
+- unknown
+
+### Underwriting response
+
+- classification changed
+- reconsideration opened
+- terms changed
+- capacity offered
+- referred
+- no change
+- declined
+- nonrenewed
+- quote review initiated
+
+### Placement response
+
+- quote
+- revised quote
+- bind
+- renewal
+- no quote
+- withdrawn
+- FAIR Plan transition
+- voluntary-market transition
+- lost to another option
+
+### Funding response
+
+- approved
+- conditionally approved
+- milestone approved
+- milestone rejected
+- disbursement exported
+- programme ineligible
+
+### Longitudinal outcome
+
+- maintenance current
+- maintenance expired
+- hazard event observed
+- physical performance recorded
+- claim recorded
+- loss severity data available
+- outcome corrected
+
+Preserve original correspondence alongside normalized categories.
+
+---
+
+## 24. Recognition graph and moat
+
+Instrument the product so every important event can form a governed relationship among:
+
+- property and property class
+- hazard and risk driver
+- external model and version
+- target profile and version
+- intervention and version
+- funding programme
+- project cost
+- verifier and method
+- evidence type
+- evidence source
+- evidence scope
+- evidence freshness
+- model-input mapping
+- market playbook
+- submission
+- evidence response
+- model response
+- rating response
+- underwriting response
+- placement result
+- maintenance status
+- observed event or claim
+
+Build tenant-specific analytics first.
+
+Potential customer-facing findings include:
+
+- recurring missing evidence
+- evidence repeatedly returned for scope clarification
+- markets that recognise particular evidence categories
+- interventions whose evidence is accepted but whose model mapping is unsupported
+- average time from completed work to insurer response
+- properties whose maintenance is about to invalidate recognition
+- funding programmes producing the highest completion rate
+- voluntary-market transitions
+- submission reuse across renewals
+
+Do not build predictive acceptance or premium models until:
+
+- sufficient rights-cleared data exists
+- bias and calibration are evaluated
+- users can understand the method
+- legal and regulatory review is complete
+
+---
+
+## 25. Data rights
+
+Create:
+
+- `docs/DATA_RIGHTS_AND_MOAT.md`
+- tenant-level configuration
+- contract-ready data-right classifications
+
+Distinguish:
+
+- raw customer documents
+- personally identifiable information
+- property-specific data
+- carrier-confidential material
+- customer-specific playbooks
+- Fortify’s generic ontology
+- software telemetry
+- de-identified derived events
+- cross-customer benchmarks
+- model-provider restricted data
+
+Default:
+
+- raw data remains tenant-controlled
+- no cross-customer training or analytics
+- no carrier-identifiable benchmarks without permission
+- no external model redistribution beyond rights
+- no use of programme data beyond contract
+
+Cross-customer analytics require:
+
+- explicit opt-in
+- contractual permission
+- minimum cohort size
+- de-identification
+- suppression
+- access control
+- audit
+- opt-out and deletion treatment
+
+---
+
+## 26. Imports and integrations
+
+### Initial production imports
+
+Support:
+
+- CSV
+- XLSX
+- statement of values
+- policy schedule
+- building schedule
+- property-manager export
+- claims or loss-run export where permitted
+- evidence archive
+- GeoJSON
 
 Implement:
-- encryption in transit and at rest
-- tenant isolation
+
+- mapping UI
+- saved mappings
+- stable external IDs
+- unit validation
+- address reconciliation
+- duplicate detection
+- dry run
+- quarantine
+- idempotent rerun
+- rollback
+- import receipt
+
+### Initial integrations
+
+Prioritise:
+
+1. secure direct upload
+2. Microsoft Graph email intake
+3. generic Gmail provider boundary
+4. S3-compatible object storage
+5. generic AMS CSV boundary
+6. Applied Epic-compatible import/export from customer-provided schemas
+7. AMS360-compatible boundary
+8. property-management data boundary
+9. external risk/model provider boundary
+10. verifier API/export boundary
+
+Never screen-scrape systems or invent undocumented APIs.
+
+---
+
+## 27. Document intelligence
+
+Create a durable asynchronous pipeline:
+
+1. ingest original bytes
+2. hash
+3. MIME and signature validation
+4. malware scan
+5. quarantine if required
+6. OCR or text extraction
+7. classify document
+8. extract candidate fields, tables and evidence
+9. preserve page/region citations
+10. calculate confidence
+11. route human review
+12. create confirmed records
+13. retain original and corrected versions
+
+Support:
+
+- carrier notices
+- policy documents
+- loss runs
+- SOVs
+- contractor invoices
+- inspection reports
+- photographs
+- certificates
+- grant forms
+- correspondence
+- model reports
+- spreadsheets
+
+Use provider interfaces.
+
+Tests and development may use deterministic fixtures. Production must label provider availability and processing status honestly.
+
+No LLM output is authoritative without confirmation.
+
+---
+
+## 28. Programme administration
+
+Create a sponsor-facing programme console for:
+
+- target profile
+- geography
+- cohort
+- applicants
+- eligibility
+- property baseline
+- interventions
+- funding commitments
+- milestones
+- verification
+- payment approvals
+- market submissions
+- insurance responses
+- maintenance
+- portfolio outcomes
+- reporting
+
+Programme metrics may include:
+
+- applicants
+- qualified properties
+- projects started
+- projects completed
+- cost per property
+- public contribution
+- owner contribution
+- verification turnaround
+- market-review turnaround
+- evidence acceptance
+- insurer decision categories
+- voluntary-market quotes
+- maintenance compliance
+
+Do not claim caused loss reduction without a valid evaluation design.
+
+---
+
+## 29. Analytics and ROI measurement
+
+Measure separately:
+
+### Brokerage workflow
+
+- time from case opening to reviewable submission
+- evidence requests
+- missing items
+- clarification loops
+- manual touches
+- external-contributor completion
+- submission versions
+- evidence reuse
+- time to insurer response
+- active users
+- off-platform reconstruction
+
+### Property programme
+
+- intervention completion
+- funding leverage
+- verification pass rate
+- cost variance
+- maintenance
+- market response
+
+### Insurance recognition
+
+- evidence accepted
+- model mapping accepted
+- filed treatment applied
+- underwriting reconsideration
+- quote
+- bind
+- renewal
+- no change
+- reason
+
+### Longitudinal performance
+
+- hazard exposure
+- observed physical performance
+- claims events
+- loss severity where rights permit
+
+Do not attribute premium or claims changes to Fortify without a defensible methodology.
+
+---
+
+## 30. Visual and interaction quality
+
+The product should feel like:
+
+- a premium insurance operations system
+- an architectural evidence platform
+- a serious capital-planning product
+- a trusted public-programme administration system
+
+Preserve:
+
+- calm light theme
+- excellent typography
+- restrained colour
+- dense but legible information
+- clear status semantics
+- map and spatial context where useful
+- print-quality generated documents
+
+Avoid:
+
+- gradient-heavy pages
+- glassmorphism
+- excessive rounded cards
+- excessive status pills
+- generic AI assistant panels
+- chatbot-first workflow
+- decorative charts
+- fake geospatial intelligence
+- animated “AI magic”
+- stock wildfire imagery
+- unsupported impact claims
+- generic template styling
+
+Important product views should include:
+
+- portfolio triage
+- property/community record
+- intervention capital plan
+- profile crosswalk
+- funding stack
+- project milestones
+- evidence and provenance
+- verification workbench
+- model mapping
+- market-recognition case
+- reviewer view
+- programme dashboard
+- maintenance
+- outcomes and analytics
+
+Inspect the real browser application throughout implementation.
+
+Use desktop, tablet and mobile viewports.
+
+Add visual-regression tests and accessibility checks.
+
+---
+
+## 31. Security, privacy and reliability
+
+Implement:
+
+- encryption in transit
+- encrypted database and object storage
 - least privilege
 - MFA-ready OIDC
-- signed URLs
-- secrets management
+- tenant isolation
+- RLS defence in depth
+- signed upload and download URLs
+- secure webhook verification
 - rate limiting
 - CSRF protection
-- security headers
-- CSP
-- secure webhook verification
+- content-security policy
+- secure headers
 - malware scanning
-- immutable audit
-- structured logging
-- PII redaction
-- retention and deletion
-- backup and point-in-time recovery
-- tested restore
-- incident-response runbook
+- audit logs
+- support-access controls
+- secrets management
+- log redaction
+- retention
+- deletion
+- legal hold
+- backup
+- point-in-time recovery
+- restore exercise
+- incident response
 - dependency scanning
 - SAST
 - container scanning
-- audit exports
-- health/readiness endpoints
+- vulnerability reporting
+- health and readiness checks
 
 Create:
-- threat model
-- data-flow diagram
-- security questionnaire
-- subprocessors list
-- SOC 2 readiness checklist
-- disaster-recovery test record
 
-Do not claim SOC 2 certification without an audit.
+- `docs/THREAT_MODEL.md`
+- `docs/SECURITY_AND_PRIVACY.md`
+- `docs/DATA_FLOW.md`
+- `docs/INCIDENT_RESPONSE.md`
+- `docs/BACKUP_RESTORE_REPORT.md`
+- `docs/SECURITY_QUESTIONNAIRE.md`
+- `docs/SUBPROCESSORS.md`
 
-## 22. Front-end quality
+Do not claim SOC 2 or any other certification without an actual audit.
 
-Preserve the calm institutional design and remove demo-specific coupling.
+---
 
-Refactor the large workspace component into:
-- route-level screens
-- bounded domain components
-- server-side data loading where appropriate
-- typed client APIs
-- accessible tables
-- reusable evidence and status primitives
-- robust loading/error/empty states
+## 32. CI, release and deployment
 
-Visual principles:
-- serious insurance operations product
-- typography and information hierarchy before decoration
-- restrained colour
-- dense but legible tables
-- thoughtful side-by-side evidence review
-- map only where it provides real value
-- no glassmorphism
-- no excessive pills
-- no generic AI assistant
-- no gradient-heavy marketing
-- no fake charts
-- no decorative AI sparkle
+Add GitHub Actions for:
 
-Inspect the actual application through the browser on desktop, tablet and mobile. Use screenshots and browser tooling to identify visual regressions.
-
-## 23. CI, release and deployment
-
-Add:
-- `.github/workflows/ci.yml`
+- formatting
 - lint
-- strict type checking
-- unit/integration tests
-- database migration test
-- production build
+- strict TypeScript
+- unit tests
+- integration tests
+- migration tests
+- tenant-isolation tests
+- generated-artifact verification
 - Playwright
 - accessibility
-- generated-artifact verification
-- dependency and secret scans
-- tenant-isolation suite
+- visual regression
+- secret scanning
+- dependency scanning
+- production build
+- container build
+- prohibited-claims scan
 
 Add:
-- staging deployment
-- production deployment configuration
-- migration-before-release process
+
+- staging configuration
+- production configuration
+- migration-before-release
 - rollback
 - release tags
 - changelog
 - environment validation
-- database and object-storage backup
-- preview environments where safe
+- backup schedule
+- restore test
+- observability
+- job monitoring
 
-If GitHub authentication permits, configure branch settings safely. Do not rewrite history or change repository visibility automatically. Create `docs/GITHUB_SETTINGS_CHECKLIST.md` for settings that require owner action.
+Do not automatically change repository visibility, rewrite Git history or publish customer data.
 
-## 24. Test requirements
+Create `docs/GITHUB_SETTINGS_CHECKLIST.md` for owner-controlled settings.
 
-At minimum test:
+---
 
-### Domain
-- requirement applicability
-- evidence scope
-- freshness
-- contradiction
-- superseding evidence
-- submission versioning
-- deadlines
-- response taxonomies
-- audit immutability
+## 33. Required end-to-end production flow
 
-### Security
-- cross-tenant access
+Automate and validate this complete flow:
+
+1. Create a brokerage organization.
+2. Invite users with distinct roles.
+3. Import a California property portfolio.
+4. Create a wildfire recognition case.
+5. Import a policy and insurer notice.
+6. Confirm extracted fields.
+7. record external risk drivers.
+8. select an applicable target profile.
+9. assess baseline gaps.
+10. create an intervention capital plan.
+11. identify and apply a funding programme.
+12. approve a funding commitment.
+13. assign work and milestones.
+14. invite property manager and contractor.
+15. collect completion evidence.
+16. assign an independent verifier.
+17. record verification findings and exceptions.
+18. create model-input mappings.
+19. crosswalk evidence against one market playbook.
+20. resolve blocking items.
+21. generate a versioned recognition submission.
+22. confirm and deliver it.
+23. open an expiring insurer-review session.
+24. request clarification.
+25. respond with additional evidence.
+26. record evidence acceptance.
+27. record model, rating and underwriting treatment separately.
+28. record quote, bind, no-change or decline outcome.
+29. close the case.
+30. create maintenance obligations.
+31. roll valid evidence into the next renewal.
+32. verify audit, permissions and recognition-graph events.
+33. generate a brokerage ROI report and programme outcome report.
+
+This flow must run using production architecture with development fixtures—not the legacy global demo state.
+
+---
+
+## 34. Test requirements
+
+### Tenant and authorization
+
+- cross-tenant property access denied
+- cross-tenant evidence access denied
 - revoked membership
-- expired review link
-- object-storage authorization
-- support impersonation controls
-- webhook signatures
-- upload quarantine
+- expired external link
+- verifier cannot change insurer response
+- insurer reviewer cannot change evidence
+- contractor cannot view insurance strategy
+- programme reviewer cannot bind insurance
+- support access requires recorded reason
 
-### Imports
-- duplicate rows
-- changed external IDs
-- invalid units
-- ambiguous addresses
-- idempotency
-- rollback
-- rejected-row quarantine
+### Profiles and intervention projects
 
-### Documents
-- text PDF
-- scan
-- rotated page
-- table
-- image
-- conflicting extraction
-- low confidence
-- human correction
-- source citation
+- applicability
+- versioning
+- supersession
+- minimum/preferred characteristics
+- intervention dependencies
+- invalid profile
+- unsupported property
+- maintenance expiry
 
-### End to end
-1. create brokerage
-2. invite team
-3. import book
-4. open renewal
-5. ingest notice
-6. confirm fields
-7. request evidence
-8. external contributor uploads
-9. review evidence
-10. resolve blockers
-11. generate submission
-12. deliver secure link
-13. reviewer requests clarification
-14. respond
-15. record quote/decline/bind outcome
-16. close renewal
-17. roll evidence into next cycle
-18. verify audit and analytics
+### Funding
 
-## 25. Commercial and operational documents
+- eligibility
+- cost-share limit
+- milestone dependency
+- duplicate funding
+- human approval
+- disbursement export
+- cancellation
+- correction
+
+### Evidence and verification
+
+- source hashing
+- scope
+- supersession
+- stale evidence
+- conflicting evidence
+- credential expiry
+- failed verification
+- corrective action
+- certificate revocation
+
+### Model mapping
+
+- model version
+- unsupported variable
+- proposed versus accepted value
+- rejected mapping
+- expired mapping
+- no automatic acceptance
+
+### Market recognition
+
+- playbook applicability
+- blocking requirement
+- market version
+- submission confirmation
+- immutable submitted bytes
+- response taxonomy
+- clarification loop
+- correction history
+
+### Claims and language
+
+Scan UI, APIs, generated files and marketing copy for prohibited claims such as:
+
+- guaranteed insurance
+- guaranteed discount
+- certified by Fortify
+- Fortify risk score
+- guaranteed loss reduction
+- officially approved unless actually true
+
+### Reliability
+
+- job idempotency
+- upload retry
+- delivery retry
+- provider outage
+- partial document processing
+- database migration
+- backup restore
+- deterministic report regeneration
+
+---
+
+## 35. Repository documentation
 
 Create and maintain:
+
 - `docs/COMMERCIAL_NORTH_STAR.md`
+- `docs/NORTH_STAR_IMPLEMENTATION_PLAN.md`
 - `docs/IMPLEMENTATION_STATUS.md`
 - `docs/ARCHITECTURE.md`
 - `docs/DATA_MODEL.md`
+- `docs/CALIFORNIA_POLICY_REGISTER.md`
+- `docs/TARGET_RESILIENCE_PROFILE_SPEC.md`
+- `docs/INTERVENTION_REGISTRY.md`
+- `docs/EVIDENCE_HIERARCHY.md`
+- `docs/MODEL_MAPPING_SPEC.md`
+- `docs/MARKET_COMMITMENT_SPEC.md`
+- `docs/RECOGNITION_GRAPH.md`
 - `docs/DATA_RIGHTS_AND_MOAT.md`
+- `docs/FUNDING_AND_MILESTONES.md`
+- `docs/VERIFICATION_GOVERNANCE.md`
 - `docs/MARKET_PLAYBOOK_GOVERNANCE.md`
+- `docs/INTEGRATIONS.md`
 - `docs/SECURITY_AND_PRIVACY.md`
 - `docs/THREAT_MODEL.md`
-- `docs/INTEGRATIONS.md`
+- `docs/DATA_FLOW.md`
 - `docs/DEPLOYMENT.md`
 - `docs/OPERATIONS_RUNBOOK.md`
 - `docs/INCIDENT_RESPONSE.md`
 - `docs/BACKUP_RESTORE_REPORT.md`
 - `docs/PAID_PILOT_RUNBOOK.md`
 - `docs/ROI_MEASUREMENT.md`
-- `docs/CUSTOMER_ONBOARDING.md`
-- `docs/SECURITY_QUESTIONNAIRE.md`
+- `docs/EXTERNAL_VALIDATION_GATES.md`
 - `docs/LAUNCH_READINESS.md`
+- `docs/GITHUB_SETTINGS_CHECKLIST.md`
 - `.env.example`
 
-## 26. Milestone order
+`docs/IMPLEMENTATION_STATUS.md` must clearly separate:
 
-Execute in this order unless a documented dependency requires adjustment:
+- not started
+- in progress
+- code complete
+- locally validated
+- deployment validated
+- externally blocked
+- customer validated
+- market validated
 
-1. Repository, CI and status documentation.
-2. Normalized PostgreSQL migration and sandbox isolation.
-3. Authentication, organizations and tenant authorization.
-4. Secure object storage and evidence upload.
-5. Portfolio/SOV import.
-6. Production notice and document pipeline.
-7. Market playbooks and deterministic readiness.
-8. Renewal workflow and external evidence collection.
-9. Submission generation and secure reviewer flow.
-10. Response and outcome capture.
-11. Portfolio analytics and moat instrumentation.
-12. Email and AMS integrations.
-13. Security hardening, backup/restore and deployment.
-14. Design-partner acceptance harness and launch report.
+---
 
-Do not spend a cycle repeatedly rewriting the roadmap.
+## 36. Milestone order
 
-## 27. Completion criteria
+Execute in this order unless a documented technical dependency requires adjustment.
 
-Code-complete means:
+### Milestone 0 — repository and release foundation
 
-- no production use of the global DemoState blob
-- normalized tenant-scoped PostgreSQL persistence
-- real identity and authorization
+- update product doctrine
+- implementation status
+- GitHub Actions
+- dependency and secret scans
+- current regression baseline
+
+### Milestone 1 — production data plane
+
+- normalized PostgreSQL
+- migrations
+- tenant scope
+- sandbox isolation
+- production repositories
+- audit
+
+### Milestone 2 — identity and secure evidence
+
+- OIDC
+- roles
+- authorization
+- private object storage
+- upload pipeline
+- malware quarantine
+
+### Milestone 3 — live brokerage wedge
+
+- portfolio import
+- property graph
+- policy and renewal
+- notice intake
+- case workflow
+- current packet generation on production architecture
+
+### Milestone 4 — California source and playbook system
+
+- versioned policy register
+- market playbooks
+- deterministic applicability
+- destination-specific readiness
+
+### Milestone 5 — profiles and interventions
+
+- target-profile registry
+- intervention registry
+- baseline condition
+- resilience capital plan
+
+### Milestone 6 — funding and project execution
+
+- funding programmes
+- blended capital stack
+- milestones
+- external contributors
+- approvals
+
+### Milestone 7 — verification
+
+- verifier identity
+- credentials
+- assignments
+- findings
+- exceptions
+- certificates
+- maintenance
+
+### Milestone 8 — model mapping and market commitments
+
+- external models
+- model inputs
+- mapping workflow
+- commitment registry
+- evidence hierarchy
+
+### Milestone 9 — recognition submission and outcomes
+
+- submission
+- secure reviewer
+- clarification
+- acceptance events
+- rating, underwriting and placement outcomes
+
+### Milestone 10 — programme administration and analytics
+
+- sponsor portal
+- cohort workflow
+- benefit ledger
+- recognition graph
+- ROI and outcome reports
+
+### Milestone 11 — production integrations
+
+- email
+- AMS imports
+- property systems
+- model-provider adapters
+- verifier adapters
+
+### Milestone 12 — operational hardening
+
+- staging
+- production
+- observability
+- backup/restore
+- performance
+- accessibility
+- security review
+- launch validation
+
+Do not spend subsequent cycles repeatedly revising this roadmap instead of implementing it.
+
+---
+
+## 37. Definition of code-complete
+
+Code-complete requires:
+
+- no production use of the global DemoState JSON blob
+- isolated synthetic sandbox
+- normalized tenant-scoped PostgreSQL
+- production authentication and authorization
 - secure object storage
-- working import pipeline
-- working document pipeline
-- configurable playbooks
-- complete live-case workflow
-- external contributor and reviewer links
-- real generated artifacts
-- delivery and response records
-- outcome analytics
+- portfolio import
+- live renewal case workflow
+- versioned California source register
+- configurable market playbooks
+- target-profile registry
+- intervention registry
+- resilience capital plan
+- funding and milestone workflow
+- independent-verification workflow
+- evidence hierarchy
+- external-model mapping
+- market-commitment registry
+- versioned recognition submission
+- secure external reviewer
+- normalized evidence, model, rating, underwriting and placement outcomes
+- maintenance
+- programme administration
+- recognition-graph instrumentation
+- customer ROI reporting
 - CI and deployment
-- tenant-isolation and security tests
-- backup restore proven
-- no fake production integration
-- seeded sandbox preserved separately
-- no unsupported insurance claim
+- tenant-isolation tests
+- backup and restore
+- no fabricated integrations
+- no unsupported insurance or resilience claims
 
-Externally validated means:
+---
 
-- at least one rights-cleared brokerage dataset has passed import
-- at least ten redacted renewal cases have run through the system
-- at least one external market reviewer has used the output
+## 38. Definition of external validation
+
+Do not mark the product externally validated until:
+
+- one real brokerage has been onboarded
+- one rights-cleared California property portfolio has been imported
+- at least ten redacted or live cases have run through the workflow
+- at least one target profile has been reviewed by an appropriate technical stakeholder
+- at least one independent verifier has used the verification workflow
+- at least one insurer or MGA reviewer has received or reviewed the structured submission
+- actual responses have been recorded
 - pilot workflow metrics have been captured
-- critical discrepancies are resolved
-- customer agrees to continue on paid terms
+- the customer has indicated willingness to continue on paid terms
 
-If external data is unavailable, mark external validation as blocked rather than falsely complete. Finish all code-complete criteria and document the exact data and customer action required.
+Additional programme validation requires:
+
+- a real programme sponsor
+- a real funding rule
+- at least one verified milestone
+- a real approval or payment-export decision
+
+Additional moat validation requires:
+
+- contractual rights to retain the relevant derived event data
+- enough outcomes to produce a useful finding
+- no privacy or confidentiality breach
+
+When an external dependency is missing, record:
+
+- exact blocker
+- responsible external party
+- required artefact or credential
+- production adapter already implemented
+- fixture used
+- acceptance test
+- next executable action
+
+Never report an external gate as complete merely because the code path exists.

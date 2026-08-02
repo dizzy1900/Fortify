@@ -1,5 +1,7 @@
 # Security and limitations
 
+These controls describe the current sandbox and reusable renewal foundation. The California Resilience Investment and Insurance Recognition OS additionally requires governed policy/model/programme sources, resilience-role separation, funding/verification/model/market authority controls, data-rights enforcement, RLS, deployment, and restore evidence before live use. No current control proves physical resilience, independent verification, model acceptance, rating or underwriting treatment, funding eligibility, or insurance availability.
+
 ## MVP security controls
 
 - Offline-by-default operation with no third-party calls, API keys, trackers, remote maps, or fabricated integrations.
@@ -33,10 +35,10 @@
 - Reference content is selected, versioned, and non-exhaustive. “Verify current requirements” is mandatory. Fortify is not legal advice and has no official IBHS or carrier affiliation.
 - MapLibre uses local GeoJSON without external tiles. Parcel/building geometry is illustrative, not survey-grade.
 - PDF accessibility tagging is not implemented. The packet is visually reviewed but should undergo production accessibility remediation.
-- No email delivery, carrier API, contractor marketplace, billing, remote sensing, or production legal templates are implemented.
+- No governed California source register, target profile, intervention/capital plan, funding programme, independent-verifier workflow, external-model mapping, recognition commitment, production recognition delivery, programme administration, live email/model/verifier integration, contractor marketplace, billing, remote sensing, or production legal template is implemented.
 
 ## Production gates before live customer data
 
 Threat model and privacy review; managed OIDC/MFA and PostgreSQL deployment validation; defense-in-depth RLS evaluation; private S3-compatible bucket and CORS validation; key and secret management; live malware provider; retention/deletion/legal-hold policy validation; encrypted independent backups and restore exercises; centralized audit export; rate limits and CSRF review; dependency and container scanning; incident response; accessibility audit; legal review of references/templates; and a signed data-processing agreement.
 
-Carrier acceptance, renewal, insurability, discounts, appeal success, and pricing changes are not guaranteed.
+Physical performance, verification, model acceptance, funding, rating treatment, underwriting treatment, carrier acceptance, renewal, insurability, discounts, appeal success, pricing changes, and claims outcomes are not guaranteed or inferred.

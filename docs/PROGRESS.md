@@ -2,7 +2,18 @@
 
 ## Current milestone
 
-M7 — Versioned destination playbooks and deterministic evidence readiness are locally implemented on August 1, 2026. Rights-cleared destination guidance and managed-database/design-partner validation remain external. Managed PostgreSQL, OIDC/MFA, private object storage, malware scanning, document providers/workers, and operational restore validation also remain external; M8 production renewal workflow and scoped external evidence collection is the next code milestone.
+M0 — Product doctrine and release-foundation reconciliation for the California Resilience Investment and Insurance Recognition OS is locally validated and published as draft PR #7 on August 1, 2026. The prior M1–M7 renewal implementation remains a locally validated reusable foundation and published stacked PR series; it is not evidence that profiles, interventions, capital plans, funding, verification, model mapping, recognition commitments, recognition submissions, programme administration, deployment, or external validation exist.
+
+## Replacement north-star M0 locally validated
+
+- Persisted the replacement California-first Resilience Investment and Insurance Recognition OS brief as the authoritative commercial north star.
+- Reconciled `AGENTS.md`, the ordered M0–M12 implementation plan, and the measured status ledger. Status now distinguishes not started, in progress, code complete, locally validated, deployment validated, externally blocked, customer validated, market validated, and programme validated.
+- Preserved the Colorado renewal workflow as an isolated synthetic sandbox and second-jurisdiction regression fixture; removed only the uncommitted superseded M8 draft created after PR #6.
+- Added an enforceable `security:claims` release gate covering direct insurance/funding/loss guarantees, Fortify certification or risk-score claims, automatic model/eligibility/compliance claims, and unsafe/insurable assertions across runtime source and generated text artifacts. The gate is wired into local `verify` and both relevant CI jobs.
+- Reconciled README, architecture, data-model, progress, and validation-report boundaries. Existing 65-table/126-trigger/61-resource evidence remains accurately described as renewal foundation rather than the expanded product.
+- Repositioned the public entry around the California resilience-recognition direction while labelling the existing renewal workspace as an isolated fictional Colorado sandbox. Added a doctrine/responsiveness browser test and captured desktop, tablet, and mobile evidence with no measured overflow or observed clipping.
+- One consolidated `npm run verify` passed ESLint, strict TypeScript, 12 files/45 tests, a 214-file secret scan, the 19-page/37-API production build, 12/12 deterministic evaluation, the 18-pattern claims scan, and 12/12 serial desktop/mobile Playwright scenarios. Production schema generation reported 65 tables/no drift and `npm audit --omit=dev` reported 0 vulnerabilities.
+- Re-rendered and inspected all six PDF pages and integrity-checked the 17-entry ZIP. The packet preserves explicit caveats, unresolved evidence, a manifest, 14 exhibits, and byte-identical embedded/standalone PDF hashes.
 
 ## Completed baseline
 
@@ -86,7 +97,8 @@ M7 — Versioned destination playbooks and deterministic evidence readiness are 
 
 ## Next
 
-- Begin M8 with production case templates, ownership/team workflow, dependencies/deadlines/reminders, bulk renewal operations, quality/final review, next-cycle roll-forward, and scoped expiring external evidence requests with consent, mobile use, revocation, and audit.
+- Keep draft PR #7 stacked on M7 until the predecessor is ready; local merge-tree and GitHub both report the exact M0 stack conflict-free at publication.
+- Begin M1 by closing the California property-graph and governance gaps on the existing normalized tenant foundation: parcel, unit summary, aliases/relationships/versions, source/effective/confidentiality/data-right fields, spatial-ready boundaries, a California fixture organization, RLS evaluation, and resource-complete attack coverage.
 - Validate rights-cleared brokerage exports and correspondence against the generic adapters; fixture compatibility is not certification. Validate any external OCR/document-intelligence provider only after licensing, egress, retention, credentials, security, latency, cost, and error behavior are approved.
 - Validate the M2 migration and contract suite against the selected managed PostgreSQL service; PGlite is PostgreSQL-compatible local evidence, not production-provider evidence.
 - Configure and validate a managed OIDC provider, redirect registration, MFA policy, secrets, session behavior, and rate limits in staging.

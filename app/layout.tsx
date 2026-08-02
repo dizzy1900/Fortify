@@ -3,9 +3,12 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "Fortify - Renewal Evidence OS", template: "%s | Fortify" },
+  title: {
+    default: "Fortify - Resilience Recognition OS",
+    template: "%s | Fortify",
+  },
   description:
-    "Broker-side wildfire renewal evidence and appeal workspace for Colorado community-association master policies.",
+    "Governed infrastructure connecting verified resilience investment to market-specific insurance submissions and recorded responses.",
   icons: { icon: "/favicon.svg" },
 };
 export const viewport: Viewport = {

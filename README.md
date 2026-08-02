@@ -1,8 +1,8 @@
 # Fortify
 
-Fortify is becoming a secure, multi-tenant catastrophe-property evidence and renewal control plane for specialist brokers. The current checked-in runtime remains a local, customer-demo-ready Colorado wildfire renewal evidence sandbox while the production architecture is implemented in ordered milestones.
+Fortify is becoming a secure, multi-tenant **Resilience Investment and Insurance Recognition OS**. Its initial production wedge is California wildfire-exposed HOA, condominium, townhome, community-association, and low-rise multifamily property for specialist brokerages and property-risk practices. The current checked-in customer story remains an isolated, deterministic Colorado renewal-evidence sandbox while the broader production architecture is implemented in ordered milestones.
 
-It is evidence infrastructure, not a wildfire risk model, inspection marketplace, legal opinion, actuarial certification, official IBHS product, or carrier integration. All seeded organizations, policies, notices, premiums, and outcomes are fictional. Carrier acceptance, renewal, discounts, and pricing changes are not guaranteed.
+Fortify governs how physical baselines, interventions, capital plans, funding, milestones, independent verification, candidate model-input mappings, market-specific submissions, actual responses, and maintenance evidence connect. It is not a wildfire model, risk score, insurer, rating engine, inspection authority, contractor marketplace, construction manager, grant fund, lender, legal/actuarial decision-maker, or guarantee of any physical, financial, model, rating, underwriting, or insurance outcome. All current seeded organizations, policies, notices, premiums, and outcomes are fictional.
 
 ## Fresh clone
 
@@ -31,6 +31,7 @@ npm run typecheck
 npm run test
 npm run build
 npm run demo:evaluate
+npm run security:claims
 npm run test:e2e
 ```
 
@@ -70,4 +71,4 @@ The compose file mounts `data/`, `storage/`, and `output/` as local volumes. See
 
 ## Product direction and validation documents
 
-Start with `docs/COMMERCIAL_NORTH_STAR.md`, `docs/NORTH_STAR_IMPLEMENTATION_PLAN.md`, and `docs/IMPLEMENTATION_STATUS.md`. `docs/ARCHITECTURE.md`, `docs/DATA_MODEL.md`, `docs/AUTHORIZATION_MODEL.md`, and `docs/MARKET_PLAYBOOK_GOVERNANCE.md` describe the production foundation. `DEMO_SCRIPT.md` and `docs/FINAL_VALIDATION_REPORT.md` describe the preserved deterministic sandbox. Security and product limitations are explicit in `docs/SECURITY_AND_LIMITATIONS.md`; repository-owner controls are listed in `docs/GITHUB_SETTINGS_CHECKLIST.md`.
+Start with `docs/COMMERCIAL_NORTH_STAR.md`, `docs/NORTH_STAR_IMPLEMENTATION_PLAN.md`, and `docs/IMPLEMENTATION_STATUS.md`. `docs/ARCHITECTURE.md`, `docs/DATA_MODEL.md`, `docs/AUTHORIZATION_MODEL.md`, and `docs/MARKET_PLAYBOOK_GOVERNANCE.md` describe the reusable production foundation; they do not imply that profiles, interventions, funding, verification, model mapping, recognition submissions, or programme administration are implemented. `docs/EVIDENCE_HIERARCHY.md`, `docs/CALIFORNIA_POLICY_REGISTER.md`, and `docs/EXTERNAL_VALIDATION_GATES.md` define authority separation and currently unproven external gates. `DEMO_SCRIPT.md` and `docs/FINAL_VALIDATION_REPORT.md` describe the preserved deterministic sandbox and measured historical gates. Security and product limitations are explicit in `docs/SECURITY_AND_LIMITATIONS.md`; repository-owner controls are listed in `docs/GITHUB_SETTINGS_CHECKLIST.md`.

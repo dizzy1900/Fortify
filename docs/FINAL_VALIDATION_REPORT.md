@@ -1,6 +1,16 @@
 # Final validation report
 
-Status: **customer-demo-ready MVP; local validation passed on August 1, 2026**. This is not a production-readiness, legal-correctness, carrier-acceptance, or market-validation claim.
+Status: **the M0 doctrine/release foundation and preserved Colorado M1–M7 renewal foundation were locally validated on August 1, 2026**. This is not a production-readiness, resilience-effectiveness, verification, model-acceptance, funding, legal-correctness, carrier-acceptance, customer-validation, programme-validation, or market-validation claim.
+
+## Product-doctrine M0 local-validation addendum
+
+The authoritative objective now defines Fortify as a California-first Resilience Investment and Insurance Recognition OS. Product doctrine, repository operating rules, architecture/data-model boundaries, milestone plan, evidence hierarchy, external-validation gates, and the empty-by-design California source register were reconciled. The public entry now presents the California product direction while labelling the existing Colorado renewal workflow as a fictional sandbox. A new prohibited-claims guard covers 18 direct guarantee, Fortify-certification/risk-score, automatic-recognition, and unsupported loss-reduction patterns in runtime source and generated text artifacts; its focused regression proves bounded language passes and a direct guarantee fails. The guard runs in local verification and both relevant CI jobs.
+
+One consolidated `npm run verify` invocation exited 0 with approved localhost binding: ESLint, strict TypeScript, 12 Vitest files/45 tests, a 214-file secret scan, the 19-page/37-API production build, 12/12 deterministic sandbox checks, the 18-pattern claims scan, and 12/12 serial Playwright scenarios across desktop Chromium and Pixel 7 passed. Production schema regeneration reported 65 tables and no drift; `npm audit --omit=dev` reported 0 vulnerabilities; `git diff --check` passed.
+
+The public doctrine page was captured and visually inspected at 1280-pixel desktop, 834-pixel tablet, and Pixel 7 mobile widths. California positioning, Colorado sandbox separation, authority boundaries, navigation/actions, workflow cards, trust statements, and disclaimers remained legible with no measured horizontal overflow or observed clipping/collision. The latest deterministic packet remained six Letter pages / 11,602 bytes and rendered without observed overlap, clipping, broken glyphs, or missing headers/footers. The 17-entry / 51,723-byte ZIP passed integrity checks, retained the manifest, letter, exact embedded PDF, and 14 exhibits; the embedded PDF hash matched the standalone PDF at `6b8f29f6c8e41a725dfe37d79831f093c9c60c3c042306dd494856e8da5bea21`.
+
+The prior M1–M7 results below remain evidence for the isolated sandbox and reusable renewal foundations only. M0 does not prove a rights-cleared California portfolio/source register, target profile, intervention, capital plan, funding programme, independent verification, external-model mapping, explicit recognition commitment, production recognition submission, separated real market responses, programme administration, deployment, or external acceptance.
 
 ## Production transformation M7 local-implementation addendum
 
