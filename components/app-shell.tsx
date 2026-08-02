@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Archive, Building2, CalendarDays, ChevronLeft, ChevronRight, ClipboardCheck, FileCheck2, FileText, Gauge, History, Home, LayoutDashboard, Menu, PackageCheck, RotateCcw, Settings, ShieldCheck, X } from "lucide-react";
+import { Archive, BookOpenCheck, Building2, CalendarDays, ChevronLeft, ChevronRight, ClipboardCheck, FileCheck2, FileSearch, FileText, Gauge, GitBranch, History, Home, KeyRound, LayoutDashboard, Menu, PackageCheck, RotateCcw, Settings, ShieldCheck, UploadCloud, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useDemo } from "./demo-provider";
 
 const nav = [
-  ["Portfolio", "/portfolio", LayoutDashboard], ["Community", "/community", Building2], ["Policy timeline", "/policy", CalendarDays], ["Carrier notice", "/notice", FileText], ["Requirement crosswalk", "/requirements", ClipboardCheck], ["Evidence room", "/evidence", Archive], ["Renewal case", "/case", Gauge], ["Packet builder", "/packet", PackageCheck], ["Underwriter review", "/underwriter", ShieldCheck], ["Outcome", "/outcomes", FileCheck2], ["Maintenance", "/maintenance", CalendarDays], ["Reports & audit", "/reports", History], ["Settings", "/settings", Settings],
+  ["Portfolio", "/portfolio", LayoutDashboard], ["Property graph", "/property-graph", GitBranch], ["Identity & access", "/access", KeyRound], ["SOV import", "/imports", UploadCloud], ["Document intake", "/documents", FileSearch], ["Market playbooks", "/playbooks", BookOpenCheck], ["Community", "/community", Building2], ["Policy timeline", "/policy", CalendarDays], ["Carrier notice", "/notice", FileText], ["Requirement crosswalk", "/requirements", ClipboardCheck], ["Evidence room", "/evidence", Archive], ["Renewal case", "/case", Gauge], ["Packet builder", "/packet", PackageCheck], ["Underwriter review", "/underwriter", ShieldCheck], ["Outcome", "/outcomes", FileCheck2], ["Maintenance", "/maintenance", CalendarDays], ["Reports & audit", "/reports", History], ["Settings", "/settings", Settings],
 ] as const;
 const guide = [
   ["Find the case in danger", "/portfolio"], ["Confirm the carrier notice", "/notice"], ["Review the crosswalk", "/requirements"], ["Assign missing-evidence work", "/case"], ["Disposition a contradiction", "/evidence"], ["Generate the real packet", "/packet"], ["Request underwriter clarification", "/underwriter"], ["Respond and record the outcome", "/outcomes"], ["Show next-year reuse", "/maintenance"],
@@ -20,7 +20,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return <div className="app-frame">
     <a className="skip-link" href="#main">Skip to main content</a>
     <aside className={`sidebar ${mobile ? "sidebar-open" : ""}`}>
-      <div className="brand"><div className="brand-mark">F</div><div><strong>Fortify</strong><span>Renewal evidence OS</span></div><button className="icon-button mobile-only" onClick={() => setMobile(false)} aria-label="Close navigation"><X size={18}/></button></div>
+      <div className="brand"><div className="brand-mark">F</div><div><strong>Fortify</strong><span>Colorado renewal sandbox</span></div><button className="icon-button mobile-only" onClick={() => setMobile(false)} aria-label="Close navigation"><X size={18}/></button></div>
       <div className="fictional-label"><span/>Fictional demo workspace</div>
       <nav aria-label="Workspace navigation">{nav.map(([label, href, Icon]) => <Link key={href} href={href} className={pathname === href ? "active" : ""} onClick={() => setMobile(false)}><Icon size={16}/>{label}</Link>)}</nav>
       <div className="sidebar-foot"><div className="avatar">MC</div><div><strong>Maya Chen</strong><span>Renewal executive</span></div></div>

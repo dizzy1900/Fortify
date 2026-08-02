@@ -1,4 +1,4 @@
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, or } from "drizzle-orm";
 import {
   createHash,
   randomBytes,
@@ -8,6 +8,7 @@ import {
 import * as schema from "@/db/production/schema";
 import {
   assertAuthorized,
+  roleRequiresAssignment,
   type AuthorizationContext,
   type OrganizationRole,
 } from "@/lib/production/authorization";
@@ -328,6 +329,90 @@ export class IdentityService {
     const membership = memberships[0];
     if (!membership)
       throw new RevokedCredentialError("The organization membership is inactive.");
+    const role = membership.role as OrganizationRole;
+    let assignedCaseIds: string[] | undefined;
+    let assignedPortfolioIds: string[] | undefined;
+    let assignedCaseScopes: Record<string, string[]> | undefined;
+    let assignedPortfolioScopes: Record<string, string[]> | undefined;
+    if (roleRequiresAssignment(role)) {
+      const teamMembershipRows = await this.database
+        .select({ teamId: schema.teamMemberships.teamId })
+        .from(schema.teamMemberships)
+        .where(
+          and(
+            eq(schema.teamMemberships.organizationId, membership.organizationId),
+            eq(schema.teamMemberships.membershipId, membership.id),
+            eq(schema.teamMemberships.lifecycleStatus, "active"),
+          ),
+        );
+      const teamIds = teamMembershipRows.map((row) => row.teamId);
+      const [caseAssignmentRows, portfolioAssignmentRows] = await Promise.all([
+        this.database
+          .select({
+            caseId: schema.caseAssignments.caseId,
+            permissions: schema.caseAssignments.permissions,
+          })
+          .from(schema.caseAssignments)
+          .where(
+            and(
+              eq(schema.caseAssignments.organizationId, membership.organizationId),
+              eq(schema.caseAssignments.membershipId, membership.id),
+              eq(schema.caseAssignments.lifecycleStatus, "active"),
+              isNull(schema.caseAssignments.revokedAt),
+              or(
+                isNull(schema.caseAssignments.expiresAt),
+                gt(schema.caseAssignments.expiresAt, now),
+              ),
+            ),
+          ),
+        this.database
+          .select({
+            portfolioId: schema.portfolioAssignments.portfolioId,
+            permissions: schema.portfolioAssignments.permissions,
+          })
+          .from(schema.portfolioAssignments)
+          .where(
+            and(
+              eq(
+                schema.portfolioAssignments.organizationId,
+                membership.organizationId,
+              ),
+              teamIds.length > 0
+                ? or(
+                    eq(schema.portfolioAssignments.membershipId, membership.id),
+                    inArray(schema.portfolioAssignments.teamId, teamIds),
+                  )
+                : eq(schema.portfolioAssignments.membershipId, membership.id),
+              eq(schema.portfolioAssignments.lifecycleStatus, "active"),
+              isNull(schema.portfolioAssignments.revokedAt),
+              or(
+                isNull(schema.portfolioAssignments.expiresAt),
+                gt(schema.portfolioAssignments.expiresAt, now),
+              ),
+            ),
+          ),
+      ]);
+      assignedCaseIds = [...new Set(caseAssignmentRows.map((row) => row.caseId))];
+      assignedPortfolioIds = [
+        ...new Set(portfolioAssignmentRows.map((row) => row.portfolioId)),
+      ];
+      assignedCaseScopes = {};
+      for (const assignment of caseAssignmentRows)
+        assignedCaseScopes[assignment.caseId] = [
+          ...new Set([
+            ...(assignedCaseScopes[assignment.caseId] ?? []),
+            ...assignment.permissions,
+          ]),
+        ];
+      assignedPortfolioScopes = {};
+      for (const assignment of portfolioAssignmentRows)
+        assignedPortfolioScopes[assignment.portfolioId] = [
+          ...new Set([
+            ...(assignedPortfolioScopes[assignment.portfolioId] ?? []),
+            ...assignment.permissions,
+          ]),
+        ];
+    }
     await this.database
       .update(schema.sessions)
       .set({ lastSeenAt: now })
@@ -337,8 +422,12 @@ export class IdentityService {
         organizationId: membership.organizationId,
         actorSubject: `${identity.providerKey}:${identity.providerSubject}`,
         principalType: "membership",
-        role: membership.role as OrganizationRole,
+        role,
         grantedScopes: [],
+        assignedCaseIds,
+        assignedPortfolioIds,
+        assignedCaseScopes,
+        assignedPortfolioScopes,
         sessionId: session.id,
       },
       identity,

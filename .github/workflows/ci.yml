@@ -36,6 +36,7 @@ jobs:
         run: npm run test:migration
       - run: npm run build
       - run: npm run demo:evaluate
+      - run: npm run security:claims
       - uses: actions/upload-artifact@v4
         with:
           name: deterministic-demo-evidence
@@ -86,6 +87,7 @@ jobs:
       - run: npm ci
       - run: npm audit --omit=dev --audit-level=high
       - run: npm run security:secrets
+      - run: npm run security:claims
 
   sast:
     name: CodeQL

@@ -1,5 +1,5 @@
 {
-  "name": "fortify-renewal-evidence-os",
+  "name": "fortify-resilience-recognition-os",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -16,19 +16,22 @@
     "test:migration": "vitest run tests/migration.test.ts",
     "test:e2e": "playwright test",
     "security:secrets": "node scripts/scan-secrets.mjs",
+    "security:claims": "node scripts/scan-prohibited-claims.mjs",
     "db:generate": "drizzle-kit generate",
     "db:generate:production": "drizzle-kit generate --config drizzle-production.config.ts",
     "db:migrate:production": "node --import tsx scripts/migrate-production.ts",
     "db:seed:production-sandbox": "node --import tsx scripts/seed-production-sandbox.ts",
+    "worker:documents:once": "node --import tsx scripts/run-document-worker.ts",
     "demo:reset": "node --import tsx scripts/reset-demo.ts",
     "demo:evaluate": "node --import tsx scripts/evaluate-demo.ts",
     "artifacts:generate": "node --import tsx scripts/generate-artifacts.ts",
-    "verify": "npm run lint && npm run typecheck && npm run test && npm run security:secrets && npm run build && npm run demo:evaluate && npm run test:e2e"
+    "verify": "npm run lint && npm run typecheck && npm run test && npm run security:secrets && npm run build && npm run demo:evaluate && npm run security:claims && npm run test:e2e"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1101.0",
     "@aws-sdk/s3-request-presigner": "^3.1101.0",
     "better-sqlite3": "^13.0.2",
+    "csv-parse": "^7.0.1",
     "drizzle-orm": "0.45.2",
     "jszip": "^3.10.1",
     "lucide-react": "^1.28.0",
@@ -40,6 +43,7 @@
     "pg": "^8.22.0",
     "react": "19.2.6",
     "react-dom": "19.2.6",
+    "read-excel-file": "^9.3.5",
     "sharp": "0.35.3"
   },
   "devDependencies": {
@@ -64,6 +68,9 @@
     "vitest": "^4.1.10"
   },
   "overrides": {
+    "@esbuild-kit/core-utils": {
+      "esbuild": "0.25.12"
+    },
     "postcss": "8.5.18",
     "sharp": "0.35.3"
   },

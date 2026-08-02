@@ -1,0 +1,2 @@
+ALTER TABLE "locations" ADD COLUMN "normalized_address" text DEFAULT '' NOT NULL;--> statement-breakpoint
+CREATE INDEX "locations_org_normalized_address_idx" ON "locations" USING btree ("organization_id","normalized_address");

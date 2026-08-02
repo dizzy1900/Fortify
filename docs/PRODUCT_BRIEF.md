@@ -1,8 +1,10 @@
-# Fortify authoritative product brief
+# Legacy Colorado sandbox product brief
+
+This document now governs only the preserved deterministic Colorado renewal sandbox and its regression story. The authoritative product doctrine is [COMMERCIAL_NORTH_STAR.md](./COMMERCIAL_NORTH_STAR.md): a California-first Resilience Investment and Insurance Recognition OS. Nothing in this sandbox brief proves or scopes the production target-profile, intervention, capital, funding, verification, model-mapping, market-commitment, recognition, programme, or longitudinal-outcome systems.
 
 ## Thesis and wedge
 
-Fortify is the initial sellable wedge of a long-term property resilience evidence record: a renewal evidence and appeal workspace for specialist brokers handling Colorado community-association, condominium, townhome, and low-rise multifamily master policies exposed to wildfire. It converts notices, mitigation documents, photos, certificates, invoices, and community records into an underwriter-reviewable case.
+The preserved sandbox is a renewal evidence and appeal workspace for specialist brokers handling fictional Colorado community-association, condominium, townhome, and low-rise multifamily master policies exposed to wildfire. It converts notices, mitigation documents, photos, certificates, invoices, and community records into an underwriter-reviewable fictional case.
 
 The economic buyer is a community-association insurance practice leader or independent brokerage principal. The daily user is a renewal/account executive. Secondary users are community managers, HOA boards or risk committees, mitigation professionals, and read-only underwriter reviewers.
 

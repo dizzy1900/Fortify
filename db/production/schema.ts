@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   boolean,
   check,
   date,
@@ -106,6 +107,40 @@ const tenantColumns = () => ({
   deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
 });
 
+const governedGraphColumns = () => ({
+  sourceSystem: text("source_system").notNull().default("manual"),
+  sourceRecordId: text("source_record_id"),
+  effectiveFrom: date("effective_from", { mode: "string" }),
+  effectiveTo: date("effective_to", { mode: "string" }),
+  confidentialityState: text("confidentiality_state")
+    .notNull()
+    .default("tenant_confidential"),
+  dataRightClass: text("data_right_class")
+    .notNull()
+    .default("property_specific_data"),
+  rightsVerified: boolean("rights_verified").notNull().default(false),
+});
+
+const governedGraphChecks = (table: {
+  effectiveFrom: AnyPgColumn;
+  effectiveTo: AnyPgColumn;
+  confidentialityState: AnyPgColumn;
+  dataRightClass: AnyPgColumn;
+}) => [
+  check(
+    `${table.effectiveFrom.name.replace("effective_from", "governed")}_effective_period_check`,
+    sql`${table.effectiveTo} is null or ${table.effectiveFrom} is null or ${table.effectiveTo} >= ${table.effectiveFrom}`,
+  ),
+  check(
+    `${table.confidentialityState.name.replace("confidentiality_state", "governed")}_confidentiality_check`,
+    sql`${table.confidentialityState} in ('public', 'tenant_confidential', 'carrier_confidential', 'restricted')`,
+  ),
+  check(
+    `${table.dataRightClass.name.replace("data_right_class", "governed")}_data_right_check`,
+    sql`${table.dataRightClass} in ('raw_customer_document', 'personally_identifiable', 'property_specific_data', 'carrier_confidential_material', 'customer_specific_playbook', 'fortify_generic_ontology', 'software_telemetry', 'deidentified_derived_event', 'cross_customer_benchmark', 'model_provider_restricted')`,
+  ),
+];
+
 export const memberships = pgTable(
   "memberships",
   {
@@ -129,7 +164,7 @@ export const memberships = pgTable(
     index("memberships_org_status_idx").on(table.organizationId, table.status),
     check(
       "memberships_role_check",
-      sql`${table.role} in ('organization_owner', 'brokerage_administrator', 'practice_leader', 'broker', 'marketer', 'assistant', 'client_property_manager', 'board_contributor', 'evidence_contributor', 'underwriter_reviewer', 'read_only_auditor')`,
+      sql`${table.role} in ('organization_owner', 'brokerage_administrator', 'practice_leader', 'broker', 'marketer', 'assistant', 'property_operator_administrator', 'property_manager', 'client_property_manager', 'board_contributor', 'contractor_evidence_contributor', 'evidence_contributor', 'independent_verifier', 'programme_administrator', 'insurer_mga_reviewer', 'underwriter_reviewer', 'lender_funder_reviewer', 'read_only_auditor')`,
     ),
     check(
       "memberships_status_check",
@@ -559,6 +594,209 @@ export const backupManifestItems = pgTable(
   ],
 );
 
+export const importMappings = pgTable(
+  "import_mappings",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    name: text("name").notNull(),
+    sourceSystem: text("source_system").notNull(),
+    currentVersionId: text("current_version_id"),
+  },
+  (table) => [
+    uniqueIndex("import_mappings_org_name_unique").on(
+      table.organizationId,
+      table.name,
+    ),
+    check("import_mappings_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const importMappingVersions = pgTable(
+  "import_mapping_versions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    importMappingId: text("import_mapping_id")
+      .notNull()
+      .references(() => importMappings.id, { onDelete: "restrict" }),
+    versionNumber: integer("version_number").notNull(),
+    schemaVersion: text("schema_version").notNull(),
+    fileFormat: text("file_format").notNull(),
+    sheetName: text("sheet_name"),
+    headerRow: integer("header_row").notNull().default(1),
+    columnMapping: jsonb("column_mapping")
+      .$type<Record<string, string>>()
+      .notNull(),
+    constants: jsonb("constants")
+      .$type<Record<string, string>>()
+      .notNull()
+      .default({}),
+    contentHash: text("content_hash").notNull(),
+  },
+  (table) => [
+    uniqueIndex("import_mapping_versions_org_mapping_version_unique").on(
+      table.organizationId,
+      table.importMappingId,
+      table.versionNumber,
+    ),
+    check(
+      "import_mapping_versions_format_check",
+      sql`${table.fileFormat} in ('csv', 'xlsx')`,
+    ),
+    check(
+      "import_mapping_versions_header_check",
+      sql`${table.headerRow} > 0`,
+    ),
+    check("import_mapping_versions_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const portfolioImports = pgTable(
+  "portfolio_imports",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    bookId: text("book_id")
+      .notNull()
+      .references(() => books.id, { onDelete: "restrict" }),
+    storageObjectId: text("storage_object_id")
+      .notNull()
+      .references(() => storageObjects.id, { onDelete: "restrict" }),
+    mappingVersionId: text("mapping_version_id")
+      .notNull()
+      .references(() => importMappingVersions.id, { onDelete: "restrict" }),
+    sourceSystem: text("source_system").notNull(),
+    fileFormat: text("file_format").notNull(),
+    originalFilename: text("original_filename").notNull(),
+    contentHash: text("content_hash").notNull(),
+    idempotencyKey: text("idempotency_key").notNull(),
+    requestHash: text("request_hash").notNull(),
+    status: text("status").notNull().default("previewed"),
+    totalRows: integer("total_rows").notNull().default(0),
+    acceptedRows: integer("accepted_rows").notNull().default(0),
+    rejectedRows: integer("rejected_rows").notNull().default(0),
+    ambiguousRows: integer("ambiguous_rows").notNull().default(0),
+    committedRows: integer("committed_rows").notNull().default(0),
+    createdEntities: jsonb("created_entities")
+      .$type<Array<{ entityType: string; entityId: string }>>()
+      .notNull()
+      .default([]),
+    committedAt: timestamp("committed_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    rolledBackAt: timestamp("rolled_back_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+  },
+  (table) => [
+    uniqueIndex("portfolio_imports_org_idempotency_unique").on(
+      table.organizationId,
+      table.sourceSystem,
+      table.idempotencyKey,
+    ),
+    index("portfolio_imports_org_status_idx").on(
+      table.organizationId,
+      table.status,
+      table.createdAt,
+    ),
+    check(
+      "portfolio_imports_format_check",
+      sql`${table.fileFormat} in ('csv', 'xlsx')`,
+    ),
+    check(
+      "portfolio_imports_status_check",
+      sql`${table.status} in ('previewed', 'committed', 'rolled_back', 'failed')`,
+    ),
+    check(
+      "portfolio_imports_count_check",
+      sql`${table.totalRows} >= 0 and ${table.acceptedRows} >= 0 and ${table.rejectedRows} >= 0 and ${table.ambiguousRows} >= 0 and ${table.committedRows} >= 0`,
+    ),
+    check("portfolio_imports_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const importRows = pgTable(
+  "import_rows",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    portfolioImportId: text("portfolio_import_id")
+      .notNull()
+      .references(() => portfolioImports.id, { onDelete: "restrict" }),
+    rowNumber: integer("row_number").notNull(),
+    rawData: jsonb("raw_data").$type<Record<string, unknown>>().notNull(),
+    normalizedData: jsonb("normalized_data")
+      .$type<Record<string, unknown>>()
+      .notNull(),
+    status: text("status").notNull(),
+    errors: jsonb("errors").$type<string[]>().notNull().default([]),
+    warnings: jsonb("warnings").$type<string[]>().notNull().default([]),
+    matchCandidateIds: jsonb("match_candidate_ids")
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+    appliedEntities: jsonb("applied_entities")
+      .$type<Array<{ entityType: string; entityId: string }>>()
+      .notNull()
+      .default([]),
+  },
+  (table) => [
+    uniqueIndex("import_rows_org_import_row_unique").on(
+      table.organizationId,
+      table.portfolioImportId,
+      table.rowNumber,
+    ),
+    index("import_rows_org_status_idx").on(
+      table.organizationId,
+      table.portfolioImportId,
+      table.status,
+    ),
+    check("import_rows_row_check", sql`${table.rowNumber} > 0`),
+    check(
+      "import_rows_status_check",
+      sql`${table.status} in ('accepted', 'rejected', 'ambiguous', 'committed', 'rolled_back')`,
+    ),
+    check("import_rows_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const importReceipts = pgTable(
+  "import_receipts",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    portfolioImportId: text("portfolio_import_id")
+      .notNull()
+      .references(() => portfolioImports.id, { onDelete: "restrict" }),
+    receiptType: text("receipt_type").notNull(),
+    summary: jsonb("summary").$type<Record<string, unknown>>().notNull(),
+    receiptHash: text("receipt_hash").notNull(),
+    occurredAt: timestamp("occurred_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("import_receipts_org_hash_unique").on(
+      table.organizationId,
+      table.receiptHash,
+    ),
+    index("import_receipts_org_import_idx").on(
+      table.organizationId,
+      table.portfolioImportId,
+      table.occurredAt,
+    ),
+    check(
+      "import_receipts_type_check",
+      sql`${table.receiptType} in ('preview', 'commit', 'rollback')`,
+    ),
+    check("import_receipts_lifecycle_check", lifecycleValues),
+  ],
+);
+
 export const books = pgTable(
   "books",
   {
@@ -596,6 +834,35 @@ export const clients = pgTable(
     ),
     index("clients_org_book_idx").on(table.organizationId, table.bookId),
     check("clients_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const propertyPortfolios = pgTable(
+  "property_portfolios",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    ...governedGraphColumns(),
+    clientId: text("client_id")
+      .notNull()
+      .references(() => clients.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
+    jurisdiction: text("jurisdiction").notNull(),
+    primaryPeril: text("primary_peril").notNull(),
+    description: text("description").notNull().default(""),
+  },
+  (table) => [
+    uniqueIndex("property_portfolios_org_source_unique").on(
+      table.organizationId,
+      table.sourceSystem,
+      table.sourceRecordId,
+    ),
+    index("property_portfolios_org_client_idx").on(
+      table.organizationId,
+      table.clientId,
+    ),
+    ...governedGraphChecks(table),
+    check("property_portfolios_lifecycle_check", lifecycleValues),
   ],
 );
 
@@ -692,6 +959,7 @@ export const locations = pgTable(
     postalCode: text("postal_code"),
     county: text("county"),
     countryCode: text("country_code").notNull().default("US"),
+    normalizedAddress: text("normalized_address").notNull().default(""),
     latitude: numeric("latitude", { precision: 10, scale: 7 }),
     longitude: numeric("longitude", { precision: 10, scale: 7 }),
     normalizationStatus: text("normalization_status")
@@ -702,6 +970,10 @@ export const locations = pgTable(
     index("locations_org_property_idx").on(
       table.organizationId,
       table.propertyId,
+    ),
+    index("locations_org_normalized_address_idx").on(
+      table.organizationId,
+      table.normalizedAddress,
     ),
     check("locations_lifecycle_check", lifecycleValues),
   ],
@@ -725,6 +997,260 @@ export const buildings = pgTable(
       table.label,
     ),
     check("buildings_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const portfolioProperties = pgTable(
+  "portfolio_properties",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    ...governedGraphColumns(),
+    portfolioId: text("portfolio_id")
+      .notNull()
+      .references(() => propertyPortfolios.id, { onDelete: "restrict" }),
+    propertyId: text("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "restrict" }),
+    relationshipStatus: text("relationship_status")
+      .notNull()
+      .default("active"),
+  },
+  (table) => [
+    uniqueIndex("portfolio_properties_org_pair_unique").on(
+      table.organizationId,
+      table.portfolioId,
+      table.propertyId,
+      table.effectiveFrom,
+    ),
+    index("portfolio_properties_org_property_idx").on(
+      table.organizationId,
+      table.propertyId,
+    ),
+    ...governedGraphChecks(table),
+    check(
+      "portfolio_properties_status_check",
+      sql`${table.relationshipStatus} in ('active', 'pending_review', 'ended')`,
+    ),
+    check("portfolio_properties_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const parcels = pgTable(
+  "parcels",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    ...governedGraphColumns(),
+    propertyId: text("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "restrict" }),
+    label: text("label").notNull(),
+    parcelNumber: text("parcel_number"),
+    boundaryGeojson: jsonb("boundary_geojson").$type<Record<string, unknown>>(),
+    spatialReference: text("spatial_reference").notNull().default("EPSG:4326"),
+    geometryStatus: text("geometry_status").notNull().default("unavailable"),
+  },
+  (table) => [
+    uniqueIndex("parcels_org_property_label_unique").on(
+      table.organizationId,
+      table.propertyId,
+      table.label,
+    ),
+    index("parcels_org_number_idx").on(
+      table.organizationId,
+      table.parcelNumber,
+    ),
+    ...governedGraphChecks(table),
+    check(
+      "parcels_geometry_status_check",
+      sql`${table.geometryStatus} in ('unavailable', 'unreviewed', 'confirmed', 'rejected')`,
+    ),
+    check(
+      "parcels_boundary_state_check",
+      sql`(${table.boundaryGeojson} is null and ${table.geometryStatus} in ('unavailable', 'rejected')) or (${table.boundaryGeojson} is not null and ${table.geometryStatus} in ('unreviewed', 'confirmed'))`,
+    ),
+    check("parcels_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const unitSummaries = pgTable(
+  "unit_summaries",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    ...governedGraphColumns(),
+    propertyId: text("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "restrict" }),
+    buildingId: text("building_id").references(() => buildings.id, {
+      onDelete: "restrict",
+    }),
+    label: text("label").notNull(),
+    unitCount: integer("unit_count").notNull(),
+    occupancyType: text("occupancy_type").notNull(),
+  },
+  (table) => [
+    uniqueIndex("unit_summaries_org_property_label_unique").on(
+      table.organizationId,
+      table.propertyId,
+      table.label,
+      table.effectiveFrom,
+    ),
+    ...governedGraphChecks(table),
+    check("unit_summaries_count_check", sql`${table.unitCount} >= 0`),
+    check("unit_summaries_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const propertyScopes = pgTable(
+  "property_scopes",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    ...governedGraphColumns(),
+    propertyId: text("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "restrict" }),
+    parcelId: text("parcel_id").references(() => parcels.id, {
+      onDelete: "restrict",
+    }),
+    buildingId: text("building_id").references(() => buildings.id, {
+      onDelete: "restrict",
+    }),
+    unitSummaryId: text("unit_summary_id").references(() => unitSummaries.id, {
+      onDelete: "restrict",
+    }),
+    scopeType: text("scope_type").notNull(),
+    label: text("label").notNull(),
+    details: jsonb("details").$type<Record<string, unknown>>().notNull().default({}),
+  },
+  (table) => [
+    uniqueIndex("property_scopes_org_property_type_label_unique").on(
+      table.organizationId,
+      table.propertyId,
+      table.scopeType,
+      table.label,
+      table.effectiveFrom,
+    ),
+    ...governedGraphChecks(table),
+    check(
+      "property_scopes_type_check",
+      sql`${table.scopeType} in ('community', 'parcel', 'building', 'building_group', 'unit_summary', 'landscape_zone', 'access_route', 'shared_infrastructure')`,
+    ),
+    check("property_scopes_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const propertyAliases = pgTable(
+  "property_aliases",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    ...governedGraphColumns(),
+    propertyId: text("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "restrict" }),
+    alias: text("alias").notNull(),
+    aliasType: text("alias_type").notNull(),
+    reviewStatus: text("review_status").notNull().default("unreviewed"),
+  },
+  (table) => [
+    uniqueIndex("property_aliases_org_alias_unique").on(
+      table.organizationId,
+      table.propertyId,
+      table.alias,
+      table.sourceSystem,
+      table.effectiveFrom,
+    ),
+    ...governedGraphChecks(table),
+    check(
+      "property_aliases_review_check",
+      sql`${table.reviewStatus} in ('unreviewed', 'confirmed', 'rejected', 'superseded')`,
+    ),
+    check("property_aliases_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const propertyRelationships = pgTable(
+  "property_relationships",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    ...governedGraphColumns(),
+    fromPropertyId: text("from_property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "restrict" }),
+    toPropertyId: text("to_property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "restrict" }),
+    relationshipType: text("relationship_type").notNull(),
+    scopeLabel: text("scope_label").notNull().default(""),
+    reviewStatus: text("review_status").notNull().default("unreviewed"),
+  },
+  (table) => [
+    uniqueIndex("property_relationships_org_pair_unique").on(
+      table.organizationId,
+      table.fromPropertyId,
+      table.toPropertyId,
+      table.relationshipType,
+      table.effectiveFrom,
+    ),
+    ...governedGraphChecks(table),
+    check(
+      "property_relationships_distinct_check",
+      sql`${table.fromPropertyId} <> ${table.toPropertyId}`,
+    ),
+    check(
+      "property_relationships_review_check",
+      sql`${table.reviewStatus} in ('unreviewed', 'confirmed', 'rejected', 'superseded')`,
+    ),
+    check("property_relationships_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const propertyVersions = pgTable(
+  "property_versions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    ...governedGraphColumns(),
+    propertyId: text("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "restrict" }),
+    versionNumber: integer("version_number").notNull(),
+    snapshot: jsonb("snapshot").$type<Record<string, unknown>>().notNull(),
+    snapshotHash: text("snapshot_hash").notNull(),
+    changeSummary: text("change_summary").notNull(),
+    supersedesId: text("supersedes_id").references(
+      (): AnyPgColumn => propertyVersions.id,
+      { onDelete: "restrict" },
+    ),
+    recordedAt: timestamp("recorded_at", {
+      withTimezone: true,
+      mode: "string",
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("property_versions_org_property_version_unique").on(
+      table.organizationId,
+      table.propertyId,
+      table.versionNumber,
+    ),
+    uniqueIndex("property_versions_org_hash_unique").on(
+      table.organizationId,
+      table.propertyId,
+      table.snapshotHash,
+    ),
+    ...governedGraphChecks(table),
+    check("property_versions_number_check", sql`${table.versionNumber} >= 1`),
+    check(
+      "property_versions_hash_check",
+      sql`char_length(${table.snapshotHash}) = 64`,
+    ),
+    check("property_versions_lifecycle_check", lifecycleValues),
   ],
 );
 
@@ -840,9 +1366,14 @@ export const caseAssignments = pgTable(
       { onDelete: "restrict" },
     ),
     assignmentRole: text("assignment_role").notNull(),
+    accessPurpose: text("access_purpose")
+      .notNull()
+      .default("case workflow assignment"),
     permissions: jsonb("permissions").$type<string[]>().notNull().default([]),
+    dataDomains: jsonb("data_domains").$type<string[]>().notNull().default([]),
     expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }),
     revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "string" }),
+    revocationReason: text("revocation_reason"),
   },
   (table) => [
     index("case_assignments_org_case_idx").on(
@@ -857,7 +1388,119 @@ export const caseAssignments = pgTable(
       "case_assignments_role_check",
       sql`${table.assignmentRole} in ('owner', 'team_member', 'contributor', 'reviewer', 'auditor')`,
     ),
+    check(
+      "case_assignments_purpose_check",
+      sql`char_length(trim(${table.accessPurpose})) >= 8`,
+    ),
     check("case_assignments_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const portfolioAssignments = pgTable(
+  "portfolio_assignments",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    portfolioId: text("portfolio_id")
+      .notNull()
+      .references(() => propertyPortfolios.id, { onDelete: "restrict" }),
+    membershipId: text("membership_id").references(() => memberships.id, {
+      onDelete: "restrict",
+    }),
+    teamId: text("team_id").references(() => teams.id, {
+      onDelete: "restrict",
+    }),
+    externalPrincipalId: text("external_principal_id").references(
+      () => externalPrincipals.id,
+      { onDelete: "restrict" },
+    ),
+    assignmentRole: text("assignment_role").notNull(),
+    accessPurpose: text("access_purpose").notNull(),
+    permissions: jsonb("permissions").$type<string[]>().notNull().default([]),
+    dataDomains: jsonb("data_domains").$type<string[]>().notNull().default([]),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "string" }),
+    revocationReason: text("revocation_reason"),
+  },
+  (table) => [
+    index("portfolio_assignments_org_portfolio_idx").on(
+      table.organizationId,
+      table.portfolioId,
+    ),
+    index("portfolio_assignments_org_membership_idx").on(
+      table.organizationId,
+      table.membershipId,
+    ),
+    check(
+      "portfolio_assignments_one_principal_check",
+      sql`((${table.membershipId} is not null)::integer + (${table.teamId} is not null)::integer + (${table.externalPrincipalId} is not null)::integer) = 1`,
+    ),
+    check(
+      "portfolio_assignments_role_check",
+      sql`${table.assignmentRole} in ('owner', 'manager', 'contributor', 'verifier', 'reviewer', 'auditor')`,
+    ),
+    check(
+      "portfolio_assignments_purpose_check",
+      sql`char_length(trim(${table.accessPurpose})) >= 8`,
+    ),
+    check("portfolio_assignments_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const dataAccessLogs = pgTable(
+  "data_access_logs",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    principalType: text("principal_type").notNull(),
+    actorSubject: text("actor_subject").notNull(),
+    accessPurpose: text("access_purpose").notNull(),
+    resourceType: text("resource_type").notNull(),
+    resourceId: text("resource_id").notNull(),
+    action: text("action").notNull(),
+    outcome: text("outcome").notNull(),
+    portfolioId: text("portfolio_id").references(() => propertyPortfolios.id, {
+      onDelete: "restrict",
+    }),
+    caseId: text("case_id").references(() => renewalCases.id, {
+      onDelete: "restrict",
+    }),
+    dataClasses: jsonb("data_classes").$type<string[]>().notNull().default([]),
+    requestId: text("request_id"),
+    occurredAt: timestamp("occurred_at", {
+      withTimezone: true,
+      mode: "string",
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("data_access_logs_org_time_idx").on(
+      table.organizationId,
+      table.occurredAt,
+    ),
+    index("data_access_logs_org_resource_idx").on(
+      table.organizationId,
+      table.resourceType,
+      table.resourceId,
+    ),
+    check(
+      "data_access_logs_principal_check",
+      sql`${table.principalType} in ('membership', 'external_collaborator', 'external_reviewer', 'service_account', 'support_administrator')`,
+    ),
+    check(
+      "data_access_logs_action_check",
+      sql`${table.action} in ('read', 'create', 'update', 'delete', 'manage', 'upload', 'download')`,
+    ),
+    check(
+      "data_access_logs_outcome_check",
+      sql`${table.outcome} in ('allowed', 'denied')`,
+    ),
+    check(
+      "data_access_logs_purpose_check",
+      sql`char_length(trim(${table.accessPurpose})) >= 8`,
+    ),
+    check("data_access_logs_lifecycle_check", lifecycleValues),
   ],
 );
 
@@ -901,7 +1544,22 @@ export const sourceDocuments = pgTable(
     caseId: text("case_id").references(() => renewalCases.id, {
       onDelete: "restrict",
     }),
+    storageObjectId: text("storage_object_id").references(
+      () => storageObjects.id,
+      { onDelete: "restrict" },
+    ),
+    supersedesSourceDocumentId: text("supersedes_source_document_id").references(
+      (): AnyPgColumn => sourceDocuments.id,
+      { onDelete: "restrict" },
+    ),
+    versionNumber: integer("version_number").notNull().default(1),
     documentType: text("document_type").notNull(),
+    classificationConfidence: numeric("classification_confidence", {
+      precision: 5,
+      scale: 4,
+    }),
+    classifierKey: text("classifier_key"),
+    classifierVersion: text("classifier_version"),
     filename: text("filename").notNull(),
     mimeType: text("mime_type").notNull(),
     storageKey: text("storage_key"),
@@ -921,7 +1579,150 @@ export const sourceDocuments = pgTable(
       table.organizationId,
       table.sha256,
     ),
+    index("source_documents_org_storage_idx").on(
+      table.organizationId,
+      table.storageObjectId,
+    ),
+    check(
+      "source_documents_version_check",
+      sql`${table.versionNumber} >= 1`,
+    ),
     check("source_documents_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const documentProcessingJobs = pgTable(
+  "document_processing_jobs",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    sourceDocumentId: text("source_document_id")
+      .notNull()
+      .references(() => sourceDocuments.id, { onDelete: "restrict" }),
+    pipelineVersion: text("pipeline_version").notNull(),
+    status: text("status").notNull().default("queued"),
+    attemptCount: integer("attempt_count").notNull().default(0),
+    maxAttempts: integer("max_attempts").notNull().default(3),
+    availableAt: timestamp("available_at", {
+      withTimezone: true,
+      mode: "string",
+    })
+      .notNull()
+      .defaultNow(),
+    leaseOwner: text("lease_owner"),
+    leaseExpiresAt: timestamp("lease_expires_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    lastErrorCode: text("last_error_code"),
+    lastErrorMessage: text("last_error_message"),
+    completedAt: timestamp("completed_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    deadLetteredAt: timestamp("dead_lettered_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+  },
+  (table) => [
+    uniqueIndex("document_processing_jobs_org_document_pipeline_unique").on(
+      table.organizationId,
+      table.sourceDocumentId,
+      table.pipelineVersion,
+    ),
+    index("document_processing_jobs_org_queue_idx").on(
+      table.organizationId,
+      table.status,
+      table.availableAt,
+    ),
+    check(
+      "document_processing_jobs_status_check",
+      sql`${table.status} in ('queued', 'running', 'retry_scheduled', 'succeeded', 'dead_letter')`,
+    ),
+    check(
+      "document_processing_jobs_attempts_check",
+      sql`${table.attemptCount} >= 0 and ${table.maxAttempts} between 1 and 10 and ${table.attemptCount} <= ${table.maxAttempts}`,
+    ),
+    check("document_processing_jobs_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const documentProcessingAttempts = pgTable(
+  "document_processing_attempts",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    jobId: text("job_id")
+      .notNull()
+      .references(() => documentProcessingJobs.id, { onDelete: "restrict" }),
+    attemptNumber: integer("attempt_number").notNull(),
+    workerId: text("worker_id").notNull(),
+    status: text("status").notNull(),
+    providerKey: text("provider_key"),
+    providerVersion: text("provider_version"),
+    errorCode: text("error_code"),
+    errorMessage: text("error_message"),
+    startedAt: timestamp("started_at", { withTimezone: true, mode: "string" })
+      .notNull(),
+    finishedAt: timestamp("finished_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+  },
+  (table) => [
+    uniqueIndex("document_processing_attempts_job_number_unique").on(
+      table.organizationId,
+      table.jobId,
+      table.attemptNumber,
+    ),
+    check(
+      "document_processing_attempts_status_check",
+      sql`${table.status} in ('running', 'succeeded', 'failed_retryable', 'failed_terminal')`,
+    ),
+    check("document_processing_attempts_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const documentExtractionRuns = pgTable(
+  "document_extraction_runs",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    sourceDocumentId: text("source_document_id")
+      .notNull()
+      .references(() => sourceDocuments.id, { onDelete: "restrict" }),
+    jobId: text("job_id")
+      .notNull()
+      .references(() => documentProcessingJobs.id, { onDelete: "restrict" }),
+    providerKey: text("provider_key").notNull(),
+    providerVersion: text("provider_version").notNull(),
+    extractorKey: text("extractor_key").notNull(),
+    extractorVersion: text("extractor_version").notNull(),
+    inputSha256: text("input_sha256").notNull(),
+    modelDerived: boolean("model_derived").notNull().default(false),
+    pageCount: integer("page_count").notNull(),
+    warnings: jsonb("warnings").$type<string[]>().notNull().default([]),
+    status: text("status").notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true, mode: "string" })
+      .notNull(),
+    completedAt: timestamp("completed_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+  },
+  (table) => [
+    uniqueIndex("document_extraction_runs_job_extractor_unique").on(
+      table.organizationId,
+      table.jobId,
+      table.extractorKey,
+      table.extractorVersion,
+    ),
+    check(
+      "document_extraction_runs_status_check",
+      sql`${table.status} in ('running', 'succeeded', 'failed')`,
+    ),
+    check("document_extraction_runs_lifecycle_check", lifecycleValues),
   ],
 );
 
@@ -933,8 +1734,20 @@ export const sourcePassages = pgTable(
     sourceDocumentId: text("source_document_id")
       .notNull()
       .references(() => sourceDocuments.id, { onDelete: "restrict" }),
+    extractionRunId: text("extraction_run_id").references(
+      () => documentExtractionRuns.id,
+      { onDelete: "restrict" },
+    ),
     pageNumber: integer("page_number"),
     segment: text("segment"),
+    region: jsonb("region").$type<{
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      rotation?: number;
+    }>(),
+    passageKind: text("passage_kind").notNull().default("paragraph"),
     textContent: text("text_content").notNull(),
     extractorVersion: text("extractor_version").notNull(),
     confidence: numeric("confidence", { precision: 5, scale: 4 }),
@@ -953,6 +1766,127 @@ export const sourcePassages = pgTable(
       table.sourceDocumentId,
     ),
     check("source_passages_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const extractedFields = pgTable(
+  "extracted_fields",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    sourceDocumentId: text("source_document_id")
+      .notNull()
+      .references(() => sourceDocuments.id, { onDelete: "restrict" }),
+    extractionRunId: text("extraction_run_id")
+      .notNull()
+      .references(() => documentExtractionRuns.id, { onDelete: "restrict" }),
+    sourcePassageId: text("source_passage_id").references(
+      () => sourcePassages.id,
+      { onDelete: "restrict" },
+    ),
+    fieldKey: text("field_key").notNull(),
+    fieldLabel: text("field_label").notNull(),
+    candidateOrdinal: integer("candidate_ordinal").notNull().default(1),
+    value: text("value").notNull(),
+    valueType: text("value_type").notNull().default("text"),
+    confidence: numeric("confidence", { precision: 5, scale: 4 }).notNull(),
+    modelDerived: boolean("model_derived").notNull().default(false),
+  },
+  (table) => [
+    uniqueIndex("extracted_fields_run_key_ordinal_unique").on(
+      table.organizationId,
+      table.extractionRunId,
+      table.fieldKey,
+      table.candidateOrdinal,
+    ),
+    index("extracted_fields_org_document_idx").on(
+      table.organizationId,
+      table.sourceDocumentId,
+    ),
+    check(
+      "extracted_fields_confidence_check",
+      sql`${table.confidence} >= 0 and ${table.confidence} <= 1`,
+    ),
+    check("extracted_fields_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const extractedFieldReviews = pgTable(
+  "extracted_field_reviews",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    extractedFieldId: text("extracted_field_id")
+      .notNull()
+      .references(() => extractedFields.id, { onDelete: "restrict" }),
+    action: text("action").notNull(),
+    reviewedValue: text("reviewed_value"),
+    reviewerSubject: text("reviewer_subject").notNull(),
+    reviewerPrincipalType: text("reviewer_principal_type").notNull(),
+    note: text("note"),
+    reviewedAt: timestamp("reviewed_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+  },
+  (table) => [
+    index("extracted_field_reviews_org_field_idx").on(
+      table.organizationId,
+      table.extractedFieldId,
+      table.reviewedAt,
+    ),
+    check(
+      "extracted_field_reviews_action_check",
+      sql`${table.action} in ('confirmed', 'corrected', 'rejected')`,
+    ),
+    check("extracted_field_reviews_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const documentFacts = pgTable(
+  "document_facts",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    sourceDocumentId: text("source_document_id")
+      .notNull()
+      .references(() => sourceDocuments.id, { onDelete: "restrict" }),
+    extractedFieldId: text("extracted_field_id")
+      .notNull()
+      .references(() => extractedFields.id, { onDelete: "restrict" }),
+    reviewId: text("review_id")
+      .notNull()
+      .references(() => extractedFieldReviews.id, { onDelete: "restrict" }),
+    sourcePassageId: text("source_passage_id").references(
+      () => sourcePassages.id,
+      { onDelete: "restrict" },
+    ),
+    factKey: text("fact_key").notNull(),
+    value: text("value").notNull(),
+    versionNumber: integer("version_number").notNull(),
+    supersedesFactId: text("supersedes_fact_id").references(
+      (): AnyPgColumn => documentFacts.id,
+      { onDelete: "restrict" },
+    ),
+    confirmedBy: text("confirmed_by").notNull(),
+    confirmedAt: timestamp("confirmed_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    correctionReason: text("correction_reason"),
+  },
+  (table) => [
+    uniqueIndex("document_facts_org_document_key_version_unique").on(
+      table.organizationId,
+      table.sourceDocumentId,
+      table.factKey,
+      table.versionNumber,
+    ),
+    check(
+      "document_facts_version_check",
+      sql`${table.versionNumber} >= 1`,
+    ),
+    check("document_facts_lifecycle_check", lifecycleValues),
   ],
 );
 
@@ -1033,6 +1967,267 @@ export const requirementVersions = pgTable(
       table.version,
     ),
     check("requirement_versions_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const marketPlaybooks = pgTable(
+  "market_playbooks",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    name: text("name").notNull(),
+    description: text("description").notNull().default(""),
+  },
+  (table) => [
+    uniqueIndex("market_playbooks_org_name_unique").on(
+      table.organizationId,
+      table.name,
+    ),
+    check("market_playbooks_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const playbookVersions = pgTable(
+  "playbook_versions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    playbookId: text("playbook_id")
+      .notNull()
+      .references(() => marketPlaybooks.id, { onDelete: "restrict" }),
+    versionNumber: integer("version_number").notNull(),
+    marketId: text("market_id")
+      .notNull()
+      .references(() => markets.id, { onDelete: "restrict" }),
+    programId: text("program_id").references(() => programs.id, {
+      onDelete: "restrict",
+    }),
+    jurisdiction: text("jurisdiction").notNull(),
+    peril: text("peril").notNull(),
+    propertyClass: text("property_class").notNull(),
+    policyForm: text("policy_form"),
+    effectiveFrom: date("effective_from", { mode: "string" }).notNull(),
+    effectiveTo: date("effective_to", { mode: "string" }),
+    sourceName: text("source_name").notNull(),
+    sourceUrl: text("source_url").notNull(),
+    sourceVersion: text("source_version").notNull(),
+    sourceCitation: text("source_citation").notNull(),
+    verifyCurrent: boolean("verify_current").notNull().default(true),
+    changeSummary: text("change_summary").notNull(),
+    contentHash: text("content_hash").notNull(),
+    authorSubject: text("author_subject").notNull(),
+    supersedesVersionId: text("supersedes_version_id").references(
+      (): AnyPgColumn => playbookVersions.id,
+      { onDelete: "restrict" },
+    ),
+  },
+  (table) => [
+    uniqueIndex("playbook_versions_org_playbook_number_unique").on(
+      table.organizationId,
+      table.playbookId,
+      table.versionNumber,
+    ),
+    index("playbook_versions_org_scope_effective_idx").on(
+      table.organizationId,
+      table.marketId,
+      table.programId,
+      table.jurisdiction,
+      table.peril,
+      table.propertyClass,
+      table.effectiveFrom,
+    ),
+    check("playbook_versions_number_check", sql`${table.versionNumber} >= 1`),
+    check(
+      "playbook_versions_hash_check",
+      sql`char_length(${table.contentHash}) = 64`,
+    ),
+    check(
+      "playbook_versions_effective_period_check",
+      sql`${table.effectiveTo} is null or ${table.effectiveTo} >= ${table.effectiveFrom}`,
+    ),
+    check("playbook_versions_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const playbookRequirements = pgTable(
+  "playbook_requirements",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    playbookVersionId: text("playbook_version_id")
+      .notNull()
+      .references(() => playbookVersions.id, { onDelete: "restrict" }),
+    requirementVersionId: text("requirement_version_id")
+      .notNull()
+      .references(() => requirementVersions.id, { onDelete: "restrict" }),
+    position: integer("position").notNull(),
+    importance: text("importance").notNull(),
+    blocking: boolean("blocking").notNull().default(false),
+    acceptedEvidenceTypes: jsonb("accepted_evidence_types")
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+    freshnessDays: integer("freshness_days"),
+    requiredScopeType: text("required_scope_type").notNull(),
+    acceptedSourceTypes: jsonb("accepted_source_types")
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+    requiredReviewStatus: text("required_review_status")
+      .notNull()
+      .default("human_confirmed"),
+    deadlineDaysBefore: integer("deadline_days_before"),
+    templateKey: text("template_key"),
+    deliveryRequirement: text("delivery_requirement"),
+    caveat: text("caveat"),
+  },
+  (table) => [
+    uniqueIndex("playbook_requirements_org_version_requirement_unique").on(
+      table.organizationId,
+      table.playbookVersionId,
+      table.requirementVersionId,
+    ),
+    uniqueIndex("playbook_requirements_org_version_position_unique").on(
+      table.organizationId,
+      table.playbookVersionId,
+      table.position,
+    ),
+    check(
+      "playbook_requirements_importance_check",
+      sql`${table.importance} in ('required', 'recommended')`,
+    ),
+    check(
+      "playbook_requirements_position_check",
+      sql`${table.position} >= 1`,
+    ),
+    check(
+      "playbook_requirements_blocking_check",
+      sql`${table.blocking} = false or ${table.importance} = 'required'`,
+    ),
+    check(
+      "playbook_requirements_freshness_check",
+      sql`${table.freshnessDays} is null or ${table.freshnessDays} >= 0`,
+    ),
+    check(
+      "playbook_requirements_deadline_check",
+      sql`${table.deadlineDaysBefore} is null or ${table.deadlineDaysBefore} >= 0`,
+    ),
+    check(
+      "playbook_requirements_review_status_check",
+      sql`${table.requiredReviewStatus} in ('human_confirmed', 'confirmed', 'approved')`,
+    ),
+    check("playbook_requirements_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const playbookApplicabilityRules = pgTable(
+  "playbook_applicability_rules",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    playbookRequirementId: text("playbook_requirement_id")
+      .notNull()
+      .references(() => playbookRequirements.id, { onDelete: "restrict" }),
+    position: integer("position").notNull(),
+    field: text("field").notNull(),
+    operator: text("operator").notNull(),
+    expectedValues: jsonb("expected_values")
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+  },
+  (table) => [
+    uniqueIndex("playbook_applicability_rules_org_requirement_position_unique").on(
+      table.organizationId,
+      table.playbookRequirementId,
+      table.position,
+    ),
+    check(
+      "playbook_applicability_rules_field_check",
+      sql`${table.field} in ('market_id', 'program_id', 'jurisdiction', 'peril', 'property_class', 'policy_form')`,
+    ),
+    check(
+      "playbook_applicability_rules_position_check",
+      sql`${table.position} >= 1`,
+    ),
+    check(
+      "playbook_applicability_rules_operator_check",
+      sql`${table.operator} in ('equals', 'not_equals', 'one_of', 'not_one_of')`,
+    ),
+    check(
+      "playbook_applicability_rules_values_check",
+      sql`jsonb_typeof(${table.expectedValues}) = 'array' and jsonb_array_length(${table.expectedValues}) >= 1`,
+    ),
+    check("playbook_applicability_rules_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const playbookVersionReviews = pgTable(
+  "playbook_version_reviews",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    playbookVersionId: text("playbook_version_id")
+      .notNull()
+      .references(() => playbookVersions.id, { onDelete: "restrict" }),
+    decision: text("decision").notNull(),
+    reviewerSubject: text("reviewer_subject").notNull(),
+    note: text("note").notNull(),
+    reviewedAt: timestamp("reviewed_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("playbook_version_reviews_org_version_unique").on(
+      table.organizationId,
+      table.playbookVersionId,
+    ),
+    check(
+      "playbook_version_reviews_decision_check",
+      sql`${table.decision} in ('approved', 'changes_requested')`,
+    ),
+    check("playbook_version_reviews_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const casePlaybookLinks = pgTable(
+  "case_playbook_links",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    caseId: text("case_id")
+      .notNull()
+      .references(() => renewalCases.id, { onDelete: "restrict" }),
+    playbookVersionId: text("playbook_version_id")
+      .notNull()
+      .references(() => playbookVersions.id, { onDelete: "restrict" }),
+    destinationMarketId: text("destination_market_id")
+      .notNull()
+      .references(() => markets.id, { onDelete: "restrict" }),
+    destinationProgramId: text("destination_program_id").references(
+      () => programs.id,
+      { onDelete: "restrict" },
+    ),
+    linkedAt: timestamp("linked_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    linkedBy: text("linked_by").notNull(),
+    supersedesLinkId: text("supersedes_link_id").references(
+      (): AnyPgColumn => casePlaybookLinks.id,
+      { onDelete: "restrict" },
+    ),
+  },
+  (table) => [
+    index("case_playbook_links_org_case_destination_idx").on(
+      table.organizationId,
+      table.caseId,
+      table.destinationMarketId,
+      table.destinationProgramId,
+      table.linkedAt,
+    ),
+    check("case_playbook_links_lifecycle_check", lifecycleValues),
   ],
 );
 

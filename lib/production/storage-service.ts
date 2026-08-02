@@ -109,7 +109,7 @@ function bytesMatchMime(body: Uint8Array, mimeType: string) {
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
   )
     return body[0] === 0x50 && body[1] === 0x4b;
-  if (mimeType === "text/csv")
+  if (mimeType === "text/csv" || mimeType === "text/plain")
     return !Buffer.from(body.subarray(0, 1024)).includes(0);
   return false;
 }

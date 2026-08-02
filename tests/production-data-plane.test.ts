@@ -41,7 +41,7 @@ describe("normalized PostgreSQL tenant data plane", () => {
     const triggers = await client.query<{ trigger_name: string }>(
       "select trigger_name from information_schema.triggers where trigger_schema = 'public' order by trigger_name",
     );
-    expect(tables.rows.map((row) => row.table_name)).toHaveLength(48);
+    expect(tables.rows.map((row) => row.table_name)).toHaveLength(75);
     expect(tables.rows.map((row) => row.table_name)).not.toContain("app_state");
     const triggerNames = [
       ...new Set(triggers.rows.map((row) => row.trigger_name)),
@@ -65,9 +65,48 @@ describe("normalized PostgreSQL tenant data plane", () => {
         "malware_scan_results_tenant_guard",
         "malware_scan_results_immutable_update",
         "backup_manifest_items_immutable_delete",
+        "portfolio_imports_mapping_tenant_guard",
+        "import_mapping_versions_immutable_update",
+        "import_receipts_immutable_delete",
+        "document_processing_jobs_document_tenant_guard",
+        "document_processing_attempts_transition_guard",
+        "document_extraction_runs_immutable_update",
+        "extracted_fields_passage_tenant_guard",
+        "extracted_field_reviews_immutable_delete",
+        "document_facts_supersedes_tenant_guard",
+        "document_facts_immutable_update",
+        "playbook_versions_playbook_tenant_guard",
+        "playbook_requirements_requirement_tenant_guard",
+        "playbook_applicability_rules_requirement_tenant_guard",
+        "playbook_version_reviews_separation_guard",
+        "playbook_versions_scope_lineage_guard",
+        "case_playbook_links_applicability_guard",
+        "playbook_versions_immutable_update",
+        "playbook_version_reviews_immutable_delete",
+        "case_playbook_links_immutable_update",
+        "property_portfolios_client_tenant_guard",
+        "portfolio_properties_client_reference_guard",
+        "portfolio_properties_property_tenant_guard",
+        "parcels_property_tenant_guard",
+        "unit_summaries_building_tenant_guard",
+        "unit_summaries_property_reference_guard",
+        "property_scopes_reference_guard",
+        "property_relationships_to_tenant_guard",
+        "property_versions_lineage_guard",
+        "property_versions_immutable_update",
+        "tenant_guard_portfolio_assignments_portfolio",
+        "tenant_guard_portfolio_assignments_membership",
+        "tenant_guard_portfolio_assignments_team",
+        "tenant_guard_portfolio_assignments_external_principal",
+        "tenant_guard_data_access_logs_portfolio",
+        "tenant_guard_data_access_logs_case",
+        "portfolio_assignments_revocation_only",
+        "case_assignments_revocation_only",
+        "data_access_logs_no_update",
+        "data_access_logs_no_delete",
       ]),
     );
-    expect(triggerNames).toHaveLength(61);
+    expect(triggerNames).toHaveLength(157);
   });
 
   test("isolates reads and mutations by explicit organization context", async () => {

@@ -2,7 +2,43 @@
 
 ## Current milestone
 
-M4 — Secure object storage and evidence upload is locally implemented on August 1, 2026. Managed PostgreSQL, OIDC/MFA, private object storage, malware scanning, and operational restore validation remain external; M5 portfolio/SOV import is the next code milestone.
+M2 — The identity and secure-evidence slice is locally validated on August 1, 2026 and published as draft PR #9, stacked directly after draft PR #8. The prior M1–M7 renewal implementation remains a locally validated reusable foundation and published stacked PR series; it is not evidence that profiles, interventions, capital plans, funding, verification, model mapping, recognition commitments, recognition submissions, programme administration, deployment, or external validation exist.
+
+## Replacement north-star M2 locally validated
+
+- Expanded production persistence from 73 to 75 tables and from 147 to 157 guards/triggers with purpose-specific portfolio assignments and immutable data-access logs; case assignments now retain the same purpose/data-domain/revocation metadata.
+- Expanded the executable role ceiling from 11 compatibility roles to 18 roles including property operator administrator, property manager, contractor evidence contributor, independent verifier, programme administrator, insurer/MGA reviewer, and lender/funder reviewer. Separation-of-duty tests reject policy/submission/funding/market-response mutations outside each role boundary.
+- Identity resolution now admits only active, unrevoked, unexpired direct case assignments plus direct/team portfolio assignments. The exact assignment permission set is intersected with the organization-role ceiling for each requested portfolio or case; empty, wrong-scope, expired, and revoked assignments fail closed.
+- Added an authorization-enforced `AccessControlService`, three authenticated APIs, purpose/permission/data-domain validation, role-domain constraints, transactional audit events, reason-bound revocation, and immutable access-log recording. Database guards reject cross-tenant portfolio/member/team/external/case references even if service code is bypassed.
+- Added the responsive `/access` workspace with meaningful loading, permission/error, empty, and populated states; functional synthetic assignment create/revoke; production API mode; security posture; append-only access ledger; and explicit ecosystem role boundaries. No production role switch exists.
+- Added 5 M2 contract tests and expanded the identity matrix. The complete suite is 14 files/56 tests; the focused access/identity/data-plane suite is 21/21.
+- Complete local release gates passed: ESLint, strict TypeScript, 237-file secret scan, 21-page/42-API build, 12/12 deterministic evaluation, 18-pattern claims scan, 16/16 serial desktop/mobile Playwright scenarios, 75-table schema regeneration/no drift, exactly 157 migrated guards/triggers, and `npm audit --audit-level=moderate` with 0 vulnerabilities.
+- Browser inspection covered 1280-pixel desktop, 834-pixel tablet, and Pixel 7 mobile. The first mobile role matrix used an inner horizontal scroll; it was converted to fully labeled stacked rows, rebuilt, rerun, and re-inspected with no measured document overflow.
+- Managed OIDC/MFA, PostgreSQL/RLS, private bucket/KMS/scanner, secrets, rate limits, operational restore, and authorized customer/partner role validation remain deployment/external gates. No live customer, contractor, verifier, insurer, lender, or programme user has validated this slice.
+- Publication used `codex/m2-resilience-access-control` stacked on refreshed `origin/codex/m1-california-property-graph`. The exact local merge-tree preflight succeeded, remote SHA readback matched the published head, and GitHub draft PR #9 reported the intended base/head and `MERGEABLE`; its separate `UNSTABLE` aggregate reflected queued checks, not a merge conflict.
+
+## Replacement north-star M1 locally validated
+
+- Expanded production persistence from 65 to 73 tables and from 126 to 147 guards/triggers for property portfolios, portfolio membership, parcels, unit summaries, typed physical scopes, aliases, cross-property relationships, and immutable property versions.
+- Added source/source-record, effective-period, confidentiality, data-right classification, and rights-recorded metadata to every new graph record. `docs/DATA_RIGHTS_AND_MOAT.md` defines the ten contract-ready classes and keeps cross-customer use prohibited by default.
+- Added an authorization-enforced `PropertyGraphService`, authenticated read/register APIs, bounded runtime input validation, one-transaction audit/idempotency coupling, and database enforcement for tenant references, client/property/building/scope integrity, immediate version lineage, and immutable snapshot history. The deny-by-default registry now covers 69 resource classes.
+- Added a deterministic California graph fixture under `org-fortify-california-fixture`, separate from the Colorado `org-fortify-sandbox`. Its two fictional properties retain two explicitly unavailable parcel boundaries, six typed scopes, reviewed aliases/relationship, and hash-bound property versions; replay is exact.
+- Added the responsive `/property-graph` workspace with production API loading/error/empty states and an explicit sandbox fixture. Portfolio/property controls and property, scope, version, and rights views are functional; unavailable geometry is never rendered as a map or score.
+- One consolidated `npm run verify` passed ESLint, strict TypeScript, 13 files/50 tests, a 225-file secret scan, the 20-page/39-API build, 12/12 deterministic evaluation, the 18-pattern claims scan, and 14/14 serial desktop/mobile Playwright scenarios. Production schema generation reported 73 tables/no drift, `npm audit --omit=dev` reported 0 vulnerabilities, and `git diff --check` passed.
+- Visually inspected the property workspace at 1280-pixel desktop, 834-pixel tablet, and Pixel 7 mobile sizes. Identity, insufficient spatial state, scope, rights, and provenance remained legible with no measured overflow or observed clipping.
+- Managed PostgreSQL/PostGIS, defense-in-depth RLS, live property boundaries, rights-cleared California input, performance/load testing, and customer validation remain explicit deployment/external gates.
+- Exact local merge-tree preflight against refreshed `origin/codex/resilience-os-foundation` succeeded. GitHub readback for draft PR #8 reported the intended base/head and `MERGEABLE`; `UNSTABLE` is the check state, not a merge conflict.
+
+## Replacement north-star M0 locally validated
+
+- Persisted the replacement California-first Resilience Investment and Insurance Recognition OS brief as the authoritative commercial north star.
+- Reconciled `AGENTS.md`, the ordered M0–M12 implementation plan, and the measured status ledger. Status now distinguishes not started, in progress, code complete, locally validated, deployment validated, externally blocked, customer validated, market validated, and programme validated.
+- Preserved the Colorado renewal workflow as an isolated synthetic sandbox and second-jurisdiction regression fixture; removed only the uncommitted superseded M8 draft created after PR #6.
+- Added an enforceable `security:claims` release gate covering direct insurance/funding/loss guarantees, Fortify certification or risk-score claims, automatic model/eligibility/compliance claims, and unsafe/insurable assertions across runtime source and generated text artifacts. The gate is wired into local `verify` and both relevant CI jobs.
+- Reconciled README, architecture, data-model, progress, and validation-report boundaries. Existing 65-table/126-trigger/61-resource evidence remains accurately described as renewal foundation rather than the expanded product.
+- Repositioned the public entry around the California resilience-recognition direction while labelling the existing renewal workspace as an isolated fictional Colorado sandbox. Added a doctrine/responsiveness browser test and captured desktop, tablet, and mobile evidence with no measured overflow or observed clipping.
+- One consolidated `npm run verify` passed ESLint, strict TypeScript, 12 files/45 tests, a 214-file secret scan, the 19-page/37-API production build, 12/12 deterministic evaluation, the 18-pattern claims scan, and 12/12 serial desktop/mobile Playwright scenarios. Production schema generation reported 65 tables/no drift and `npm audit --omit=dev` reported 0 vulnerabilities.
+- Re-rendered and inspected all six PDF pages and integrity-checked the 17-entry ZIP. The packet preserves explicit caveats, unresolved evidence, a manifest, 14 exhibits, and byte-identical embedded/standalone PDF hashes.
 
 ## Completed baseline
 
@@ -53,12 +89,46 @@ M4 — Secure object storage and evidence upload is locally implemented on Augus
 - Added `docs/OBJECT_STORAGE.md` and production configuration/validation gates. This is local adapter evidence, not a claim that a managed bucket, KMS key, malware provider, retention policy, or restore exercise has run.
 - `npm run verify` passed: lint, strict typecheck, 8 files/31 tests, 155-file secret scan, 16-page/21-API production build, 12/12 deterministic evaluation, and 4/4 serial desktop/mobile Playwright scenarios. `npm audit --omit=dev --audit-level=high` reported 0 vulnerabilities.
 
+## M5 locally implemented this cycle
+
+- Expanded the production schema from 48 to 53 tables and from 61 to 72 tenant/immutability triggers for saved import mappings and immutable versions, import runs, quarantined rows, and append-only preview/commit/rollback receipts.
+- Added real CSV and XLSX parsing with configurable sheet/header rows, typed spreadsheet values, limits, deterministic normalization, ISO currency/unit/year/date validation, stable external identifiers, and explicit row numbers.
+- Added generic AMS CSV mapping plus Applied Epic-compatible and AMS360-compatible fixture boundaries. These fixtures are not customer exports, vendor certifications, or live integrations.
+- Added dry-run duplicate/ambiguity review, address and building reconciliation, explicit human confirmation, AMS-authoritative stable-ID matching, idempotent reruns, normalized client/community/property/location/building/policy output, immutable receipts, and non-destructive transactional rollback.
+- Added 7 authenticated production APIs for organization-scoped workspace options, clean-object mapping suggestion, immutable mapping save, preview, import readback, human-confirmed commit, and rollback. Validation/state/idempotency failures map to explicit 4xx responses.
+- Added the responsive `/imports` broker workspace with upload-to-quarantine, scanner-state enforcement, clean-object/book selection, saved mapping review, row filters, explicit confirmation, receipt ledger, recent history, rollback reason, and meaningful loading/error/empty/populated states. The sandbox walkthrough is visibly synthetic and does not persist or claim vendor compatibility.
+- Authored and visually inspected the XLSX fixture at `tests/fixtures/import/fortify-sov-fixture.xlsx`; formula/error inspection found no workbook errors. Added edge-case CSV fixtures and 6 service/contract tests.
+- Full local validation passed: ESLint, strict TypeScript, 9 files/37 tests, 177-file secret scan, 17-page/28-API production build, 12/12 deterministic evaluation, 6/6 serial desktop/mobile Playwright scenarios, and `npm audit --omit=dev --audit-level=high` with 0 vulnerabilities. The import workspace was visually inspected at both viewports after repairing a measured mobile table-overflow defect.
+
+## M6 locally implemented this cycle
+
+- Expanded the production schema from 53 to 59 tables and from 72 to 100 tenant/immutability triggers for durable jobs, immutable attempts and extraction runs, source passages with regions, multiple extracted candidates, human reviews, and superseding fact versions.
+- Added clean-object-only, exact-byte/hash-bound intake and a PostgreSQL job service with idempotency, worker leases, stale-lease recovery, bounded retry schedules, explicit dead letter, and reason-bound manual +1 retry.
+- Added deterministic provider/classifier/extractor contracts. The offline production adapter supports plain text and selectable PDFs without invented geometry; exact-hash fixtures cover scans, rotated regions, tables, images, conflicts, low confidence, and model-derived candidates. The external-provider boundary is injection-only and carries no live right or credential claim.
+- Added immutable page/segment/region provenance, provider/classifier/extractor versions, multiple candidate ordinals, confidence and derivation disclosure, human confirmation/correction/rejection, and append-only superseding fact versions. Service accounts cannot confirm facts.
+- Added 4 authenticated production APIs, a separately scoped one-job worker command, and the responsive `/documents` workspace with quarantine/clean-object boundaries, durable ledger, dead-letter control, filtering/pagination, side-by-side citation review, immutable decisions, fact history, and meaningful production/sandbox states.
+- Added 4 service/contract tests covering the document matrix, retry/dead-letter behavior, attempt/candidate immutability, model-derived human gates, corrections/supersession, unscanned/unsupported objects, and cross-tenant rejection.
+- Full local validation passed: ESLint, strict TypeScript, 10 files/41 tests, 192-file secret scan, 18-page/32-API production build, 12/12 deterministic evaluation, 8/8 serial desktop/mobile Playwright scenarios, production schema regeneration with no drift, and `npm audit --omit=dev` with 0 vulnerabilities. All six deterministic PDF pages and the 17-entry ZIP were inspected; desktop/mobile document states were visually checked without observed overflow or clipping.
+
+## M7 locally implemented this cycle
+
+- Expanded the production schema from 59 to 65 tables and from 100 to 126 tenant, governance, and immutability triggers for stable market playbooks, immutable versions, destination requirement rules, bounded applicability conditions, independent reviews, and append-only case/destination links.
+- Added exact market/program/jurisdiction/peril/property-class/policy-form and effective-period applicability. Zero approved matches and overlapping approved matches fail closed; no version is silently selected.
+- Added source name, URL, version, exact citation, verify-current state, content hash, author, reviewer, predecessor, change summary, and deterministic diff readback. Authors cannot review their own versions, approval requires verify-current, and reviewed configuration is corrected only through a successor.
+- Added deterministic `ready`, `missing`, `stale`, `scope_mismatch`, `contradiction`, `unreviewed`, `insufficient`, and `not_applicable` requirement states. Accepted type/source/disposition, scope, freshness, and review checks must be satisfied together; an unresolved blocker always yields `blocked` and no average is calculated.
+- Added a 61-resource deny-by-default policy, five authenticated APIs, and the responsive `/playbooks` workspace with populated/loading/error/empty behavior, exact destination evaluation, case pinning, source governance, bounded requirement selection, version history, independent review, and explicit non-score/non-outcome caveats.
+- Added `docs/MARKET_PLAYBOOK_GOVERNANCE.md` and 3 service/contract tests covering lifecycle, exact applicability, ambiguity, cross-tenant rejection, immutable links, successor diffs, all requirement states, and proof that completed items cannot average away a blocker.
+- The final consolidated `npm run verify` exited 0 with approved localhost-bind permission: ESLint, strict TypeScript, 11 files/44 tests, 209-file secret scan, 19-page/37-API production build, 12/12 deterministic evaluation, and 10/10 serial desktop/mobile Playwright scenarios. Production schema regeneration reported no drift, and `npm audit --omit=dev` reported 0 vulnerabilities. An earlier sandboxed attempt reached Playwright before its bind was denied; that attempt is retained only as environment evidence. Playbook readiness, builder, and approved successor history were visually inspected at both viewports with no document-width overflow.
+
 ## Next
 
-- Begin M5 with secure CSV/XLSX/SOV upload, saved mapping, dry-run preview, stable identifiers, ambiguity/quarantine review, idempotent reruns, receipts, and rollback.
+- Keep draft PR #7 stacked on M7 until the predecessor is ready; local merge-tree and GitHub both report the exact M0 stack conflict-free at publication.
+- Keep draft PR #9 stacked directly on draft PR #8; exact ancestry, local merge-tree preflight, remote head SHA, and GitHub mergeability were verified at publication. Begin the production California brokerage wedge without weakening the tenant or assignment boundary.
+- Validate the property graph against the selected managed PostgreSQL/PostGIS provider and evaluate defense-in-depth RLS; the local PGlite and nullable EPSG:4326-ready GeoJSON contracts are not provider, PostGIS, or performance evidence.
+- Validate rights-cleared brokerage exports and correspondence against the generic adapters; fixture compatibility is not certification. Validate any external OCR/document-intelligence provider only after licensing, egress, retention, credentials, security, latency, cost, and error behavior are approved.
 - Validate the M2 migration and contract suite against the selected managed PostgreSQL service; PGlite is PostgreSQL-compatible local evidence, not production-provider evidence.
 - Configure and validate a managed OIDC provider, redirect registration, MFA policy, secrets, session behavior, and rate limits in staging.
-- Validate the new GitHub workflow and configure required checks after publication; owner-only settings remain listed in `docs/GITHUB_SETTINGS_CHECKLIST.md`.
+- With explicit approval, repair the diagnosed Node slim-image native build prerequisite and isolate the SQLite/Vitest worker-shutdown issue; CodeQL/security already passed. Configure owner-only settings listed in `docs/GITHUB_SETTINGS_CHECKLIST.md`.
 - Do not ingest live customer data. Managed object storage/malware/retention/restore validation, incident controls, managed PostgreSQL/OIDC validation, and the remaining production milestones are not yet complete.
 
 ## Status discipline
