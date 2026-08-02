@@ -47,6 +47,7 @@ import {
   FundingProjectService,
   FundingProjectValidationError,
 } from "@/lib/production/funding-project-service";
+import { VerificationService, VerificationStateError, VerificationValidationError } from "@/lib/production/verification-service";
 
 export const SESSION_COOKIE_NAME =
   process.env.NODE_ENV === "production"
@@ -74,6 +75,11 @@ export async function resolveRequestPrincipal(
       return {
         authorization: await new FundingProjectService(getProductionDatabase()).resolveExternalProjectToken(token),
         expiresAt: "assignment-managed",
+      };
+    if (token.startsWith("fverify_"))
+      return {
+        authorization: await new VerificationService(getProductionDatabase()).resolveExternalVerificationToken(token),
+        expiresAt: "verification-assignment-managed",
       };
     throw new AuthenticationError();
   }
@@ -159,6 +165,10 @@ export function authenticationFailure(error: unknown) {
   if (error instanceof FundingProjectValidationError)
     return Response.json({ error: error.message }, { status: 400 });
   if (error instanceof FundingProjectStateError)
+    return Response.json({ error: error.message }, { status: 409 });
+  if (error instanceof VerificationValidationError)
+    return Response.json({ error: error.message }, { status: 400 });
+  if (error instanceof VerificationStateError)
     return Response.json({ error: error.message }, { status: 409 });
   const message =
     error instanceof AuthenticationError
