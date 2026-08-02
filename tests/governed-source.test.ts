@@ -203,7 +203,7 @@ describe("governed California source register", () => {
       affected: {
         cases: [{ id: caseId }],
         playbooks: [],
-        profiles: { state: "unavailable_not_implemented", items: [] },
+        profiles: { state: "available", items: [] },
         reports: { state: "unavailable_not_implemented", items: [] },
       },
     });

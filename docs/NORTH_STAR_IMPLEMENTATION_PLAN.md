@@ -56,6 +56,8 @@ Exit evidence: primary/authorised source fixtures, admin publication UI, affecte
 
 Add versioned Target Resilience Performance Profiles, intervention specifications, baseline conditions, gap assessment, evidence hierarchy, project candidates, transparent cost/timeline/dependency scenarios, maintenance requirements, and a resilience capital plan.
 
+Local state: the normalized M5 slice is locally validated with exact governed-source pins, immutable authored versions, separate technical review and publication, minimum/preferred criteria, a nine-level executable evidence hierarchy, deterministic applicability, explicit baseline gaps, reviewed interventions, candidate projects, and transparent scenario ranges. Rights-cleared technical review, real contractor costs, funding eligibility, modeled benefit, insurer treatment, customer use, and managed deployment remain external or later-milestone evidence.
+
 Exit evidence: applicable and inapplicable California scenarios, independent author/reviewer lifecycle, minimum/preferred distinctions, no opaque ROI score, and explicit insufficient-evidence/no-attractive-path results.
 
 ### M6 — Funding and project execution

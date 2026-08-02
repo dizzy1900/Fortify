@@ -44,7 +44,7 @@ The service contract test separately creates a synthetic primary-source fixture 
 
 ## Impact-analysis boundary
 
-M4 reports exact relied-on `playbook_version` and `renewal_case` dependencies. Property profiles do not exist until M5, and governed report dependencies are not implemented; both categories are returned as `unavailable_not_implemented`, never as zero impact or current. Future milestones must extend the typed dependency graph and tenant guards before those categories can be evaluated.
+M5 extends exact relied-on dependency reporting to `target_profile_version` consumers. A successor source identifies affected playbooks, renewal cases, and target profiles without mutating them. Governed report dependencies are not implemented and remain explicitly unavailable, never zero impact or current; future milestones must extend the typed dependency graph and tenant guards before reports can be evaluated.
 
 ## Local evidence
 

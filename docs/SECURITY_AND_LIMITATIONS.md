@@ -25,6 +25,7 @@ These controls describe the current sandbox and reusable renewal foundation. The
 - Purpose-labelled download grants expire, are revocable before redemption, and are single-use. Legal holds and future retention dates block deletion. Fixture backup copies are independently read and SHA-256 checked before manifest acceptance.
 - Governed source identities, versions, independent reviews, publication decisions, reliance records, and successor alerts are tenant-owned. Exact-byte/approved-snapshot versions must reference an in-tenant clean object with the same SHA-256. Database guards enforce immediate lineage, author/reviewer separation, human confirmation, source/rights comparison, published-current playbook pins, typed consumer ownership, and immutable history.
 - Model-assisted or deterministic extraction records provenance only. It cannot publish a source, activate a playbook, mutate a relied-on case, or fill unavailable impact categories.
+- Target profiles, criteria, applicability, reviews, publications, intervention versions/reviews, baselines, gaps, and scenarios are tenant-owned and guarded against cross-tenant references. Profile author, reviewer, and publisher are separate; intervention authors cannot self-review; only published profiles and independently reviewed intervention versions can enter planning.
 
 ## Deliberate MVP limitations
 
@@ -38,7 +39,8 @@ These controls describe the current sandbox and reusable renewal foundation. The
 - MapLibre uses local GeoJSON without external tiles. Parcel/building geometry is illustrative, not survey-grade.
 - PDF accessibility tagging is not implemented. The packet is visually reviewed but should undergo production accessibility remediation.
 - The governed California source-register workflow is implemented locally, but no rights-cleared live source snapshot, legal-currentness determination, insurer/MGA-supplied rule, or customer-approved operative default has been validated. The three sandbox entries are metadata-only fixtures linked to primary publisher pages; one is intentionally blocked.
-- No target profile, intervention/capital plan, funding programme, independent-verifier workflow, external-model mapping, recognition commitment, production recognition delivery, programme administration, live email/model/verifier integration, contractor marketplace, billing, remote sensing, or production legal template is implemented.
+- The target-profile, intervention, and capital-plan workflow is implemented only with deterministic development fixtures. No rights-cleared technical profile, engineering review, real contractor scope/cost, funding eligibility decision, modeled benefit, insurer treatment, customer approval, or managed deployment has been validated.
+- No funding programme, independent-verifier workflow, external-model mapping, recognition commitment, production recognition delivery, programme administration, live email/model/verifier integration, contractor marketplace, billing, remote sensing, or production legal template is implemented.
 
 ## Production gates before live customer data
 

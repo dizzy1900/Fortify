@@ -120,6 +120,13 @@
       "when": 1785639317397,
       "tag": "0016_exotic_black_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1785643425706,
+      "tag": "0017_ancient_zodiak",
+      "breakpoints": true
     }
   ]
 }

@@ -1,8 +1,8 @@
 # Production data model
 
-The PostgreSQL schema contains 84 normalized tables in the locally validated M4 source-governance tree. It is a reusable tenant, access, property, renewal/appeal, governed-source, evidence-request, immutable packet, storage, document, market-playbook, and governed property-identity foundation for the Resilience Investment and Insurance Recognition OS—not a claim that the expanded domain is implemented.
+The PostgreSQL schema contains 100 normalized tables in the locally validated M5 resilience-planning tree. It is a reusable tenant, access, property, renewal/appeal, governed-source, evidence-request, immutable packet, storage, document, market-playbook, target-profile, intervention, and capital-planning foundation for the Resilience Investment and Insurance Recognition OS—not a claim that later funding, verification, model, recognition, or programme domains are implemented.
 
-California production work must still extend this model with typed evidence levels; target profiles; intervention specifications; baseline conditions; resilience projects and capital plans; funding programmes/commitments/milestones; independent verifiers/findings/certificates; external models and input mappings; explicit market/funder commitments; recognition submissions and separate evidence/model/rating/underwriting/placement/funding responses; longitudinal maintenance/outcomes; programme cohorts; consent/cohort data-right controls; and recognition-graph events. Each new customer-controlled resource requires tenant columns, authorization, database guards, audit coupling, and attack tests before it counts as implemented.
+California production work must still extend this model beyond the implemented typed evidence levels, target profiles, intervention specifications, baseline conditions, resilience projects, and capital plans with funding programmes/commitments/milestones; independent verifiers/findings/certificates; external models and input mappings; explicit market/funder commitments; recognition submissions and separate evidence/model/rating/underwriting/placement/funding responses; longitudinal maintenance/outcomes; programme cohorts; consent/cohort data-right controls; and recognition-graph events. Each new customer-controlled resource requires tenant columns, authorization, database guards, audit coupling, and attack tests before it counts as implemented.
 
 ## Organizations and access foundation
 
@@ -67,7 +67,7 @@ An import never destroys rejected rows, prior receipts, or created-record histor
 - `governed_source_versions`: immutable version/dates/hash/snapshot and storage reference/rights/redistribution/summary/verify-current/extraction/human-confirmation/author/change/predecessor record.
 - `governed_source_reviews`: immutable independent approval or changes-requested decision with exact-source comparison and rights confirmation.
 - `governed_source_publications`: separate immutable human publication or rejection decision.
-- `governed_source_dependencies`: exact published-version reliance or reference pins for typed playbook-version and renewal-case consumers.
+- `governed_source_dependencies`: exact published-version reliance or reference pins for typed playbook-version, renewal-case, and target-profile-version consumers.
 - `source_change_alerts`: immutable immediate-successor impact snapshot and review owner.
 - `source_documents`: immutable original-version metadata, checksum, clean storage reference, source system, classification/version/confidence, supersession, processing status, and synthetic flag.
 - `source_passages`: immutable page/segment/region provenance, extraction run, passage kind, and extractor version.
@@ -85,6 +85,18 @@ An import never destroys rejected rows, prior receipts, or created-record histor
 - `case_playbook_links`: append-only exact-version case/destination pins with predecessor lineage.
 
 Approved applicability is exact and effective-date-bound. Zero or multiple matches fail closed. Readiness is derived at request time from requirement, evidence-link, evidence-version, and contradiction records; no averaged readiness record can hide a blocker. See [MARKET_PLAYBOOK_GOVERNANCE.md](./MARKET_PLAYBOOK_GOVERNANCE.md).
+
+## Target profiles, interventions, and capital planning
+
+- `target_profiles` and immutable `target_profile_versions`: stable profile identity, jurisdiction/peril/property-class scope, effective period, limitations, non-recognition state, author, change summary, and immediate predecessor.
+- `target_profile_criteria` and `target_profile_applicability`: immutable minimum/preferred characteristics, explicit verification methods, nine typed evidence levels, and bounded field/operator/value conditions.
+- `target_profile_reviews` and `target_profile_publications`: separate immutable technical-review and publication decisions; source pins are exact governed dependencies.
+- `interventions`, immutable `intervention_versions`, and `intervention_version_reviews`: stable specifications, evidence basis, transparent cost range/duration/dependencies/maintenance, benefit boundary, and independent review.
+- `baseline_assessments` and `baseline_gaps`: immutable property/profile applicability, reasons, criterion-level satisfied/gap/insufficient/not-applicable states, observations, and optional exact evidence.
+- `resilience_projects` and `project_interventions`: candidate project identity and reviewed intervention-version composition.
+- `capital_plans`, `capital_plan_scenarios`, and `capital_plan_scenario_projects`: explicit plan state plus transparent cost, timeline, dependencies, maintenance, assumptions, and separate funding/model/insurer unknown states.
+
+No capital-plan field stores a composite ROI or risk score. Planning state is deterministically `options_available`, `insufficient_evidence`, `no_attractive_path`, or `inapplicable`; absent evidence and external authority never become zero or approval.
 
 ## Document processing and facts
 

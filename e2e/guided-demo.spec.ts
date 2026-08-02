@@ -119,6 +119,7 @@ test("public page and all workspace routes are healthy", async ({ page }) => {
     "/documents",
     "/sources",
     "/playbooks",
+    "/resilience-planning",
     "/community",
     "/policy",
     "/notice",
@@ -574,7 +575,8 @@ test("California source register preserves publication gates and successor impac
 
   await page.getByRole("button", { name: "Change impact" }).click();
   await expect(page.getByRole("heading", { name: "Impact queue" })).toBeVisible();
-  await expect(page.getByText(/Profiles unavailable/i).first()).toBeVisible();
+  await expect(page.getByText("Profiles", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/California community wildfire evidence-readiness/)).toBeVisible();
   await expect(page.getByText(/Reports unavailable/i).first()).toBeVisible();
   await expect(page.getByText(/no automatic mutation occurred/)).toBeVisible();
 
@@ -590,4 +592,43 @@ test("California source register preserves publication gates and successor impac
         : "test-results/visual-inspection/source-register-mobile.png",
     fullPage: true,
   });
+});
+
+test("resilience planning preserves evidence hierarchy and fail-closed capital paths", async ({ page }, testInfo) => {
+  await page.goto("/resilience-planning");
+  await expect(page.getByRole("heading", { name: /Resilience investment planning/ })).toBeVisible();
+  await expect(page.getByText("Human-governed planning", { exact: true })).toBeVisible();
+  await expect(page.getByText(/no wildfire score/i)).toBeVisible();
+  await expect(page.getByText("Applicable · options available", { exact: true })).toBeVisible();
+  await expect(page.getByText("3 of 3 rules matched", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Target profile" }).click();
+  await expect(page.getByText("minimum", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("preferred", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Recognition unavailable", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Interventions" }).click();
+  await expect(page.getByRole("heading", { name: "Evidence recovery" })).toBeVisible();
+  await expect(page.getByText(/No risk reduction, premium, renewal/)).toBeVisible();
+
+  await page.getByRole("button", { name: "Capital scenarios" }).click();
+  await page.getByRole("button", { name: /Parallel evidence/ }).click();
+  await expect(page.getByText("$29,500–$53,000", { exact: true }).last()).toBeVisible();
+  await expect(page.getByText("potential candidate", { exact: true })).toBeVisible();
+  await expect(page.getByText("unverified", { exact: true })).toBeVisible();
+
+  await page.getByLabel("Review assessment state").selectOption("insufficient_evidence");
+  await expect(page.getByRole("heading", { name: "Insufficient evidence" })).toBeVisible();
+  await expect(page.getByText(/system creates no replacement assumptions/)).toBeVisible();
+  await page.getByLabel("Review assessment state").selectOption("inapplicable");
+  await expect(page.getByRole("heading", { name: "Profile inapplicable" })).toBeVisible();
+  await page.getByLabel("Review assessment state").selectOption("no_attractive_path");
+  await expect(page.getByRole("heading", { name: "No attractive path documented" })).toBeVisible();
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+  expect(overflow).toBe(false);
+  await page.getByLabel("Review assessment state").selectOption("options_available");
+  await page.getByRole("button", { name: "Capital scenarios" }).click();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: testInfo.project.name === "chromium" ? "test-results/visual-inspection/resilience-planning-desktop.png" : "test-results/visual-inspection/resilience-planning-mobile.png", fullPage: true });
 });
