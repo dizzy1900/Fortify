@@ -204,7 +204,7 @@ describe("governed California source register", () => {
         cases: [{ id: caseId }],
         playbooks: [],
         profiles: { state: "available", items: [] },
-        reports: { state: "unavailable_not_implemented", items: [] },
+        reports: { state: "available", items: [] },
       },
     });
     expect(published.alertId).toBeTruthy();

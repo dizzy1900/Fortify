@@ -124,6 +124,7 @@ test("public page and all workspace routes are healthy", async ({ page }) => {
     "/verification",
     "/model-recognition",
     "/recognition",
+    "/programme-intelligence",
     "/community",
     "/policy",
     "/notice",
@@ -581,7 +582,8 @@ test("California source register preserves publication gates and successor impac
   await expect(page.getByRole("heading", { name: "Impact queue" })).toBeVisible();
   await expect(page.getByText("Profiles", { exact: true }).first()).toBeVisible();
   await expect(page.getByText(/California community wildfire evidence-readiness/)).toBeVisible();
-  await expect(page.getByText(/Reports unavailable/i).first()).toBeVisible();
+  await expect(page.getByText("Reports", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/Generated analytics reports preserve exact source-version lineage/)).toBeVisible();
   await expect(page.getByText(/no automatic mutation occurred/)).toBeVisible();
 
   const overflow = await page.evaluate(
@@ -789,4 +791,41 @@ test("market recognition preserves exact delivery, scoped review, correspondence
   await page.getByRole("button", { name: "Submission" }).click();
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: testInfo.project.name === "chromium" ? "test-results/visual-inspection/market-recognition-desktop.png" : testInfo.project.name === "tablet" ? "test-results/visual-inspection/market-recognition-tablet.png" : "test-results/visual-inspection/market-recognition-mobile.png", fullPage: true });
+});
+
+test("programme intelligence keeps cohort decisions, graph provenance, analytics, and privacy boundaries explicit", async ({ page }, testInfo) => {
+  await page.goto("/programme-intelligence");
+  await expect(page.getByRole("heading", { name: "See the programme. Trace every conclusion." })).toBeVisible();
+  await expect(page.getByText("Descriptive operations evidence—not an impact model", { exact: true })).toBeVisible();
+  await expect(page.getByText("Cohort active", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: /Madrone Court/ }).click();
+  await expect(page.getByText("Evidence insufficient", { exact: true })).toBeVisible();
+  await expect(page.getByText(/not counted as qualified/)).toBeVisible();
+  await page.getByRole("button", { name: "Inspect decision lineage" }).click();
+  await expect(page.getByText("Exact membership source and append-only decision lineage opened.")).toBeAttached();
+
+  await page.getByRole("button", { name: "Recognition graph" }).click();
+  await expect(page.getByRole("heading", { name: "Physical change → external response" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "6 traceable relations" })).toBeVisible();
+  await expect(page.getByText(/graph edge records provenance/)).toBeVisible();
+
+  await page.getByRole("button", { name: "Analytics & reports" }).click();
+  await expect(page.getByRole("heading", { name: "Measures with denominators" })).toBeVisible();
+  await page.getByRole("button", { name: "Preview" }).first().click();
+  await expect(page.getByText("Customer-confirmed baseline", { exact: true })).toBeVisible();
+  await expect(page.getByText("Observed tenant snapshot", { exact: true })).toBeVisible();
+  await expect(page.getByText(/No labour saving, financial return/)).toBeVisible();
+
+  await page.getByRole("button", { name: "Rights & privacy" }).click();
+  await expect(page.getByRole("heading", { name: "Tenant-only by default" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Not authorized" })).toBeVisible();
+  await page.getByRole("button", { name: "Test blocked aggregate" }).click();
+  await expect(page.getByText("Cross-customer query blocked", { exact: true })).toBeVisible();
+  await expect(page.getByText(/No benchmark or customer-identifiable aggregate ran/)).toBeVisible();
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+  expect(overflow).toBe(false);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: testInfo.project.name === "chromium" ? "test-results/visual-inspection/programme-intelligence-desktop.png" : testInfo.project.name === "tablet" ? "test-results/visual-inspection/programme-intelligence-tablet.png" : "test-results/visual-inspection/programme-intelligence-mobile.png", fullPage: true });
 });

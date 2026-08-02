@@ -1,4 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
+const port = process.env.PLAYWRIGHT_PORT ?? "3000";
+const baseURL = `http://127.0.0.1:${port}`;
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
@@ -7,7 +9,7 @@ export default defineConfig({
   retries: 0,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: "http://127.0.0.1:3000",
+    baseURL,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
@@ -20,10 +22,10 @@ export default defineConfig({
     command: "node .next/standalone/server.js",
     env: {
       HOSTNAME: "127.0.0.1",
-      PORT: "3000",
+      PORT: port,
       FORTIFY_RUNTIME_MODE: "sandbox",
     },
-    url: "http://127.0.0.1:3000/api/health",
+    url: `${baseURL}/api/health`,
     reuseExistingServer: true,
     timeout: 120000,
   },

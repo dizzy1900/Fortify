@@ -50,6 +50,7 @@ import {
 import { VerificationService, VerificationStateError, VerificationValidationError } from "@/lib/production/verification-service";
 import { ModelRecognitionStateError, ModelRecognitionValidationError } from "@/lib/production/model-recognition-service";
 import { RecognitionStateError, RecognitionValidationError } from "@/lib/production/recognition-submission-service";
+import { ProgrammeAnalyticsStateError, ProgrammeAnalyticsValidationError } from "@/lib/production/programme-analytics-service";
 
 export const SESSION_COOKIE_NAME =
   process.env.NODE_ENV === "production"
@@ -179,6 +180,10 @@ export function authenticationFailure(error: unknown) {
   if (error instanceof RecognitionValidationError)
     return Response.json({ error: error.message }, { status: 400 });
   if (error instanceof RecognitionStateError)
+    return Response.json({ error: error.message }, { status: 409 });
+  if (error instanceof ProgrammeAnalyticsValidationError)
+    return Response.json({ error: error.message }, { status: 400 });
+  if (error instanceof ProgrammeAnalyticsStateError)
     return Response.json({ error: error.message }, { status: 409 });
   const message =
     error instanceof AuthenticationError
