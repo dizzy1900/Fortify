@@ -53,6 +53,42 @@ export const organizations = pgTable(
   ],
 );
 
+export const identities = pgTable(
+  "identities",
+  {
+    id: text("id").primaryKey(),
+    providerKey: text("provider_key").notNull(),
+    providerSubject: text("provider_subject").notNull(),
+    email: text("email").notNull(),
+    emailVerified: boolean("email_verified").notNull().default(false),
+    displayName: text("display_name").notNull(),
+    mfaCapable: boolean("mfa_capable").notNull().default(false),
+    lastAuthenticatedAt: timestamp("last_authenticated_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    createdBy: text("created_by").notNull(),
+    updatedBy: text("updated_by").notNull(),
+    revision: integer("revision").notNull().default(1),
+    lifecycleStatus: text("lifecycle_status").notNull().default("active"),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    uniqueIndex("identities_provider_subject_unique").on(
+      table.providerKey,
+      table.providerSubject,
+    ),
+    index("identities_email_idx").on(table.email),
+    check("identities_lifecycle_check", lifecycleValues),
+  ],
+);
+
 const tenantColumns = () => ({
   organizationId: text("organization_id")
     .notNull()
@@ -75,6 +111,9 @@ export const memberships = pgTable(
   {
     id: text("id").primaryKey(),
     ...tenantColumns(),
+    identityId: text("identity_id").references(() => identities.id, {
+      onDelete: "restrict",
+    }),
     identitySubject: text("identity_subject").notNull(),
     role: text("role").notNull(),
     status: text("status").notNull().default("invited"),
@@ -88,6 +127,14 @@ export const memberships = pgTable(
       table.identitySubject,
     ),
     index("memberships_org_status_idx").on(table.organizationId, table.status),
+    check(
+      "memberships_role_check",
+      sql`${table.role} in ('organization_owner', 'brokerage_administrator', 'practice_leader', 'broker', 'marketer', 'assistant', 'client_property_manager', 'board_contributor', 'evidence_contributor', 'underwriter_reviewer', 'read_only_auditor')`,
+    ),
+    check(
+      "memberships_status_check",
+      sql`${table.status} in ('invited', 'active', 'suspended', 'revoked')`,
+    ),
     check("memberships_lifecycle_check", lifecycleValues),
   ],
 );
@@ -102,6 +149,413 @@ export const teams = pgTable(
   (table) => [
     uniqueIndex("teams_org_name_unique").on(table.organizationId, table.name),
     check("teams_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: text("id").primaryKey(),
+    identityId: text("identity_id")
+      .notNull()
+      .references(() => identities.id, { onDelete: "restrict" }),
+    activeOrganizationId: text("active_organization_id").references(
+      () => organizations.id,
+      { onDelete: "restrict" },
+    ),
+    tokenHash: text("token_hash").notNull(),
+    authenticationMethod: text("authentication_method").notNull(),
+    authenticationMethods: jsonb("authentication_methods")
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+    issuedAt: timestamp("issued_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" })
+      .notNull(),
+    lastSeenAt: timestamp("last_seen_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "string" }),
+    revocationReason: text("revocation_reason"),
+    userAgent: text("user_agent"),
+    ipHash: text("ip_hash"),
+  },
+  (table) => [
+    uniqueIndex("sessions_token_hash_unique").on(table.tokenHash),
+    index("sessions_identity_expiry_idx").on(
+      table.identityId,
+      table.expiresAt,
+    ),
+    index("sessions_org_expiry_idx").on(
+      table.activeOrganizationId,
+      table.expiresAt,
+    ),
+  ],
+);
+
+export const authenticationAttempts = pgTable(
+  "authentication_attempts",
+  {
+    id: text("id").primaryKey(),
+    providerKey: text("provider_key").notNull(),
+    activeOrganizationId: text("active_organization_id").references(
+      () => organizations.id,
+      { onDelete: "restrict" },
+    ),
+    invitationId: text("invitation_id"),
+    stateHash: text("state_hash").notNull(),
+    nonce: text("nonce").notNull(),
+    pkceVerifier: text("pkce_verifier").notNull(),
+    redirectUri: text("redirect_uri").notNull(),
+    returnTo: text("return_to").notNull().default("/portfolio"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" })
+      .notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    uniqueIndex("authentication_attempts_state_unique").on(table.stateHash),
+    index("authentication_attempts_expiry_idx").on(table.expiresAt),
+  ],
+);
+
+export const invitations = pgTable(
+  "invitations",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    membershipId: text("membership_id")
+      .notNull()
+      .references(() => memberships.id, { onDelete: "restrict" }),
+    email: text("email").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" })
+      .notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true, mode: "string" }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    uniqueIndex("invitations_token_hash_unique").on(table.tokenHash),
+    index("invitations_org_email_idx").on(table.organizationId, table.email),
+    check("invitations_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const teamMemberships = pgTable(
+  "team_memberships",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    teamId: text("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "restrict" }),
+    membershipId: text("membership_id")
+      .notNull()
+      .references(() => memberships.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    uniqueIndex("team_memberships_org_team_member_unique").on(
+      table.organizationId,
+      table.teamId,
+      table.membershipId,
+    ),
+    check("team_memberships_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const externalPrincipals = pgTable(
+  "external_principals",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    identityId: text("identity_id").references(() => identities.id, {
+      onDelete: "restrict",
+    }),
+    principalType: text("principal_type").notNull(),
+    email: text("email").notNull(),
+    displayName: text("display_name").notNull(),
+    status: text("status").notNull().default("invited"),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    index("external_principals_org_email_idx").on(
+      table.organizationId,
+      table.email,
+    ),
+    check(
+      "external_principals_type_check",
+      sql`${table.principalType} in ('external_collaborator', 'external_reviewer')`,
+    ),
+    check(
+      "external_principals_status_check",
+      sql`${table.status} in ('invited', 'active', 'revoked', 'expired')`,
+    ),
+    check("external_principals_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const serviceAccounts = pgTable(
+  "service_accounts",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    subject: text("subject").notNull(),
+    name: text("name").notNull(),
+    status: text("status").notNull().default("active"),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    uniqueIndex("service_accounts_org_subject_unique").on(
+      table.organizationId,
+      table.subject,
+    ),
+    check(
+      "service_accounts_status_check",
+      sql`${table.status} in ('active', 'suspended', 'revoked')`,
+    ),
+    check("service_accounts_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const apiCredentials = pgTable(
+  "api_credentials",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    serviceAccountId: text("service_account_id")
+      .notNull()
+      .references(() => serviceAccounts.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
+    credentialPrefix: text("credential_prefix").notNull(),
+    secretHash: text("secret_hash").notNull(),
+    scopes: jsonb("scopes").$type<string[]>().notNull().default([]),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }),
+    lastUsedAt: timestamp("last_used_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    uniqueIndex("api_credentials_prefix_unique").on(table.credentialPrefix),
+    index("api_credentials_org_service_idx").on(
+      table.organizationId,
+      table.serviceAccountId,
+    ),
+    check("api_credentials_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const supportAccessGrants = pgTable(
+  "support_access_grants",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    supportIdentityId: text("support_identity_id")
+      .notNull()
+      .references(() => identities.id, { onDelete: "restrict" }),
+    approvedByMembershipId: text("approved_by_membership_id")
+      .notNull()
+      .references(() => memberships.id, { onDelete: "restrict" }),
+    reason: text("reason").notNull(),
+    scopes: jsonb("scopes").$type<string[]>().notNull().default([]),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" })
+      .notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    index("support_access_grants_org_identity_idx").on(
+      table.organizationId,
+      table.supportIdentityId,
+      table.expiresAt,
+    ),
+    check("support_access_grants_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const storageObjects = pgTable(
+  "storage_objects",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    provider: text("provider").notNull(),
+    bucket: text("bucket").notNull(),
+    objectKey: text("object_key").notNull(),
+    originalFilename: text("original_filename").notNull(),
+    mimeType: text("mime_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    sha256: text("sha256").notNull(),
+    checksumAlgorithm: text("checksum_algorithm").notNull().default("sha256"),
+    encryptionMode: text("encryption_mode").notNull(),
+    encryptionKeyId: text("encryption_key_id"),
+    state: text("state").notNull().default("pending_upload"),
+    scanStatus: text("scan_status").notNull().default("pending"),
+    retentionUntil: timestamp("retention_until", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    legalHold: boolean("legal_hold").notNull().default(false),
+    legalHoldReason: text("legal_hold_reason"),
+    backedUpAt: timestamp("backed_up_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    deletedReason: text("deleted_reason"),
+  },
+  (table) => [
+    uniqueIndex("storage_objects_org_key_unique").on(
+      table.organizationId,
+      table.objectKey,
+    ),
+    index("storage_objects_org_state_idx").on(
+      table.organizationId,
+      table.state,
+      table.scanStatus,
+    ),
+    check("storage_objects_size_check", sql`${table.sizeBytes} > 0`),
+    check(
+      "storage_objects_state_check",
+      sql`${table.state} in ('pending_upload', 'quarantined', 'scanning', 'clean', 'rejected', 'pending_deletion', 'deleted')`,
+    ),
+    check(
+      "storage_objects_scan_check",
+      sql`${table.scanStatus} in ('pending', 'scanning', 'clean', 'infected', 'error')`,
+    ),
+    check(
+      "storage_objects_encryption_check",
+      sql`${table.encryptionMode} in ('AES256', 'aws:kms')`,
+    ),
+    check("storage_objects_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const storageAccessGrants = pgTable(
+  "storage_access_grants",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    storageObjectId: text("storage_object_id")
+      .notNull()
+      .references(() => storageObjects.id, { onDelete: "restrict" }),
+    operation: text("operation").notNull(),
+    purpose: text("purpose").notNull(),
+    principalSubject: text("principal_subject").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" })
+      .notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "string" }),
+    usedAt: timestamp("used_at", { withTimezone: true, mode: "string" }),
+    maxUses: integer("max_uses").notNull().default(1),
+    useCount: integer("use_count").notNull().default(0),
+  },
+  (table) => [
+    index("storage_access_grants_org_object_idx").on(
+      table.organizationId,
+      table.storageObjectId,
+      table.expiresAt,
+    ),
+    check(
+      "storage_access_grants_operation_check",
+      sql`${table.operation} in ('upload', 'download')`,
+    ),
+    check(
+      "storage_access_grants_use_check",
+      sql`${table.maxUses} > 0 and ${table.useCount} >= 0 and ${table.useCount} <= ${table.maxUses}`,
+    ),
+    check("storage_access_grants_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const malwareScanResults = pgTable(
+  "malware_scan_results",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    storageObjectId: text("storage_object_id")
+      .notNull()
+      .references(() => storageObjects.id, { onDelete: "restrict" }),
+    scanner: text("scanner").notNull(),
+    engineVersion: text("engine_version").notNull(),
+    status: text("status").notNull(),
+    findings: jsonb("findings").$type<string[]>().notNull().default([]),
+    scannedAt: timestamp("scanned_at", { withTimezone: true, mode: "string" })
+      .notNull(),
+    supersedesId: text("supersedes_id"),
+  },
+  (table) => [
+    index("malware_scan_results_org_object_idx").on(
+      table.organizationId,
+      table.storageObjectId,
+      table.scannedAt,
+    ),
+    check(
+      "malware_scan_results_status_check",
+      sql`${table.status} in ('clean', 'infected', 'error')`,
+    ),
+    check("malware_scan_results_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const backupManifests = pgTable(
+  "backup_manifests",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    provider: text("provider").notNull(),
+    status: text("status").notNull().default("building"),
+    objectCount: integer("object_count").notNull().default(0),
+    totalBytes: integer("total_bytes").notNull().default(0),
+    manifestHash: text("manifest_hash"),
+    storageKey: text("storage_key"),
+    completedAt: timestamp("completed_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+  },
+  (table) => [
+    index("backup_manifests_org_status_idx").on(
+      table.organizationId,
+      table.status,
+      table.createdAt,
+    ),
+    check(
+      "backup_manifests_status_check",
+      sql`${table.status} in ('building', 'complete', 'failed')`,
+    ),
+    check("backup_manifests_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const backupManifestItems = pgTable(
+  "backup_manifest_items",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    backupManifestId: text("backup_manifest_id")
+      .notNull()
+      .references(() => backupManifests.id, { onDelete: "restrict" }),
+    storageObjectId: text("storage_object_id")
+      .notNull()
+      .references(() => storageObjects.id, { onDelete: "restrict" }),
+    sourceKey: text("source_key").notNull(),
+    backupKey: text("backup_key").notNull(),
+    sha256: text("sha256").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+  },
+  (table) => [
+    uniqueIndex("backup_manifest_items_org_manifest_object_unique").on(
+      table.organizationId,
+      table.backupManifestId,
+      table.storageObjectId,
+    ),
+    check("backup_manifest_items_size_check", sql`${table.sizeBytes} > 0`),
+    check("backup_manifest_items_lifecycle_check", lifecycleValues),
   ],
 );
 
@@ -367,6 +821,75 @@ export const renewalCases = pgTable(
       table.status,
     ),
     check("renewal_cases_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const caseAssignments = pgTable(
+  "case_assignments",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    caseId: text("case_id")
+      .notNull()
+      .references(() => renewalCases.id, { onDelete: "restrict" }),
+    membershipId: text("membership_id").references(() => memberships.id, {
+      onDelete: "restrict",
+    }),
+    externalPrincipalId: text("external_principal_id").references(
+      () => externalPrincipals.id,
+      { onDelete: "restrict" },
+    ),
+    assignmentRole: text("assignment_role").notNull(),
+    permissions: jsonb("permissions").$type<string[]>().notNull().default([]),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    index("case_assignments_org_case_idx").on(
+      table.organizationId,
+      table.caseId,
+    ),
+    check(
+      "case_assignments_one_principal_check",
+      sql`((${table.membershipId} is not null)::integer + (${table.externalPrincipalId} is not null)::integer) = 1`,
+    ),
+    check(
+      "case_assignments_role_check",
+      sql`${table.assignmentRole} in ('owner', 'team_member', 'contributor', 'reviewer', 'auditor')`,
+    ),
+    check("case_assignments_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const externalAccessGrants = pgTable(
+  "external_access_grants",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    externalPrincipalId: text("external_principal_id")
+      .notNull()
+      .references(() => externalPrincipals.id, { onDelete: "restrict" }),
+    caseId: text("case_id")
+      .notNull()
+      .references(() => renewalCases.id, { onDelete: "restrict" }),
+    purpose: text("purpose").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    scopes: jsonb("scopes").$type<string[]>().notNull().default([]),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" })
+      .notNull(),
+    lastUsedAt: timestamp("last_used_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    uniqueIndex("external_access_grants_token_unique").on(table.tokenHash),
+    index("external_access_grants_org_case_idx").on(
+      table.organizationId,
+      table.caseId,
+    ),
+    check("external_access_grants_lifecycle_check", lifecycleValues),
   ],
 );
 

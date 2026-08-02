@@ -1,0 +1,2 @@
+ALTER TABLE "authentication_attempts" ADD COLUMN "active_organization_id" text;--> statement-breakpoint
+ALTER TABLE "authentication_attempts" ADD CONSTRAINT "authentication_attempts_active_organization_id_organizations_id_fk" FOREIGN KEY ("active_organization_id") REFERENCES "public"."organizations"("id") ON DELETE restrict ON UPDATE no action;
