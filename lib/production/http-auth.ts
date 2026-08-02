@@ -51,6 +51,8 @@ import { VerificationService, VerificationStateError, VerificationValidationErro
 import { ModelRecognitionStateError, ModelRecognitionValidationError } from "@/lib/production/model-recognition-service";
 import { RecognitionStateError, RecognitionValidationError } from "@/lib/production/recognition-submission-service";
 import { ProgrammeAnalyticsStateError, ProgrammeAnalyticsValidationError } from "@/lib/production/programme-analytics-service";
+import { IntegrationStateError, IntegrationValidationError } from "@/lib/production/integration-service";
+import { IntegrationProviderError } from "@/lib/production/integration-providers";
 
 export const SESSION_COOKIE_NAME =
   process.env.NODE_ENV === "production"
@@ -185,6 +187,15 @@ export function authenticationFailure(error: unknown) {
     return Response.json({ error: error.message }, { status: 400 });
   if (error instanceof ProgrammeAnalyticsStateError)
     return Response.json({ error: error.message }, { status: 409 });
+  if (error instanceof IntegrationValidationError)
+    return Response.json({ error: error.message }, { status: 400 });
+  if (error instanceof IntegrationStateError)
+    return Response.json({ error: error.message }, { status: 409 });
+  if (error instanceof IntegrationProviderError)
+    return Response.json(
+      { error: error.message, code: error.code },
+      { status: error.code === "invalid_webhook" ? 401 : error.retryable ? 503 : 409 },
+    );
   const message =
     error instanceof AuthenticationError
       ? error.message

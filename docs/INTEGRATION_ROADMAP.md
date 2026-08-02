@@ -1,6 +1,6 @@
 # Integration roadmap
 
-This phase list is retained as historical renewal-foundation context and is superseded for execution order by [NORTH_STAR_IMPLEMENTATION_PLAN.md](./NORTH_STAR_IMPLEMENTATION_PLAN.md). New provider work follows M11 only after the California brokerage, source, profile/intervention, funding, verification, model-mapping/commitment, recognition, and programme boundaries exist. No integration below is active, validated, or implied.
+This phase list is retained as historical renewal-foundation context and is superseded for execution order by [NORTH_STAR_IMPLEMENTATION_PLAN.md](./NORTH_STAR_IMPLEMENTATION_PLAN.md). The M11 local adapter, custody, webhook, and administration contracts are documented in [INTEGRATIONS.md](./INTEGRATIONS.md). No live vendor connection, credential, semantic acceptance, or deployment validation is implied.
 
 ## Phase 1 - Production data plane
 

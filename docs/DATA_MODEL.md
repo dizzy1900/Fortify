@@ -1,8 +1,8 @@
 # Production data model
 
-The PostgreSQL schema contains 153 normalized tables in the locally validated M8 external-model-mapping and market-commitment tree. It is a reusable tenant, access, property, renewal/appeal, governed-source, evidence-request, immutable packet, storage, document, market-playbook, target-profile, intervention, capital-planning, funding, project-execution, independent-verification, external-model, input-mapping, and explicit-commitment foundation for the Resilience Investment and Insurance Recognition OS—not a claim that recognition submission/outcomes, programme administration, integrations, or operational launch are implemented.
+The PostgreSQL schema contains 189 normalized tables through the locally implemented M11 integration tree. It covers tenant/access, property, renewal/appeal, governed sources, evidence and immutable packets, playbooks, planning/funding/execution, verification, model mapping/commitments, recognition submissions/responses, programme analytics, and governed production-integration custody. It is not evidence of a managed deployment, live provider connection, external semantic acceptance, or operational launch.
 
-California production work must still extend this model beyond the implemented typed evidence levels, planning/funding/execution, independent verification, external model/input mapping, and explicit market commitments with recognition submissions and separate evidence/model/rating/underwriting/placement/funding responses; longitudinal outcomes; programme cohorts; consent/cohort data-right controls; and recognition-graph events. Each new customer-controlled resource requires tenant columns, authorization, database guards, audit coupling, and attack tests before it counts as implemented.
+M12 must harden and validate the deployment around this model. Each new customer-controlled resource still requires tenant columns, authorization, database guards, audit coupling, and attack tests before it counts as implemented.
 
 ## Organizations and access foundation
 
@@ -143,6 +143,17 @@ Proposed and accepted values are never collapsed. Review-only commitments cannot
 
 Jobs can be retried but history cannot be rewritten. A service account can process bytes and create candidates; it cannot confirm facts. Missing candidates remain absent, and unavailable geometry, low confidence, conflicts, and model derivation remain explicit.
 
+## Production integrations
+
+- `integration_connections` and `integration_connection_events`: version-pinned provider identity, fixture/live mode, non-secret configuration, capability/data-class/page/rate limits, current state, owner, and append-only human-confirmed state history.
+- `integration_schema_versions`: immutable direction/resource field maps, exact mapping hash, author, active/superseded state, and immediate predecessor.
+- `integration_sync_jobs` and `integration_sync_attempts`: durable page/batch requests, idempotency and exact request hash, cursor, leases, retry availability, attempt budget, rate-limit/error evidence, dead-letter state, and successor replay.
+- `integration_sync_receipts`: one successful attempt's exact stored JSON, independent size/hash readback, provider/schema/cursor/counts/source reference, and fixture state.
+- `integration_webhook_endpoints` and `integration_webhook_deliveries`: globally unique opaque endpoint key, scoped API credential, event allowlist, HMAC/replay policy, exact-body hash, quarantine object, and durable job lineage.
+- `integration_provider_health_checks`: append-only provider/version latency, rate-limit, status, fixture, and detail history.
+
+Database guards bind every reference to one tenant, require active version-compatible connections and schemas for jobs, preserve exact dead-letter replay lineage, couple receipts to successful attempts and clean exact stored bytes, couple verified webhook deliveries to quarantined bytes and queued jobs, restrict connection/schema/job transitions, and keep all history immutable. See [INTEGRATIONS.md](./INTEGRATIONS.md).
+
 ## Evidence
 
 - `storage_objects`: private tenant-prefixed key, exact metadata/checksum/encryption, quarantine/scan state, retention, legal hold, backup, and deletion state.
@@ -190,4 +201,4 @@ Audit events, data-access logs, requirement/evidence/evidence-request/submission
 
 ## Deliberately deferred entities
 
-The north star also names richer coverage, collaboration, checklist, delivery, reviewer-session, consent/data-right, export/deletion-request, and integration entities. They are introduced with their owning milestones rather than represented by unused placeholder tables. Record-level data-right classification is implemented for the M1 property graph; consent, cohort, de-identification, suppression, and benchmark workflows remain deferred. `docs/IMPLEMENTATION_STATUS.md` remains authoritative about what is implemented.
+Unused launch placeholders are not added. M12 security, observability, deployment, restore, incident, and operational evidence belongs in its owning milestone rather than fabricated status rows. `docs/IMPLEMENTATION_STATUS.md` remains authoritative about what is implemented.

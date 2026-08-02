@@ -5009,6 +5009,464 @@ export const analyticsQueryReceipts = pgTable(
   ],
 );
 
+export const integrationConnections = pgTable(
+  "integration_connections",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    canonicalKey: text("canonical_key").notNull(),
+    name: text("name").notNull(),
+    providerType: text("provider_type").notNull(),
+    providerKey: text("provider_key").notNull(),
+    providerVersion: text("provider_version").notNull(),
+    connectionMode: text("connection_mode").notNull(),
+    status: text("status").notNull().default("disconnected"),
+    apiCredentialId: text("api_credential_id").references(
+      () => apiCredentials.id,
+      { onDelete: "restrict" },
+    ),
+    configuration: jsonb("configuration")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+    capabilities: jsonb("capabilities").$type<string[]>().notNull().default([]),
+    dataClasses: jsonb("data_classes").$type<string[]>().notNull().default([]),
+    pageSize: integer("page_size").notNull().default(100),
+    rateLimitPerMinute: integer("rate_limit_per_minute").notNull().default(60),
+    ownerSubject: text("owner_subject").notNull(),
+    lastHealthAt: timestamp("last_health_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+  },
+  (table) => [
+    uniqueIndex("integration_connections_org_key_unique").on(
+      table.organizationId,
+      table.canonicalKey,
+    ),
+    index("integration_connections_org_status_idx").on(
+      table.organizationId,
+      table.status,
+    ),
+    check(
+      "integration_connections_provider_check",
+      sql`${table.providerType} in ('microsoft_graph_email', 'gmail_email', 'google_drive', 'generic_ams', 'applied_epic', 'ams360', 'property_management', 'external_model', 'verifier')`,
+    ),
+    check(
+      "integration_connections_mode_check",
+      sql`${table.connectionMode} in ('deterministic_fixture', 'live')`,
+    ),
+    check(
+      "integration_connections_status_check",
+      sql`${table.status} in ('disconnected', 'configured', 'connected', 'degraded', 'disabled')`,
+    ),
+    check(
+      "integration_connections_credential_check",
+      sql`${table.connectionMode} = 'deterministic_fixture' or ${table.apiCredentialId} is not null`,
+    ),
+    check(
+      "integration_connections_limits_check",
+      sql`${table.pageSize} between 1 and 1000 and ${table.rateLimitPerMinute} between 1 and 10000`,
+    ),
+    check("integration_connections_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const integrationConnectionEvents = pgTable(
+  "integration_connection_events",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    connectionId: text("connection_id")
+      .notNull()
+      .references(() => integrationConnections.id, { onDelete: "restrict" }),
+    eventType: text("event_type").notNull(),
+    previousStatus: text("previous_status"),
+    nextStatus: text("next_status").notNull(),
+    reason: text("reason").notNull(),
+    humanConfirmed: boolean("human_confirmed").notNull().default(false),
+    actorSubject: text("actor_subject").notNull(),
+    occurredAt: timestamp("occurred_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+  },
+  (table) => [
+    index("integration_events_org_connection_idx").on(
+      table.organizationId,
+      table.connectionId,
+      table.occurredAt,
+    ),
+    check(
+      "integration_events_type_check",
+      sql`${table.eventType} in ('configured', 'connected', 'degraded', 'disconnected', 'disabled', 'credential_rotated')`,
+    ),
+    check(
+      "integration_events_status_check",
+      sql`${table.nextStatus} in ('disconnected', 'configured', 'connected', 'degraded', 'disabled') and (${table.previousStatus} is null or ${table.previousStatus} in ('disconnected', 'configured', 'connected', 'degraded', 'disabled'))`,
+    ),
+    check("integration_events_confirmed_check", sql`${table.humanConfirmed} = true`),
+    check("integration_events_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const integrationSchemaVersions = pgTable(
+  "integration_schema_versions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    connectionId: text("connection_id")
+      .notNull()
+      .references(() => integrationConnections.id, { onDelete: "restrict" }),
+    versionNumber: integer("version_number").notNull(),
+    schemaKey: text("schema_key").notNull(),
+    direction: text("direction").notNull(),
+    resourceKinds: jsonb("resource_kinds").$type<string[]>().notNull().default([]),
+    mapping: jsonb("mapping")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+    sourceSchemaHash: text("source_schema_hash").notNull(),
+    status: text("status").notNull().default("active"),
+    effectiveAt: timestamp("effective_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    authoredBy: text("authored_by").notNull(),
+    supersedesVersionId: text("supersedes_version_id").references(
+      (): AnyPgColumn => integrationSchemaVersions.id,
+      { onDelete: "restrict" },
+    ),
+  },
+  (table) => [
+    uniqueIndex("integration_schemas_org_number_unique").on(
+      table.organizationId,
+      table.connectionId,
+      table.versionNumber,
+    ),
+    check("integration_schemas_number_check", sql`${table.versionNumber} >= 1`),
+    check(
+      "integration_schemas_direction_check",
+      sql`${table.direction} in ('pull', 'push', 'bidirectional')`,
+    ),
+    check(
+      "integration_schemas_status_check",
+      sql`${table.status} in ('active', 'superseded', 'withdrawn')`,
+    ),
+    check(
+      "integration_schemas_hash_check",
+      sql`char_length(${table.sourceSchemaHash}) = 64`,
+    ),
+    check("integration_schemas_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const integrationSyncJobs = pgTable(
+  "integration_sync_jobs",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    connectionId: text("connection_id")
+      .notNull()
+      .references(() => integrationConnections.id, { onDelete: "restrict" }),
+    schemaVersionId: text("schema_version_id")
+      .notNull()
+      .references(() => integrationSchemaVersions.id, { onDelete: "restrict" }),
+    supersedesJobId: text("supersedes_job_id").references(
+      (): AnyPgColumn => integrationSyncJobs.id,
+      { onDelete: "restrict" },
+    ),
+    direction: text("direction").notNull(),
+    resourceKind: text("resource_kind").notNull(),
+    idempotencyKey: text("idempotency_key").notNull(),
+    requestHash: text("request_hash").notNull(),
+    requestPayload: jsonb("request_payload")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+    cursorBefore: text("cursor_before"),
+    pageSize: integer("page_size").notNull(),
+    status: text("status").notNull().default("queued"),
+    attemptCount: integer("attempt_count").notNull().default(0),
+    maxAttempts: integer("max_attempts").notNull().default(3),
+    availableAt: timestamp("available_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    leaseOwner: text("lease_owner"),
+    leaseExpiresAt: timestamp("lease_expires_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    lastErrorCode: text("last_error_code"),
+    lastErrorMessage: text("last_error_message"),
+    requestedBy: text("requested_by").notNull(),
+    requestedAt: timestamp("requested_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    completedAt: timestamp("completed_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    deadLetteredAt: timestamp("dead_lettered_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+  },
+  (table) => [
+    uniqueIndex("integration_jobs_org_idempotency_unique").on(
+      table.organizationId,
+      table.connectionId,
+      table.idempotencyKey,
+    ),
+    index("integration_jobs_org_queue_idx").on(
+      table.organizationId,
+      table.status,
+      table.availableAt,
+    ),
+    check(
+      "integration_jobs_direction_check",
+      sql`${table.direction} in ('pull', 'push')`,
+    ),
+    check(
+      "integration_jobs_status_check",
+      sql`${table.status} in ('queued', 'running', 'retry_scheduled', 'succeeded', 'dead_letter')`,
+    ),
+    check(
+      "integration_jobs_attempts_check",
+      sql`${table.attemptCount} >= 0 and ${table.maxAttempts} between 1 and 10 and ${table.attemptCount} <= ${table.maxAttempts}`,
+    ),
+    check("integration_jobs_page_check", sql`${table.pageSize} between 1 and 1000`),
+    check("integration_jobs_hash_check", sql`char_length(${table.requestHash}) = 64`),
+    check("integration_jobs_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const integrationSyncAttempts = pgTable(
+  "integration_sync_attempts",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    jobId: text("job_id")
+      .notNull()
+      .references(() => integrationSyncJobs.id, { onDelete: "restrict" }),
+    attemptNumber: integer("attempt_number").notNull(),
+    status: text("status").notNull(),
+    providerKey: text("provider_key").notNull(),
+    providerVersion: text("provider_version").notNull(),
+    requestHash: text("request_hash").notNull(),
+    responseHash: text("response_hash"),
+    cursorBefore: text("cursor_before"),
+    cursorAfter: text("cursor_after"),
+    recordsRead: integer("records_read").notNull().default(0),
+    recordsWritten: integer("records_written").notNull().default(0),
+    recordsRejected: integer("records_rejected").notNull().default(0),
+    rateLimitRemaining: integer("rate_limit_remaining"),
+    rateLimitResetAt: timestamp("rate_limit_reset_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    errorCode: text("error_code"),
+    errorMessage: text("error_message"),
+    startedAt: timestamp("started_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    finishedAt: timestamp("finished_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("integration_attempts_org_job_number_unique").on(
+      table.organizationId,
+      table.jobId,
+      table.attemptNumber,
+    ),
+    check("integration_attempts_number_check", sql`${table.attemptNumber} >= 1`),
+    check(
+      "integration_attempts_status_check",
+      sql`${table.status} in ('succeeded', 'failed_retryable', 'failed_terminal')`,
+    ),
+    check(
+      "integration_attempts_counts_check",
+      sql`${table.recordsRead} >= 0 and ${table.recordsWritten} >= 0 and ${table.recordsRejected} >= 0`,
+    ),
+    check(
+      "integration_attempts_hash_check",
+      sql`char_length(${table.requestHash}) = 64 and (${table.responseHash} is null or char_length(${table.responseHash}) = 64)`,
+    ),
+    check("integration_attempts_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const integrationSyncReceipts = pgTable(
+  "integration_sync_receipts",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    jobId: text("job_id")
+      .notNull()
+      .references(() => integrationSyncJobs.id, { onDelete: "restrict" }),
+    attemptId: text("attempt_id")
+      .notNull()
+      .references(() => integrationSyncAttempts.id, { onDelete: "restrict" }),
+    storageObjectId: text("storage_object_id")
+      .notNull()
+      .references(() => storageObjects.id, { onDelete: "restrict" }),
+    receiptType: text("receipt_type").notNull(),
+    schemaVersion: text("schema_version").notNull(),
+    cursorBefore: text("cursor_before"),
+    cursorAfter: text("cursor_after"),
+    pageCount: integer("page_count").notNull().default(1),
+    recordsRead: integer("records_read").notNull(),
+    recordsWritten: integer("records_written").notNull(),
+    recordsRejected: integer("records_rejected").notNull(),
+    payloadHash: text("payload_hash").notNull(),
+    sourceAuthority: text("source_authority").notNull(),
+    sourceReference: text("source_reference").notNull(),
+    completedAt: timestamp("completed_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("integration_receipts_org_attempt_unique").on(
+      table.organizationId,
+      table.attemptId,
+    ),
+    check(
+      "integration_receipts_type_check",
+      sql`${table.receiptType} in ('pull_page', 'push_batch', 'webhook_intake')`,
+    ),
+    check(
+      "integration_receipts_counts_check",
+      sql`${table.pageCount} >= 1 and ${table.recordsRead} >= 0 and ${table.recordsWritten} >= 0 and ${table.recordsRejected} >= 0`,
+    ),
+    check(
+      "integration_receipts_hash_check",
+      sql`char_length(${table.payloadHash}) = 64`,
+    ),
+    check("integration_receipts_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const integrationWebhookEndpoints = pgTable(
+  "integration_webhook_endpoints",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    connectionId: text("connection_id")
+      .notNull()
+      .references(() => integrationConnections.id, { onDelete: "restrict" }),
+    apiCredentialId: text("api_credential_id")
+      .notNull()
+      .references(() => apiCredentials.id, { onDelete: "restrict" }),
+    endpointKey: text("endpoint_key").notNull(),
+    eventTypes: jsonb("event_types").$type<string[]>().notNull().default([]),
+    signatureAlgorithm: text("signature_algorithm").notNull(),
+    toleranceSeconds: integer("tolerance_seconds").notNull().default(300),
+    status: text("status").notNull().default("active"),
+    lastRotatedAt: timestamp("last_rotated_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("integration_webhooks_endpoint_key_unique").on(table.endpointKey),
+    check(
+      "integration_webhooks_algorithm_check",
+      sql`${table.signatureAlgorithm} in ('hmac_sha256')`,
+    ),
+    check(
+      "integration_webhooks_status_check",
+      sql`${table.status} in ('active', 'disabled', 'rotating')`,
+    ),
+    check(
+      "integration_webhooks_tolerance_check",
+      sql`${table.toleranceSeconds} between 30 and 900`,
+    ),
+    check("integration_webhooks_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const integrationWebhookDeliveries = pgTable(
+  "integration_webhook_deliveries",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    endpointId: text("endpoint_id")
+      .notNull()
+      .references(() => integrationWebhookEndpoints.id, { onDelete: "restrict" }),
+    syncJobId: text("sync_job_id")
+      .notNull()
+      .references(() => integrationSyncJobs.id, { onDelete: "restrict" }),
+    storageObjectId: text("storage_object_id")
+      .notNull()
+      .references(() => storageObjects.id, { onDelete: "restrict" }),
+    externalEventId: text("external_event_id").notNull(),
+    eventType: text("event_type").notNull(),
+    signatureValid: boolean("signature_valid").notNull().default(false),
+    signatureTimestamp: timestamp("signature_timestamp", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    bodySha256: text("body_sha256").notNull(),
+    receivedAt: timestamp("received_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("integration_deliveries_org_event_unique").on(
+      table.organizationId,
+      table.endpointId,
+      table.externalEventId,
+    ),
+    check("integration_deliveries_signature_check", sql`${table.signatureValid} = true`),
+    check(
+      "integration_deliveries_hash_check",
+      sql`char_length(${table.bodySha256}) = 64`,
+    ),
+    check("integration_deliveries_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const integrationProviderHealthChecks = pgTable(
+  "integration_provider_health_checks",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    connectionId: text("connection_id")
+      .notNull()
+      .references(() => integrationConnections.id, { onDelete: "restrict" }),
+    status: text("status").notNull(),
+    providerKey: text("provider_key").notNull(),
+    providerVersion: text("provider_version").notNull(),
+    latencyMs: integer("latency_ms").notNull(),
+    rateLimitRemaining: integer("rate_limit_remaining"),
+    detail: text("detail").notNull(),
+    checkedAt: timestamp("checked_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+  },
+  (table) => [
+    index("integration_health_org_connection_idx").on(
+      table.organizationId,
+      table.connectionId,
+      table.checkedAt,
+    ),
+    check(
+      "integration_health_status_check",
+      sql`${table.status} in ('healthy', 'degraded', 'unavailable', 'misconfigured')`,
+    ),
+    check("integration_health_latency_check", sql`${table.latencyMs} >= 0`),
+    check("integration_health_lifecycle_check", lifecycleValues),
+  ],
+);
+
 export const idempotencyKeys = pgTable(
   "idempotency_keys",
   {

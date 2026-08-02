@@ -169,6 +169,20 @@
       "when": 1785661329775,
       "tag": "0023_regular_madame_hydra",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1785663902228,
+      "tag": "0024_chubby_magma",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1785664925153,
+      "tag": "0025_fat_warpath",
+      "breakpoints": true
     }
   ]
 }
