@@ -2549,6 +2549,404 @@ export const capitalPlanScenarioProjects = pgTable(
   ],
 );
 
+export const fundingProgrammes = pgTable(
+  "funding_programmes",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    canonicalKey: text("canonical_key").notNull(),
+    name: text("name").notNull(),
+    sponsorName: text("sponsor_name").notNull(),
+    programmeType: text("programme_type").notNull(),
+    description: text("description").notNull(),
+  },
+  (table) => [
+    uniqueIndex("funding_programmes_org_key_unique").on(table.organizationId, table.canonicalKey),
+    check("funding_programmes_type_check", sql`${table.programmeType} in ('public_grant', 'insurer', 'reinsurer', 'lender', 'philanthropic', 'local_government', 'mixed')`),
+    check("funding_programmes_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const fundingProgrammeVersions = pgTable(
+  "funding_programme_versions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    programmeId: text("programme_id").notNull().references(() => fundingProgrammes.id, { onDelete: "restrict" }),
+    versionNumber: integer("version_number").notNull(),
+    governedSourceVersionId: text("governed_source_version_id").notNull().references(() => governedSourceVersions.id, { onDelete: "restrict" }),
+    targetProfileVersionId: text("target_profile_version_id").references(() => targetProfileVersions.id, { onDelete: "restrict" }),
+    jurisdiction: text("jurisdiction").notNull(),
+    hazard: text("hazard").notNull(),
+    propertyClasses: jsonb("property_classes").$type<string[]>().notNull().default([]),
+    applicationOpensOn: date("application_opens_on", { mode: "string" }).notNull(),
+    applicationClosesOn: date("application_closes_on", { mode: "string" }).notNull(),
+    maximumAwardCents: integer("maximum_award_cents").notNull(),
+    maximumCostShareBps: integer("maximum_cost_share_bps").notNull(),
+    currency: text("currency").notNull().default("USD"),
+    evidenceRequirements: jsonb("evidence_requirements").$type<string[]>().notNull().default([]),
+    paymentConditions: jsonb("payment_conditions").$type<string[]>().notNull().default([]),
+    maintenanceObligations: jsonb("maintenance_obligations").$type<string[]>().notNull().default([]),
+    limitations: text("limitations").notNull(),
+    authorSubject: text("author_subject").notNull(),
+    supersedesVersionId: text("supersedes_version_id").references((): AnyPgColumn => fundingProgrammeVersions.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    uniqueIndex("funding_programme_versions_org_number_unique").on(table.organizationId, table.programmeId, table.versionNumber),
+    check("funding_programme_versions_number_check", sql`${table.versionNumber} >= 1`),
+    check("funding_programme_versions_window_check", sql`${table.applicationClosesOn} >= ${table.applicationOpensOn}`),
+    check("funding_programme_versions_award_check", sql`${table.maximumAwardCents} >= 0`),
+    check("funding_programme_versions_share_check", sql`${table.maximumCostShareBps} between 0 and 10000`),
+    check("funding_programme_versions_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const fundingEligibilityRules = pgTable(
+  "funding_eligibility_rules",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    programmeVersionId: text("programme_version_id").notNull().references(() => fundingProgrammeVersions.id, { onDelete: "restrict" }),
+    code: text("code").notNull(),
+    field: text("field").notNull(),
+    operator: text("operator").notNull(),
+    expectedValues: jsonb("expected_values").$type<string[]>().notNull().default([]),
+    required: boolean("required").notNull().default(true),
+    position: integer("position").notNull(),
+  },
+  (table) => [
+    uniqueIndex("funding_eligibility_rules_org_code_unique").on(table.organizationId, table.programmeVersionId, table.code),
+    check("funding_eligibility_rules_operator_check", sql`${table.operator} in ('equals', 'one_of', 'includes', 'at_least', 'at_most')`),
+    check("funding_eligibility_rules_position_check", sql`${table.position} >= 1`),
+    check("funding_eligibility_rules_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const fundingProgrammeReviews = pgTable(
+  "funding_programme_reviews",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    programmeVersionId: text("programme_version_id").notNull().references(() => fundingProgrammeVersions.id, { onDelete: "restrict" }),
+    decision: text("decision").notNull(),
+    reviewerSubject: text("reviewer_subject").notNull(),
+    sourceAndRulesChecked: boolean("source_and_rules_checked").notNull().default(false),
+    note: text("note").notNull(),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("funding_programme_reviews_org_version_unique").on(table.organizationId, table.programmeVersionId),
+    check("funding_programme_reviews_decision_check", sql`${table.decision} in ('approved', 'changes_requested')`),
+    check("funding_programme_reviews_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const fundingProgrammePublications = pgTable(
+  "funding_programme_publications",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    programmeVersionId: text("programme_version_id").notNull().references(() => fundingProgrammeVersions.id, { onDelete: "restrict" }),
+    decision: text("decision").notNull(),
+    publisherSubject: text("publisher_subject").notNull(),
+    note: text("note").notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("funding_programme_publications_org_version_unique").on(table.organizationId, table.programmeVersionId),
+    check("funding_programme_publications_decision_check", sql`${table.decision} in ('published', 'rejected')`),
+    check("funding_programme_publications_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const fundingEligibilityAssessments = pgTable(
+  "funding_eligibility_assessments",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    projectId: text("project_id").notNull().references(() => resilienceProjects.id, { onDelete: "restrict" }),
+    programmeVersionId: text("programme_version_id").notNull().references(() => fundingProgrammeVersions.id, { onDelete: "restrict" }),
+    state: text("state").notNull(),
+    inputFacts: jsonb("input_facts").$type<Record<string, string | string[] | number>>().notNull().default({}),
+    inputHash: text("input_hash").notNull(),
+    reasons: jsonb("reasons").$type<string[]>().notNull().default([]),
+    assessedBy: text("assessed_by").notNull(),
+    assessedAt: timestamp("assessed_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    check("funding_eligibility_assessments_state_check", sql`${table.state} in ('eligible', 'ineligible', 'insufficient_evidence')`),
+    check("funding_eligibility_assessments_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const fundingEligibilityRuleResults = pgTable(
+  "funding_eligibility_rule_results",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    assessmentId: text("assessment_id").notNull().references(() => fundingEligibilityAssessments.id, { onDelete: "restrict" }),
+    ruleId: text("rule_id").notNull().references(() => fundingEligibilityRules.id, { onDelete: "restrict" }),
+    state: text("state").notNull(),
+    observedValue: jsonb("observed_value").$type<string | string[] | number | null>(),
+    reason: text("reason").notNull(),
+  },
+  (table) => [
+    uniqueIndex("funding_rule_results_org_pair_unique").on(table.organizationId, table.assessmentId, table.ruleId),
+    check("funding_rule_results_state_check", sql`${table.state} in ('matched', 'not_matched', 'insufficient_evidence')`),
+    check("funding_rule_results_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const fundingApplications = pgTable(
+  "funding_applications",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    projectId: text("project_id").notNull().references(() => resilienceProjects.id, { onDelete: "restrict" }),
+    programmeVersionId: text("programme_version_id").notNull().references(() => fundingProgrammeVersions.id, { onDelete: "restrict" }),
+    eligibilityAssessmentId: text("eligibility_assessment_id").notNull().references(() => fundingEligibilityAssessments.id, { onDelete: "restrict" }),
+    requestedAmountCents: integer("requested_amount_cents").notNull(),
+    state: text("state").notNull().default("prepared"),
+    humanConfirmedBy: text("human_confirmed_by").notNull(),
+    preparedAt: timestamp("prepared_at", { withTimezone: true, mode: "string" }).notNull(),
+    limitations: text("limitations").notNull(),
+  },
+  (table) => [
+    uniqueIndex("funding_applications_org_project_programme_unique").on(table.organizationId, table.projectId, table.programmeVersionId),
+    check("funding_applications_amount_check", sql`${table.requestedAmountCents} > 0`),
+    check("funding_applications_state_check", sql`${table.state} in ('prepared', 'submitted_external', 'withdrawn')`),
+    check("funding_applications_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const capitalStacks = pgTable(
+  "capital_stacks",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    projectId: text("project_id").notNull().references(() => resilienceProjects.id, { onDelete: "restrict" }),
+    capitalPlanScenarioId: text("capital_plan_scenario_id").references(() => capitalPlanScenarios.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
+    projectCostCents: integer("project_cost_cents").notNull(),
+    currency: text("currency").notNull().default("USD"),
+    state: text("state").notNull().default("proposed"),
+    decisionBoundary: text("decision_boundary").notNull(),
+  },
+  (table) => [
+    check("capital_stacks_cost_check", sql`${table.projectCostCents} > 0`),
+    check("capital_stacks_state_check", sql`${table.state} in ('proposed', 'approved', 'cancelled')`),
+    check("capital_stacks_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const capitalStackContributions = pgTable(
+  "capital_stack_contributions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    capitalStackId: text("capital_stack_id").notNull().references(() => capitalStacks.id, { onDelete: "restrict" }),
+    programmeVersionId: text("programme_version_id").references(() => fundingProgrammeVersions.id, { onDelete: "restrict" }),
+    contributionType: text("contribution_type").notNull(),
+    contributorName: text("contributor_name").notNull(),
+    sourceReference: text("source_reference").notNull(),
+    amountCents: integer("amount_cents").notNull(),
+    costShareBps: integer("cost_share_bps").notNull(),
+    purpose: text("purpose").notNull(),
+  },
+  (table) => [
+    uniqueIndex("capital_stack_contributions_org_source_unique").on(table.organizationId, table.capitalStackId, table.sourceReference),
+    check("capital_stack_contributions_type_check", sql`${table.contributionType} in ('owner', 'grant', 'financing', 'insurer', 'reinsurer', 'local_government', 'philanthropic')`),
+    check("capital_stack_contributions_amount_check", sql`${table.amountCents} > 0`),
+    check("capital_stack_contributions_share_check", sql`${table.costShareBps} between 1 and 10000`),
+    check("capital_stack_contributions_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const fundingCommitments = pgTable(
+  "funding_commitments",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    contributionId: text("contribution_id").notNull().references(() => capitalStackContributions.id, { onDelete: "restrict" }),
+    committedAmountCents: integer("committed_amount_cents").notNull(),
+    terms: text("terms").notNull(),
+    proposedBy: text("proposed_by").notNull(),
+    proposedAt: timestamp("proposed_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("funding_commitments_org_contribution_unique").on(table.organizationId, table.contributionId),
+    check("funding_commitments_amount_check", sql`${table.committedAmountCents} > 0`),
+    check("funding_commitments_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const fundingCommitmentEvents = pgTable(
+  "funding_commitment_events",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    commitmentId: text("commitment_id").notNull().references(() => fundingCommitments.id, { onDelete: "restrict" }),
+    eventType: text("event_type").notNull(),
+    effectiveAmountCents: integer("effective_amount_cents").notNull(),
+    rationale: text("rationale").notNull(),
+    decidedBy: text("decided_by").notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true, mode: "string" }).notNull(),
+    supersedesEventId: text("supersedes_event_id").references((): AnyPgColumn => fundingCommitmentEvents.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    check("funding_commitment_events_type_check", sql`${table.eventType} in ('proposed', 'approved', 'corrected', 'cancelled')`),
+    check("funding_commitment_events_amount_check", sql`${table.effectiveAmountCents} >= 0`),
+    check("funding_commitment_events_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const projectMilestones = pgTable(
+  "project_milestones",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    projectId: text("project_id").notNull().references(() => resilienceProjects.id, { onDelete: "restrict" }),
+    code: text("code").notNull(),
+    name: text("name").notNull(),
+    position: integer("position").notNull(),
+    dueOn: date("due_on", { mode: "string" }),
+    evidenceRequirement: text("evidence_requirement").notNull(),
+    paymentEligible: boolean("payment_eligible").notNull().default(false),
+    plannedPaymentCents: integer("planned_payment_cents").notNull().default(0),
+  },
+  (table) => [
+    uniqueIndex("project_milestones_org_code_unique").on(table.organizationId, table.projectId, table.code),
+    check("project_milestones_position_check", sql`${table.position} >= 1`),
+    check("project_milestones_payment_check", sql`${table.plannedPaymentCents} >= 0`),
+    check("project_milestones_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const projectMilestoneDependencies = pgTable(
+  "project_milestone_dependencies",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    milestoneId: text("milestone_id").notNull().references(() => projectMilestones.id, { onDelete: "restrict" }),
+    dependsOnMilestoneId: text("depends_on_milestone_id").notNull().references(() => projectMilestones.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    uniqueIndex("project_milestone_dependencies_org_pair_unique").on(table.organizationId, table.milestoneId, table.dependsOnMilestoneId),
+    check("project_milestone_dependencies_self_check", sql`${table.milestoneId} <> ${table.dependsOnMilestoneId}`),
+    check("project_milestone_dependencies_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const projectMilestoneEvents = pgTable(
+  "project_milestone_events",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    milestoneId: text("milestone_id").notNull().references(() => projectMilestones.id, { onDelete: "restrict" }),
+    eventType: text("event_type").notNull(),
+    note: text("note").notNull(),
+    decidedBy: text("decided_by").notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true, mode: "string" }).notNull(),
+    supersedesEventId: text("supersedes_event_id").references((): AnyPgColumn => projectMilestoneEvents.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    check("project_milestone_events_type_check", sql`${table.eventType} in ('started', 'evidence_submitted', 'approved', 'changes_requested', 'corrected', 'cancelled')`),
+    check("project_milestone_events_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const paymentApprovals = pgTable(
+  "payment_approvals",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    milestoneId: text("milestone_id").notNull().references(() => projectMilestones.id, { onDelete: "restrict" }),
+    contributionId: text("contribution_id").notNull().references(() => capitalStackContributions.id, { onDelete: "restrict" }),
+    amountCents: integer("amount_cents").notNull(),
+    decision: text("decision").notNull(),
+    approverSubject: text("approver_subject").notNull(),
+    note: text("note").notNull(),
+    decidedAt: timestamp("decided_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    check("payment_approvals_amount_check", sql`${table.amountCents} > 0`),
+    check("payment_approvals_decision_check", sql`${table.decision} in ('approved', 'rejected')`),
+    check("payment_approvals_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const disbursementExports = pgTable(
+  "disbursement_exports",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    paymentApprovalId: text("payment_approval_id").notNull().references(() => paymentApprovals.id, { onDelete: "restrict" }),
+    exportVersion: integer("export_version").notNull(),
+    instructionPayload: jsonb("instruction_payload").$type<Record<string, unknown>>().notNull().default({}),
+    payloadHash: text("payload_hash").notNull(),
+    humanConfirmed: boolean("human_confirmed").notNull().default(false),
+    exportedBy: text("exported_by").notNull(),
+    exportedAt: timestamp("exported_at", { withTimezone: true, mode: "string" }).notNull(),
+    executionState: text("execution_state").notNull().default("not_executed_export_only"),
+  },
+  (table) => [
+    uniqueIndex("disbursement_exports_org_approval_version_unique").on(table.organizationId, table.paymentApprovalId, table.exportVersion),
+    check("disbursement_exports_version_check", sql`${table.exportVersion} >= 1`),
+    check("disbursement_exports_execution_check", sql`${table.executionState} = 'not_executed_export_only'`),
+    check("disbursement_exports_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const projectExternalAssignments = pgTable(
+  "project_external_assignments",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    projectId: text("project_id").notNull().references(() => resilienceProjects.id, { onDelete: "restrict" }),
+    externalPrincipalId: text("external_principal_id").notNull().references(() => externalPrincipals.id, { onDelete: "restrict" }),
+    collaboratorRole: text("collaborator_role").notNull(),
+    purpose: text("purpose").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    scopes: jsonb("scopes").$type<string[]>().notNull().default([]),
+    dueOn: date("due_on", { mode: "string" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    uniqueIndex("project_external_assignments_token_unique").on(table.tokenHash),
+    check("project_external_assignments_role_check", sql`${table.collaboratorRole} in ('property_manager', 'board_contributor', 'contractor')`),
+    check("project_external_assignments_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const stakeholderBenefitLedgerEntries = pgTable(
+  "stakeholder_benefit_ledger_entries",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    projectId: text("project_id").notNull().references(() => resilienceProjects.id, { onDelete: "restrict" }),
+    stakeholderType: text("stakeholder_type").notNull(),
+    stakeholderName: text("stakeholder_name").notNull(),
+    expectedBenefitCategory: text("expected_benefit_category").notNull(),
+    expectedCostCents: integer("expected_cost_cents").notNull(),
+    fundingContributionCents: integer("funding_contribution_cents").notNull(),
+    evidenceLevel: text("evidence_level").notNull(),
+    source: text("source").notNull(),
+    timeframe: text("timeframe").notNull(),
+    uncertainty: text("uncertainty").notNull(),
+    commitmentState: text("commitment_state").notNull(),
+    realisedResponseState: text("realised_response_state").notNull(),
+    correctionOfId: text("correction_of_id").references((): AnyPgColumn => stakeholderBenefitLedgerEntries.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    check("stakeholder_benefit_cost_check", sql`${table.expectedCostCents} >= 0 and ${table.fundingContributionCents} >= 0`),
+    check("stakeholder_benefit_evidence_check", sql`${table.evidenceLevel} in ('self_attested', 'documented', 'professional_observation', 'independent_verification', 'jurisdictional_record', 'programme_recognition', 'insurer_acknowledgement', 'modeled_analysis', 'measured_outcome')`),
+    check("stakeholder_benefit_commitment_check", sql`${table.commitmentState} in ('none', 'proposed', 'approved', 'cancelled')`),
+    check("stakeholder_benefit_response_check", sql`${table.realisedResponseState} in ('not_observed', 'recorded', 'corrected')`),
+    check("stakeholder_benefit_lifecycle_check", lifecycleValues),
+  ],
+);
+
 export const marketPlaybooks = pgTable(
   "market_playbooks",
   {

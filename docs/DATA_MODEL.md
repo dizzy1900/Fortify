@@ -1,8 +1,8 @@
 # Production data model
 
-The PostgreSQL schema contains 100 normalized tables in the locally validated M5 resilience-planning tree. It is a reusable tenant, access, property, renewal/appeal, governed-source, evidence-request, immutable packet, storage, document, market-playbook, target-profile, intervention, and capital-planning foundation for the Resilience Investment and Insurance Recognition OS—not a claim that later funding, verification, model, recognition, or programme domains are implemented.
+The PostgreSQL schema contains 119 normalized tables in the locally validated M6 funding/project-execution tree. It is a reusable tenant, access, property, renewal/appeal, governed-source, evidence-request, immutable packet, storage, document, market-playbook, target-profile, intervention, capital-planning, funding, commitment, milestone, external-project-access, and benefit-ledger foundation for the Resilience Investment and Insurance Recognition OS—not a claim that later verification, model, recognition, or programme-administration domains are implemented.
 
-California production work must still extend this model beyond the implemented typed evidence levels, target profiles, intervention specifications, baseline conditions, resilience projects, and capital plans with funding programmes/commitments/milestones; independent verifiers/findings/certificates; external models and input mappings; explicit market/funder commitments; recognition submissions and separate evidence/model/rating/underwriting/placement/funding responses; longitudinal maintenance/outcomes; programme cohorts; consent/cohort data-right controls; and recognition-graph events. Each new customer-controlled resource requires tenant columns, authorization, database guards, audit coupling, and attack tests before it counts as implemented.
+California production work must still extend this model beyond the implemented typed evidence levels, target profiles, intervention specifications, baseline conditions, resilience projects, capital plans, funding programmes/commitments/milestones, scoped collaborators, and instruction exports with independent verifiers/findings/certificates; external models and input mappings; explicit market commitments; recognition submissions and separate evidence/model/rating/underwriting/placement/funding responses; longitudinal maintenance/outcomes; programme cohorts; consent/cohort data-right controls; and recognition-graph events. Each new customer-controlled resource requires tenant columns, authorization, database guards, audit coupling, and attack tests before it counts as implemented.
 
 ## Organizations and access foundation
 
@@ -97,6 +97,20 @@ Approved applicability is exact and effective-date-bound. Zero or multiple match
 - `capital_plans`, `capital_plan_scenarios`, and `capital_plan_scenario_projects`: explicit plan state plus transparent cost, timeline, dependencies, maintenance, assumptions, and separate funding/model/insurer unknown states.
 
 No capital-plan field stores a composite ROI or risk score. Planning state is deterministically `options_available`, `insufficient_evidence`, `no_attractive_path`, or `inapplicable`; absent evidence and external authority never become zero or approval.
+
+## Funding and project execution
+
+- `funding_programmes`, immutable `funding_programme_versions`, `funding_eligibility_rules`, `funding_programme_reviews`, and `funding_programme_publications`: stable sponsor/programme identity, exact governed-source pin, jurisdiction/hazard/property scope, application window, award/cost-share ceilings, evidence/payment/maintenance conditions, bounded deterministic rules, immediate lineage, and separate author/reviewer/publisher decisions.
+- `funding_eligibility_assessments` and `funding_eligibility_rule_results`: immutable exact input facts/hash, rule-by-rule observed value and reason, and explicit eligible/ineligible/insufficient-evidence state. Eligibility is administrative candidate evidence, never an award.
+- `funding_applications`: immutable human-confirmed prepared request against the exact eligible assessment and programme version; external submission is not inferred.
+- `capital_stacks` and `capital_stack_contributions`: immutable project cost plus owner/grant/financing/insurer/reinsurer/local-government/philanthropic sources, exact source reference, amount, cost-share basis points, purpose, and no-funds-moved boundary.
+- `funding_commitments` and `funding_commitment_events`: immutable proposal plus append-only approval/correction/cancellation history and effective amount; proposer and approver remain separate.
+- `project_milestones`, `project_milestone_dependencies`, and `project_milestone_events`: immutable same-project ordered definitions/dependencies and append-only start/evidence/approval/change/correction/cancellation decisions.
+- `payment_approvals` and `disbursement_exports`: immutable human payment recommendation plus separately confirmed deterministic instruction payload/hash. `execution_state` is database-fixed to `not_executed_export_only`.
+- `project_external_assignments`: project-scoped property-manager, board, or contractor role, purpose, allowlisted permission set, digest-only token, due date, expiry, and one-way revocation.
+- `stakeholder_benefit_ledger_entries`: immutable stakeholder, expected benefit category, cost, contribution, evidence level, source, timeframe, uncertainty, commitment, realized response, and explicit correction lineage.
+
+See [FUNDING_AND_MILESTONES.md](./FUNDING_AND_MILESTONES.md). No table stores bank credentials, custody, settlement state, an aggregate ROI score, or a prediction of funding or insurance acceptance.
 
 ## Document processing and facts
 

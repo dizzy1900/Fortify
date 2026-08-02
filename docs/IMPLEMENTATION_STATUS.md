@@ -4,7 +4,7 @@ Measured on August 1, 2026 against [COMMERCIAL_NORTH_STAR.md](./COMMERCIAL_NORTH
 
 ## Current state
 
-Fortify preserves a deterministic fictional Colorado renewal sandbox and now has a locally validated California resilience-planning slice on the normalized production architecture: tenant-scoped PostgreSQL, OIDC-compatible identity, deny-by-default role plus assignment authorization, secure evidence and live-brokerage foundations, exact source governance, versioned target profiles, reviewed intervention specifications, property baseline/gap assessment, and transparent capital-plan scenarios. The current M5 tree has 100 tables, 246 database guards/triggers, and 96 authorization resource classes. It is published as draft PR #12, stacked directly after M4 draft PR #11.
+Fortify preserves a deterministic fictional Colorado renewal sandbox and now has a locally validated California funding and project-execution slice on the normalized production architecture: tenant-scoped PostgreSQL, OIDC-compatible identity, deny-by-default role plus case/portfolio/project assignment authorization, secure evidence and live-brokerage foundations, exact source governance, versioned target profiles, reviewed interventions, transparent capital plans, source-pinned funding programmes, deterministic eligibility, blended capital stacks, append-only commitments and milestones, scoped contributors, and export-only disbursement instructions. The current M6 tree has 119 tables, 325 database guards/triggers, and 115 authorization resource classes. It is based directly on the published M5 branch and is published as stacked draft PR [#13](https://github.com/dizzy1900/Fortify/pull/13).
 
 The replacement north star makes California the initial production jurisdiction and expands the product into governed resilience investment, funding, independent verification, external-model mapping, explicit market commitments, and insurance-recognition outcomes. Those expanded capabilities are not implied by the existing renewal implementation or the local source workflow. No managed deployment, rights-cleared California portfolio or source snapshot, verified legal currentness, customer-approved source policy, real verifier, funding sponsor, model provider, insurer reviewer, backup restore, or paid pilot has been validated.
 
@@ -18,7 +18,7 @@ The replacement north star makes California the initial production jurisdiction 
 | M3 Live brokerage wedge | Locally validated; draft PR #10 published; external acceptance pending | Complete fictional California CSV import through normalized client/community/property/building/policy, appeal case, notice intake/extraction/human-confirmed facts, governed evidence request, exact evidence version, and immutable PDF/ZIP/manifest/letter bytes; authenticated APIs and responsive `/brokerage` workspace; no production `DemoState` dependency | Validate rights-cleared brokerage data and workflow, managed PostgreSQL/OIDC/storage/scanner operation, live scoped request delivery, ten production cases, and brokerage acceptance before deployment or customer claims |
 | M4 California source/playbooks | Locally validated; draft PR #11 published; external/legal validation pending | Tenant-scoped source/version/review/publication/dependency/change-alert records; exact clean-byte/hash binding; human and separation-of-duty gates; immutable supersession; exact playbook/case/profile impact; source-pinned playbooks; responsive source workspace and deterministic fixtures | Obtain rights-cleared snapshots and legal/currentness review; validate customer source policy and monitored change operation; governed report consumers remain future work |
 | M5 Profiles/interventions/capital planning | Locally validated; draft PR #12 published; external technical/customer validation pending | Versioned source-pinned profiles; separate author/reviewer/publisher; minimum/preferred criteria and nine evidence levels; reviewed intervention versions; deterministic applicable/inapplicable/insufficient assessments; baseline gaps; projects; transparent cost/timeline/dependency/maintenance scenarios; explicit no-attractive-path state; responsive `/resilience-planning` workspace | Obtain qualified independent review of rights-cleared profile/intervention content, customer approval, real scoped costs, and managed deployment evidence; implement M6 funding and execution without inferring eligibility or ROI |
-| M6 Funding/project execution | Not started | Generic tasks and maintenance events are adjacent only | Funding programmes/versions, eligibility, blended commitments, costs, milestones/dependencies, human approvals, export boundary, stakeholder benefit ledger, and scoped collaborator workflows |
+| M6 Funding/project execution | Locally validated; stacked draft PR #13 published; external programme validation pending | Source-pinned programme versions; independent review/publication; deterministic eligible/ineligible/insufficient assessments; prepared applications; blended stacks; cost-share/duplicate controls; append-only commitment and milestone history; scoped expiring/revocable collaborators; separate payment approval/export; stakeholder ledger; responsive `/funding` workspace | Validate real sponsor rules and decisions, real costs, external contributor use, managed deployment, and one real programme milestone plus approval/export decision; implement M7 verification without treating fixture milestones as physical proof |
 | M7 Independent verification | Not started | Human evidence review is not independent-verifier governance | Verifier organizations/credentials/conflicts, assignments, methods, findings/exceptions/corrective action, certificates/revocation, maintenance and provenance-complete conclusions |
 | M8 Model mapping/commitments | Not started | Existing market/playbook source fields do not model external models, inputs, acceptance, or commitments | External model/version/input registry, rights/limitations, proposed-to-accepted mapping history, explicit commitment registry, and evidence hierarchy enforcement |
 | M9 Recognition submission/outcomes | Partial sandbox only | Deterministic sandbox PDF/ZIP, confirmation, clarification, and fictional outcomes | Production immutable recognition submissions, exact bytes/hash, scoped reviewer, delivery receipts, separate evidence/model/rating/underwriting/placement/funding taxonomies, corrections, and maintenance roll-forward |
@@ -31,14 +31,14 @@ The replacement north star makes California the initial production jurisdiction 
 | Requirement | Current evidence | Status |
 |---|---|---|
 | Production source of truth | Normalized PostgreSQL; SQLite `DemoState` isolated to sandbox | Renewal foundation locally validated; expanded domain incomplete |
-| Tenant isolation | Tenant context, organization predicates, database guards, deny-by-default role/assignment policy, cross-tenant tests | Locally validated for 96 current resource classes; every new resource still requires attack coverage |
+| Tenant isolation | Tenant context, organization predicates, database guards, deny-by-default role plus case/portfolio/project assignment policy, cross-tenant tests | Locally validated for 115 current resource classes; every new resource still requires attack coverage |
 | Authentication | OIDC-compatible interface and local provider; opaque server sessions | Locally validated interface; managed provider/MFA deployment pending |
 | Secure evidence | S3-compatible signed operations, hash/MIME/size/encryption checks, quarantine/scanning, retention/legal hold, access grants | Local adapter/contract evidence only |
 | Portfolio and property | CSV/XLSX mapping, stable IDs, normalized core plus governed portfolio/parcel/unit/scope/alias/relationship/immutable-version graph, explicit separate California fixture, unavailable geometry state | Local graph validated; rights-cleared input, live spatial data, PostGIS/provider and customer validation pending |
 | Document intelligence | Durable jobs, provider/classifier/extractor versions, citations, multiple candidates, human correction/supersession | Offline selectable-text adapter only; live rights/provider validation pending |
 | Market readiness | Exact published governed source version and approved destination version; missing/stale/scope/contradiction/review states; blockers fail closed; no average | Source/playbook layer locally validated; profile/model/funding/verification readiness absent |
-| Evidence hierarchy | No typed nine-level resilience evidence separation | Not started |
-| Capital/funding | No governed profiles, interventions, projects, capital plans, programmes, commitments, approvals, or exports | Not started |
+| Evidence hierarchy | Nine explicit resilience evidence levels used by profiles, interventions, funding rules, and the stakeholder ledger | Locally validated taxonomy; real independent verification, model, market, and observed/claims evidence remain future/external |
+| Capital/funding | Governed profiles/interventions/plans plus source-pinned programme versions, deterministic eligibility, applications, blended stacks, append-only commitments, milestones, payment approvals, and export-only instructions | Locally validated with fixtures; no real sponsor, award, payment, custody, or programme validation |
 | Verification | No independent verifier credential/assignment/finding/certificate model | Not started |
 | Model/commitment recognition | No external model-input mapping or explicit market/funder commitment registry | Not started |
 | Recognition delivery/outcomes | Immutable production-architecture brokerage packet bytes plus preserved sandbox artifacts/fictional outcomes | Local packet generation validated; live delivery receipts, scoped external reviewer operation, normalized real responses/outcomes, and external acceptance remain incomplete |
@@ -60,22 +60,22 @@ The transformation must continue to prove:
 
 ## Last confirmed local evidence
 
-The M4 source-governance tree stacked on M3 passed the complete local release gates on August 1, 2026, including approved localhost binding for Playwright:
+The M6 funding/project-execution tree based on M5 passed the complete local release surface on August 1, 2026; the sandboxed consolidated command reached Playwright after every earlier gate passed, then the identical browser suite passed with approved localhost binding:
 
 - ESLint and strict TypeScript passed.
-- Vitest: 16 files / 62 tests.
-- Repository secret scan: 262 non-ignored files.
-- Next.js build: 23 product pages / 51 API routes.
+- Vitest: 18 files / 69 tests.
+- Repository secret scan: 299 non-ignored files.
+- Next.js build: 25 product pages / 73 API routes.
 - Deterministic sandbox evaluation: 12/12.
 - Prohibited-claims scan: 18 direct patterns across runtime source and generated text artifacts.
-- Playwright: 20/20 serial desktop Chromium and Pixel 7 scenarios, including governed source publication/successor impact and all preserved journeys.
-- Production schema regeneration: 100 tables, no drift; the migrated database exposes exactly 246 guards/triggers.
+- Playwright: 36/36 serial desktop Chromium, 834-pixel tablet, and Pixel 7 scenarios, including funding eligibility, capital stack, milestone, export, collaborator, and benefit-ledger controls plus all preserved journeys.
+- Production schema regeneration: 119 tables, no drift; the migrated database exposes exactly 325 guards/triggers.
 - `npm audit --audit-level=moderate`: 0 vulnerabilities.
 - The preserved six-page Letter PDF was rendered and inspected; the 17-entry ZIP passed CRC and content review. The deterministic evaluator retained exact 11,602-byte PDF, 51,723-byte ZIP, and manifest hash evidence.
 - `git diff --check` passed.
-- Source-register desktop and Pixel 7 views were inspected; intrinsic-width overflow and pointer interception found in an early mobile run were repaired, rebuilt, rerun, and re-inspected with no observed clipping or overflow.
+- Funding/execution desktop, tablet, and Pixel 7 views were inspected with no observed clipping, collision, or document-width overflow.
 
-This validates the replacement M4 source-governance slice locally and preserves the M0–M3 plus renewal-foundation evidence. It is not proof that M5–M12, legal currentness, redistribution rights, a managed provider/PostGIS/RLS/OIDC/MFA/object-storage topology, rights-cleared customer data, live external delivery, brokerage acceptance, or any other external gate has been met.
+This validates the replacement M6 funding/project-execution slice locally and preserves the M0–M5 plus renewal-foundation evidence. It is not proof that M7–M12, legal currentness, redistribution rights, a managed provider/PostGIS/RLS/OIDC/MFA/object-storage topology, rights-cleared customer data, real funding, live external delivery, brokerage acceptance, programme acceptance, or any other external gate has been met.
 
 ## External validation gates
 

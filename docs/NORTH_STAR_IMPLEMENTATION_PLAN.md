@@ -64,6 +64,8 @@ Exit evidence: applicable and inapplicable California scenarios, independent aut
 
 Add funding programmes and versions, deterministic eligibility, blended capital stacks, commitments, owner/grant/financing/insurer contributions, project milestones, dependencies, human approvals, disbursement-export boundary, external property-manager/board/contractor workflows, and stakeholder benefit ledger.
 
+Local state: the normalized M6 slice is locally validated with exact published-source programme pins, separate author/reviewer/publisher decisions, deterministic eligible/ineligible/insufficient assessments, human-confirmed prepared applications, bounded blended sources, append-only commitment approval/correction/cancellation, dependency-gated milestone events, project-scoped expiring/revocable external access, separate payment approval and instruction export, and an uncertainty-preserving stakeholder benefit ledger. Real sponsor rules, programme decisions, customer costs, external contributor use, payment-system integration, customer use, and managed deployment remain external or later-milestone evidence.
+
 Exit evidence: cost-share and duplicate-funding controls, milestone dependencies, approval/correction/cancellation history, scoped external access, and no movement of customer funds.
 
 ### M7 — Independent verification and maintenance

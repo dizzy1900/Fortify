@@ -41,7 +41,7 @@ describe("normalized PostgreSQL tenant data plane", () => {
     const triggers = await client.query<{ trigger_name: string }>(
       "select trigger_name from information_schema.triggers where trigger_schema = 'public' order by trigger_name",
     );
-    expect(tables.rows.map((row) => row.table_name)).toHaveLength(100);
+    expect(tables.rows.map((row) => row.table_name)).toHaveLength(119);
     expect(tables.rows.map((row) => row.table_name)).not.toContain("app_state");
     const triggerNames = [
       ...new Set(triggers.rows.map((row) => row.trigger_name)),
@@ -109,6 +109,19 @@ describe("normalized PostgreSQL tenant data plane", () => {
         "target_profile_versions_immutable_update",
         "baseline_gaps_immutable_delete",
         "capital_plan_scenarios_immutable_update",
+        "funding_versions_programme_tenant_guard",
+        "funding_programme_versions_lineage_guard",
+        "funding_programme_reviews_separation_guard",
+        "funding_programme_publications_separation_guard",
+        "funding_assessments_publication_guard",
+        "funding_applications_assessment_guard",
+        "capital_contributions_stack_tenant_guard",
+        "funding_commitment_events_immutable_update",
+        "project_milestone_dependencies_order_guard",
+        "project_milestone_events_immutable_delete",
+        "disbursement_exports_immutable_update",
+        "project_external_assignments_transition_guard",
+        "stakeholder_benefits_immutable_delete",
         "property_portfolios_client_tenant_guard",
         "portfolio_properties_client_reference_guard",
         "portfolio_properties_property_tenant_guard",
@@ -140,9 +153,11 @@ describe("normalized PostgreSQL tenant data plane", () => {
         "tenant_guard_submission_artifacts_storage",
         "submission_artifacts_no_update",
         "submission_artifacts_no_delete",
+        "capital_stacks_scenario_project_guard",
+        "payment_approvals_project_guard",
       ]),
     );
-    expect(triggerNames).toHaveLength(246);
+    expect(triggerNames).toHaveLength(325);
   });
 
   test("isolates reads and mutations by explicit organization context", async () => {

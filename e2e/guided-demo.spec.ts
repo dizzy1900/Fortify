@@ -120,6 +120,7 @@ test("public page and all workspace routes are healthy", async ({ page }) => {
     "/sources",
     "/playbooks",
     "/resilience-planning",
+    "/funding",
     "/community",
     "/policy",
     "/notice",
@@ -631,4 +632,45 @@ test("resilience planning preserves evidence hierarchy and fail-closed capital p
   await page.getByRole("button", { name: "Capital scenarios" }).click();
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: testInfo.project.name === "chromium" ? "test-results/visual-inspection/resilience-planning-desktop.png" : "test-results/visual-inspection/resilience-planning-mobile.png", fullPage: true });
+});
+
+test("funding and execution preserves rule, cost-share, approval, scope, and export boundaries", async ({ page }, testInfo) => {
+  await page.goto("/funding");
+  await expect(page.getByRole("heading", { name: "Fund the work. Govern every release." })).toBeVisible();
+  await expect(page.getByText("Export-only boundary", { exact: true })).toBeVisible();
+  await expect(page.getByText(/sponsor or financial institution makes the actual/)).toBeVisible();
+  await expect(page.getByText("Rules matched", { exact: true })).toBeVisible();
+  await expect(page.getByText("Exact rules, no hidden score", { exact: true })).toBeVisible();
+  await expect(page.getByText("$24,000", { exact: true })).toBeVisible();
+
+  await page.getByLabel("Review funding eligibility state").selectOption("insufficient_evidence");
+  await expect(page.getByRole("heading", { name: "Insufficient evidence" })).toBeVisible();
+  await expect(page.locator(".funding-stop").getByText(/Eligibility stops fail-closed/)).toBeVisible();
+  await page.getByLabel("Review funding eligibility state").selectOption("ineligible");
+  await expect(page.getByRole("heading", { name: "Rule mismatch" })).toBeVisible();
+  await page.getByLabel("Review funding eligibility state").selectOption("eligible");
+
+  await page.getByRole("button", { name: "Capital stack" }).click();
+  await expect(page.getByText("Append-only commitment history", { exact: true })).toBeVisible();
+  await expect(page.getByText("corrected", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /owner · 33.33%/ }).click();
+  await expect(page.getByText("No commitment has been recorded for this source.")).toBeVisible();
+
+  await page.getByRole("button", { name: "Milestones" }).click();
+  await expect(page.getByText("Dependency-gated delivery", { exact: true })).toBeVisible();
+  await expect(page.getByText(/requires WORKPLAN/)).toBeVisible();
+  await expect(page.getByText(/not executed export only/)).toBeVisible();
+  await page.getByRole("button", { name: "Inspect export boundary" }).click();
+  await expect(page.getByText("No bank credentials, custody, settlement, transfer")).toBeVisible();
+
+  await page.getByRole("button", { name: "Access & benefits" }).click();
+  await expect(page.getByText("Only the work they need", { exact: true })).toBeVisible();
+  await expect(page.getByText("Costs, contribution, and uncertainty stay separate", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Preview revoke" }).first().click();
+  await expect(page.getByRole("button", { name: "Access revoked" })).toBeDisabled();
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+  expect(overflow).toBe(false);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: testInfo.project.name === "chromium" ? "test-results/visual-inspection/funding-execution-desktop.png" : testInfo.project.name === "tablet" ? "test-results/visual-inspection/funding-execution-tablet.png" : "test-results/visual-inspection/funding-execution-mobile.png", fullPage: true });
 });

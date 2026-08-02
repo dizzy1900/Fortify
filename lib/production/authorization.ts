@@ -77,6 +77,25 @@ export const resourceClasses = [
   "capital_plan",
   "capital_plan_scenario",
   "capital_plan_scenario_project",
+  "funding_programme",
+  "funding_programme_version",
+  "funding_eligibility_rule",
+  "funding_programme_review",
+  "funding_programme_publication",
+  "funding_eligibility_assessment",
+  "funding_eligibility_rule_result",
+  "funding_application",
+  "capital_stack",
+  "capital_stack_contribution",
+  "funding_commitment",
+  "funding_commitment_event",
+  "project_milestone",
+  "project_milestone_dependency",
+  "project_milestone_event",
+  "payment_approval",
+  "disbursement_export",
+  "project_external_assignment",
+  "stakeholder_benefit_ledger_entry",
   "market_playbook",
   "playbook_version",
   "playbook_requirement",
@@ -137,8 +156,10 @@ export interface AuthorizationContext {
   grantedScopes: string[];
   assignedCaseIds?: string[];
   assignedPortfolioIds?: string[];
+  assignedProjectIds?: string[];
   assignedCaseScopes?: Record<string, string[]>;
   assignedPortfolioScopes?: Record<string, string[]>;
+  assignedProjectScopes?: Record<string, string[]>;
   sessionId?: string;
 }
 
@@ -148,6 +169,7 @@ export interface AuthorizationRequest {
   resourceOrganizationId: string;
   caseId?: string;
   portfolioId?: string;
+  projectId?: string;
 }
 
 export class AuthorizationDeniedError extends Error {
@@ -219,6 +241,20 @@ const commonCaseResources: ResourceClass[] = [
   "capital_plan",
   "capital_plan_scenario",
   "capital_plan_scenario_project",
+  "funding_eligibility_assessment",
+  "funding_eligibility_rule_result",
+  "funding_application",
+  "capital_stack",
+  "capital_stack_contribution",
+  "funding_commitment",
+  "funding_commitment_event",
+  "project_milestone",
+  "project_milestone_dependency",
+  "project_milestone_event",
+  "payment_approval",
+  "disbursement_export",
+  "project_external_assignment",
+  "stakeholder_benefit_ledger_entry",
 ];
 
 const roleScopes: Record<OrganizationRole, ReadonlySet<string>> = {
@@ -230,7 +266,7 @@ const roleScopes: Record<OrganizationRole, ReadonlySet<string>> = {
   practice_leader: new Set([
     ...readScopes(...resourceClasses),
     ...writeScopes(...commonCaseResources),
-    ...writeScopes("book", "client", "property_portfolio", "portfolio_property", "parcel", "unit_summary", "property_scope", "property_alias", "property_relationship", "property_version", "market", "program", "requirement_set", "requirement", "requirement_version", "governed_source", "governed_source_version", "governed_source_review", "governed_source_publication", "governed_source_dependency", "source_change_alert", "target_profile", "target_profile_version", "target_profile_criterion", "target_profile_applicability", "target_profile_review", "target_profile_publication", "intervention", "intervention_version", "intervention_version_review", "market_playbook", "playbook_version", "playbook_requirement", "playbook_applicability_rule", "playbook_version_review", "import_mapping", "import_mapping_version", "portfolio_import", "import_row", "import_receipt", "document_processing_job"),
+    ...writeScopes("book", "client", "property_portfolio", "portfolio_property", "parcel", "unit_summary", "property_scope", "property_alias", "property_relationship", "property_version", "market", "program", "requirement_set", "requirement", "requirement_version", "governed_source", "governed_source_version", "governed_source_review", "governed_source_publication", "governed_source_dependency", "source_change_alert", "target_profile", "target_profile_version", "target_profile_criterion", "target_profile_applicability", "target_profile_review", "target_profile_publication", "intervention", "intervention_version", "intervention_version_review", "funding_programme", "funding_programme_version", "funding_eligibility_rule", "funding_programme_review", "funding_programme_publication", "market_playbook", "playbook_version", "playbook_requirement", "playbook_applicability_rule", "playbook_version_review", "import_mapping", "import_mapping_version", "portfolio_import", "import_row", "import_receipt", "document_processing_job"),
     "case_assignment:manage",
     "portfolio_assignment:manage",
     "data_access_log:create",
@@ -259,14 +295,14 @@ const roleScopes: Record<OrganizationRole, ReadonlySet<string>> = {
   ]),
   property_operator_administrator: new Set([
     ...readScopes("book", "client", "community", "property_portfolio", "portfolio_property", "property", "property_identifier", "location", "building", "parcel", "unit_summary", "property_scope", "property_alias", "property_relationship", "property_version", "policy", "renewal_case", "requirement", "requirement_version", "market_playbook", "playbook_version", "playbook_requirement", "case_playbook_link", "evidence_item", "evidence_version", "evidence_requirement_link", "contradiction", "task", "evidence_request", "evidence_request_version", "maintenance_event", "portfolio_assignment"),
-    ...writeScopes("community", "property", "property_identifier", "location", "building", "parcel", "unit_summary", "property_scope", "property_alias", "property_relationship", "property_version", "evidence_item", "evidence_version", "storage_object", "storage_access_grant", "task", "evidence_request", "evidence_request_version", "maintenance_event"),
+    ...writeScopes("community", "property", "property_identifier", "location", "building", "parcel", "unit_summary", "property_scope", "property_alias", "property_relationship", "property_version", "evidence_item", "evidence_version", "storage_object", "storage_access_grant", "task", "evidence_request", "evidence_request_version", "maintenance_event", "funding_eligibility_assessment", "funding_eligibility_rule_result", "funding_application", "capital_stack", "capital_stack_contribution", "funding_commitment", "funding_commitment_event", "project_milestone", "project_milestone_dependency", "project_milestone_event", "project_external_assignment", "stakeholder_benefit_ledger_entry"),
     "case_assignment:manage",
     "portfolio_assignment:manage",
     "data_access_log:create",
   ]),
   property_manager: new Set([
     ...readScopes("community", "property_portfolio", "portfolio_property", "property", "property_identifier", "location", "building", "parcel", "unit_summary", "property_scope", "property_alias", "property_relationship", "property_version", "policy", "renewal_case", "requirement", "requirement_version", "market_playbook", "playbook_version", "playbook_requirement", "case_playbook_link", "evidence_item", "evidence_version", "task", "evidence_request", "evidence_request_version", "maintenance_event", "portfolio_assignment"),
-    ...writeScopes("evidence_item", "evidence_version", "storage_object", "storage_access_grant", "task", "maintenance_event"),
+    ...writeScopes("evidence_item", "evidence_version", "storage_object", "storage_access_grant", "task", "maintenance_event", "project_milestone_event"),
     "data_access_log:create",
   ]),
   client_property_manager: new Set([
@@ -277,13 +313,15 @@ const roleScopes: Record<OrganizationRole, ReadonlySet<string>> = {
   ]),
   board_contributor: new Set([
     ...readScopes("community", "property", "policy", "renewal_case", "requirement", "market_playbook", "playbook_version", "playbook_requirement", "case_playbook_link", "evidence_item", "evidence_version", "task", "evidence_request", "evidence_request_version"),
-    ...writeScopes("evidence_item", "evidence_version", "storage_object", "storage_access_grant", "task"),
+    ...readScopes("resilience_project", "project_intervention", "funding_application", "capital_stack", "capital_stack_contribution", "funding_commitment", "funding_commitment_event", "project_milestone", "project_milestone_dependency", "project_milestone_event", "stakeholder_benefit_ledger_entry"),
+    ...writeScopes("evidence_item", "evidence_version", "storage_object", "storage_access_grant", "task", "project_milestone_event"),
     "portfolio_assignment:read",
     "data_access_log:create",
   ]),
   contractor_evidence_contributor: new Set([
     ...readScopes("community", "property", "building", "parcel", "unit_summary", "property_scope", "renewal_case", "requirement", "evidence_item", "evidence_version", "task", "evidence_request", "evidence_request_version", "portfolio_assignment"),
-    ...writeScopes("evidence_item", "evidence_version", "storage_object", "storage_access_grant", "task"),
+    ...readScopes("resilience_project", "project_intervention", "project_milestone", "project_milestone_dependency", "project_milestone_event"),
+    ...writeScopes("evidence_item", "evidence_version", "storage_object", "storage_access_grant", "task", "project_milestone_event"),
     "data_access_log:create",
   ]),
   evidence_contributor: new Set([
@@ -298,7 +336,8 @@ const roleScopes: Record<OrganizationRole, ReadonlySet<string>> = {
   ]),
   programme_administrator: new Set([
     ...readScopes("book", "client", "community", "property_portfolio", "portfolio_property", "property", "property_identifier", "location", "building", "parcel", "unit_summary", "property_scope", "property_version", "renewal_case", "governed_source", "governed_source_version", "governed_source_review", "governed_source_publication", "governed_source_dependency", "source_change_alert", "evidence_item", "evidence_version", "evidence_requirement_link", "task", "maintenance_event", "audit_event", "portfolio_assignment"),
-    ...writeScopes("governed_source", "governed_source_version", "governed_source_review", "governed_source_publication", "governed_source_dependency", "source_change_alert", "task", "maintenance_event"),
+    ...readScopes("target_profile", "target_profile_version", "intervention", "intervention_version", "baseline_assessment", "baseline_gap", "resilience_project", "project_intervention", "capital_plan", "capital_plan_scenario", "funding_programme", "funding_programme_version", "funding_eligibility_rule", "funding_programme_review", "funding_programme_publication", "funding_eligibility_assessment", "funding_eligibility_rule_result", "funding_application", "capital_stack", "capital_stack_contribution", "funding_commitment", "funding_commitment_event", "project_milestone", "project_milestone_dependency", "project_milestone_event", "payment_approval", "disbursement_export", "project_external_assignment", "stakeholder_benefit_ledger_entry"),
+    ...writeScopes("governed_source", "governed_source_version", "governed_source_review", "governed_source_publication", "governed_source_dependency", "source_change_alert", "funding_programme", "funding_programme_version", "funding_eligibility_rule", "funding_programme_review", "funding_programme_publication", "funding_eligibility_assessment", "funding_eligibility_rule_result", "funding_application", "capital_stack", "capital_stack_contribution", "funding_commitment", "funding_commitment_event", "project_milestone", "project_milestone_dependency", "project_milestone_event", "payment_approval", "disbursement_export", "project_external_assignment", "stakeholder_benefit_ledger_entry", "task", "maintenance_event"),
     "portfolio_assignment:manage",
     "data_access_log:create",
   ]),
@@ -315,6 +354,8 @@ const roleScopes: Record<OrganizationRole, ReadonlySet<string>> = {
   ]),
   lender_funder_reviewer: new Set([
     ...readScopes("community", "property_portfolio", "portfolio_property", "property", "property_identifier", "location", "building", "parcel", "unit_summary", "property_scope", "property_version", "renewal_case", "evidence_item", "evidence_version", "evidence_requirement_link", "task", "maintenance_event", "portfolio_assignment"),
+    ...readScopes("funding_programme", "funding_programme_version", "funding_eligibility_rule", "funding_eligibility_assessment", "funding_eligibility_rule_result", "funding_application", "capital_stack", "capital_stack_contribution", "funding_commitment", "funding_commitment_event", "project_milestone", "project_milestone_dependency", "project_milestone_event", "payment_approval", "disbursement_export"),
+    ...writeScopes("payment_approval"),
     "data_access_log:create",
   ]),
   read_only_auditor: new Set([
@@ -387,6 +428,14 @@ export function assertAuthorized(
       throw new AuthorizationDeniedError(
         "The portfolio assignment does not grant this operation.",
       );
+  }
+
+  if (request.projectId && context.assignedProjectIds) {
+    if (!context.assignedProjectIds.includes(request.projectId))
+      throw new AuthorizationDeniedError("The principal is not assigned to this project.");
+    const assignmentScopes = context.assignedProjectScopes?.[request.projectId];
+    if (assignmentScopes && !hasScope(assignmentScopes, request))
+      throw new AuthorizationDeniedError("The project assignment does not grant this operation.");
   }
 
   if (context.principalType === "membership") {
