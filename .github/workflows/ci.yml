@@ -33,6 +33,19 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run build
+
+  artifacts:
+    name: Deterministic demo artifacts
+    runs-on: ubuntu-latest
+    needs: quality
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
       - run: npm run demo:evaluate
       - run: npm run security:claims
       - uses: actions/upload-artifact@v4
@@ -111,7 +124,7 @@ jobs:
   browser:
     name: Guided browser regression
     runs-on: ubuntu-latest
-    needs: [quality, contracts]
+    needs: [quality, contracts, artifacts]
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
@@ -183,7 +196,7 @@ jobs:
   release-contract:
     name: Accessibility, visual, and production-flow contracts
     runs-on: ubuntu-latest
-    needs: [quality, contracts]
+    needs: [quality, contracts, artifacts]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
