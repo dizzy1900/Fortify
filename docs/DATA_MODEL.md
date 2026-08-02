@@ -1,6 +1,6 @@
 # Production data model
 
-The PostgreSQL schema contains 73 normalized tables in the M1 California property-graph tree. It is a reusable tenant, property, renewal, evidence, storage, document, market-playbook, and governed property-identity foundation for the Resilience Investment and Insurance Recognition OS—not a claim that the expanded domain is implemented.
+The PostgreSQL schema contains 75 normalized tables in the M2 identity/secure-evidence tree. It is a reusable tenant, access, property, renewal, evidence, storage, document, market-playbook, and governed property-identity foundation for the Resilience Investment and Insurance Recognition OS—not a claim that the expanded domain is implemented.
 
 California production work must still extend this model with governed policy/programme/model sources; typed evidence levels; target profiles; intervention specifications; baseline conditions; resilience projects and capital plans; funding programmes/commitments/milestones; independent verifiers/findings/certificates; external models and input mappings; explicit market/funder commitments; recognition submissions and separate evidence/model/rating/underwriting/placement/funding responses; longitudinal maintenance/outcomes; programme cohorts; consent/cohort data-right controls; and recognition-graph events. Each new customer-controlled resource requires tenant columns, authorization, database guards, audit coupling, and attack tests before it counts as implemented.
 
@@ -17,6 +17,8 @@ California production work must still extend this model with governed policy/pro
 - `external_principals`: external collaborator/reviewer lifecycle.
 - `service_accounts` and `api_credentials`: tenant-owned automation identities and scoped hashed credentials.
 - `support_access_grants`: customer-approved reason, scopes, expiry, approver, and revocation.
+- `portfolio_assignments`: exactly one member, team, or external principal; one portfolio; purpose, role, explicit permissions/data domains, expiry, and reason-bound revocation.
+- `data_access_logs`: immutable principal/purpose/resource/action/outcome/data-class/time ledger with optional portfolio/case scope.
 - `books`: portfolio/book boundary and external identity.
 - `clients`: insured/client boundary under a book.
 
@@ -56,7 +58,7 @@ An import never destroys rejected rows, prior receipts, or created-record histor
 - `programs`: first-class market, peril, jurisdiction, and property-class scope.
 - `policies`: broker/AMS-authoritative policy record and renewal expiration.
 - `renewal_cases`: renewal/appeal workflow with first-class peril, jurisdiction, property class, owner, dates, and revision.
-- `case_assignments`: exactly one membership or external principal, case role, permissions, expiry, and revocation.
+- `case_assignments`: exactly one membership or external principal, case role, purpose, explicit permissions/data domains, expiry, and reason-bound revocation.
 - `external_access_grants`: purpose-labeled, hashed, expiring, revocable bearer access to one case.
 
 ## Sources and requirements
@@ -121,7 +123,7 @@ Missing, stale, contradictory, or unreviewed evidence remains a named state. No 
 
 Every customer-owned table carries `organization_id`, created/updated timestamps, created/updated actor, revision, lifecycle status, and deletion timestamp. Database triggers reject cross-organization references. Unique indexes bind external identifiers, hashes, versions, and idempotency keys inside the organization boundary.
 
-Audit events and requirement/evidence/submission/playbook versions cannot be updated or deleted. Playbook requirements, conditions, reviews, and case links are also immutable. A correction creates a successor. Production migrations contain no `app_state` table or `DemoState` JSON column.
+Audit events, data-access logs, and requirement/evidence/submission/playbook versions cannot be updated or deleted. Playbook requirements, conditions, reviews, and case links are also immutable. Portfolio/case assignments permit only a one-way reason-bound revocation; changed scope or purpose requires a new record. A correction creates a successor. Production migrations contain no `app_state` table or `DemoState` JSON column.
 
 ## Seed migration
 

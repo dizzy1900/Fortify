@@ -30,6 +30,10 @@ import {
   StorageGrantError,
   StorageValidationError,
 } from "@/lib/production/storage-service";
+import {
+  AccessControlStateError,
+  AccessControlValidationError,
+} from "@/lib/production/access-control-service";
 
 export const SESSION_COOKIE_NAME =
   process.env.NODE_ENV === "production"
@@ -121,6 +125,10 @@ export function authenticationFailure(error: unknown) {
   if (error instanceof StorageGrantError)
     return Response.json({ error: error.message }, { status: 403 });
   if (error instanceof StorageDeletionBlockedError)
+    return Response.json({ error: error.message }, { status: 409 });
+  if (error instanceof AccessControlValidationError)
+    return Response.json({ error: error.message }, { status: 400 });
+  if (error instanceof AccessControlStateError)
     return Response.json({ error: error.message }, { status: 409 });
   const message =
     error instanceof AuthenticationError

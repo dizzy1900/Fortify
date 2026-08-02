@@ -34,6 +34,8 @@ Exit evidence: blank migration, seed migration, transactional audit, optimistic 
 
 Complete OIDC-compatible identity, expanded resilience roles, portfolio/case assignments, controlled support access, private encrypted object storage, quarantine/scanning, signed operations, evidence provenance, retention/legal hold, and access logs.
 
+Local state: role/assignment/access-log and existing secure-file contracts are locally validated. Managed OIDC/MFA, PostgreSQL/RLS, private bucket/KMS/scanner, secrets/rate limits, operational restore, and customer/partner workflow validation remain required external or deployment evidence.
+
 Exit evidence: revocation/expiry/MFA-ready behavior, cross-tenant attacks for every resource, scoped external links, upload authorization, immutable evidence versions, and exact-byte backup/readback fixtures.
 
 ### M3 — Live brokerage wedge

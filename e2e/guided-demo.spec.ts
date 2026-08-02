@@ -113,6 +113,7 @@ test("public page and all workspace routes are healthy", async ({ page }) => {
     "/demo",
     "/portfolio",
     "/property-graph",
+    "/access",
     "/imports",
     "/documents",
     "/playbooks",
@@ -133,6 +134,74 @@ test("public page and all workspace routes are healthy", async ({ page }) => {
     const response = await page.goto(route);
     expect(response?.status(), route).toBe(200);
     await expect(page.locator("body")).not.toBeEmpty();
+  }
+});
+
+test("identity workspace creates and revokes purpose-scoped access without erasing history", async ({ page }, testInfo) => {
+  await page.goto("/access");
+  await expect(
+    page.getByRole("heading", {
+      name: "Give each collaborator only the evidence context their work requires.",
+    }),
+  ).toBeVisible();
+  await expect(page.getByText("Fictional access fixture")).toBeVisible();
+  await expect(page.getByText("Deny by default")).toBeVisible();
+
+  await page.getByRole("button", { name: "Assignments" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Portfolio and case assignments" }),
+  ).toBeVisible();
+  await page.getByLabel("Purpose").fill("Collect renewed roof and vent evidence");
+  await page.getByRole("button", { name: "Create purpose grant" }).click();
+  await expect(
+    page.getByText(/Synthetic purpose grant created locally/),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator(".access-assignment-list p")
+      .filter({ hasText: "Collect renewed roof and vent evidence" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Revoke" }).last().click();
+  await expect(
+    page.getByText(/Synthetic grant revoked locally/),
+  ).toBeVisible();
+  await expect(page.getByText("Reason: Access purpose ended by administrator")).toBeVisible();
+
+  await page.getByRole("button", { name: "Access log" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Purpose-specific data access" }),
+  ).toBeVisible();
+  await expect(page.getByText("Append only")).toBeVisible();
+  await page.getByRole("button", { name: "Boundaries" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Resilience ecosystem role boundaries" }),
+  ).toBeVisible();
+  await expect(page.getByText("Contractor evidence contributor")).toBeVisible();
+  await expect(page.getByText(/do not establish inspection authority/)).toBeVisible();
+
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  );
+  expect(overflow).toBe(false);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({
+    path:
+      testInfo.project.name === "chromium"
+        ? "test-results/visual-inspection/access-control-desktop.png"
+        : "test-results/visual-inspection/access-control-mobile.png",
+    fullPage: true,
+  });
+  if (testInfo.project.name === "chromium") {
+    await page.setViewportSize({ width: 834, height: 1112 });
+    await page.reload();
+    const tabletOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    );
+    expect(tabletOverflow).toBe(false);
+    await page.screenshot({
+      path: "test-results/visual-inspection/access-control-tablet.png",
+      fullPage: true,
+    });
   }
 });
 

@@ -164,7 +164,7 @@ export const memberships = pgTable(
     index("memberships_org_status_idx").on(table.organizationId, table.status),
     check(
       "memberships_role_check",
-      sql`${table.role} in ('organization_owner', 'brokerage_administrator', 'practice_leader', 'broker', 'marketer', 'assistant', 'client_property_manager', 'board_contributor', 'evidence_contributor', 'underwriter_reviewer', 'read_only_auditor')`,
+      sql`${table.role} in ('organization_owner', 'brokerage_administrator', 'practice_leader', 'broker', 'marketer', 'assistant', 'property_operator_administrator', 'property_manager', 'client_property_manager', 'board_contributor', 'contractor_evidence_contributor', 'evidence_contributor', 'independent_verifier', 'programme_administrator', 'insurer_mga_reviewer', 'underwriter_reviewer', 'lender_funder_reviewer', 'read_only_auditor')`,
     ),
     check(
       "memberships_status_check",
@@ -1366,9 +1366,14 @@ export const caseAssignments = pgTable(
       { onDelete: "restrict" },
     ),
     assignmentRole: text("assignment_role").notNull(),
+    accessPurpose: text("access_purpose")
+      .notNull()
+      .default("case workflow assignment"),
     permissions: jsonb("permissions").$type<string[]>().notNull().default([]),
+    dataDomains: jsonb("data_domains").$type<string[]>().notNull().default([]),
     expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }),
     revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "string" }),
+    revocationReason: text("revocation_reason"),
   },
   (table) => [
     index("case_assignments_org_case_idx").on(
@@ -1383,7 +1388,119 @@ export const caseAssignments = pgTable(
       "case_assignments_role_check",
       sql`${table.assignmentRole} in ('owner', 'team_member', 'contributor', 'reviewer', 'auditor')`,
     ),
+    check(
+      "case_assignments_purpose_check",
+      sql`char_length(trim(${table.accessPurpose})) >= 8`,
+    ),
     check("case_assignments_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const portfolioAssignments = pgTable(
+  "portfolio_assignments",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    portfolioId: text("portfolio_id")
+      .notNull()
+      .references(() => propertyPortfolios.id, { onDelete: "restrict" }),
+    membershipId: text("membership_id").references(() => memberships.id, {
+      onDelete: "restrict",
+    }),
+    teamId: text("team_id").references(() => teams.id, {
+      onDelete: "restrict",
+    }),
+    externalPrincipalId: text("external_principal_id").references(
+      () => externalPrincipals.id,
+      { onDelete: "restrict" },
+    ),
+    assignmentRole: text("assignment_role").notNull(),
+    accessPurpose: text("access_purpose").notNull(),
+    permissions: jsonb("permissions").$type<string[]>().notNull().default([]),
+    dataDomains: jsonb("data_domains").$type<string[]>().notNull().default([]),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "string" }),
+    revocationReason: text("revocation_reason"),
+  },
+  (table) => [
+    index("portfolio_assignments_org_portfolio_idx").on(
+      table.organizationId,
+      table.portfolioId,
+    ),
+    index("portfolio_assignments_org_membership_idx").on(
+      table.organizationId,
+      table.membershipId,
+    ),
+    check(
+      "portfolio_assignments_one_principal_check",
+      sql`((${table.membershipId} is not null)::integer + (${table.teamId} is not null)::integer + (${table.externalPrincipalId} is not null)::integer) = 1`,
+    ),
+    check(
+      "portfolio_assignments_role_check",
+      sql`${table.assignmentRole} in ('owner', 'manager', 'contributor', 'verifier', 'reviewer', 'auditor')`,
+    ),
+    check(
+      "portfolio_assignments_purpose_check",
+      sql`char_length(trim(${table.accessPurpose})) >= 8`,
+    ),
+    check("portfolio_assignments_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const dataAccessLogs = pgTable(
+  "data_access_logs",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    principalType: text("principal_type").notNull(),
+    actorSubject: text("actor_subject").notNull(),
+    accessPurpose: text("access_purpose").notNull(),
+    resourceType: text("resource_type").notNull(),
+    resourceId: text("resource_id").notNull(),
+    action: text("action").notNull(),
+    outcome: text("outcome").notNull(),
+    portfolioId: text("portfolio_id").references(() => propertyPortfolios.id, {
+      onDelete: "restrict",
+    }),
+    caseId: text("case_id").references(() => renewalCases.id, {
+      onDelete: "restrict",
+    }),
+    dataClasses: jsonb("data_classes").$type<string[]>().notNull().default([]),
+    requestId: text("request_id"),
+    occurredAt: timestamp("occurred_at", {
+      withTimezone: true,
+      mode: "string",
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("data_access_logs_org_time_idx").on(
+      table.organizationId,
+      table.occurredAt,
+    ),
+    index("data_access_logs_org_resource_idx").on(
+      table.organizationId,
+      table.resourceType,
+      table.resourceId,
+    ),
+    check(
+      "data_access_logs_principal_check",
+      sql`${table.principalType} in ('membership', 'external_collaborator', 'external_reviewer', 'service_account', 'support_administrator')`,
+    ),
+    check(
+      "data_access_logs_action_check",
+      sql`${table.action} in ('read', 'create', 'update', 'delete', 'manage', 'upload', 'download')`,
+    ),
+    check(
+      "data_access_logs_outcome_check",
+      sql`${table.outcome} in ('allowed', 'denied')`,
+    ),
+    check(
+      "data_access_logs_purpose_check",
+      sql`char_length(trim(${table.accessPurpose})) >= 8`,
+    ),
+    check("data_access_logs_lifecycle_check", lifecycleValues),
   ],
 );
 

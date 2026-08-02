@@ -2,7 +2,19 @@
 
 ## Current milestone
 
-M1 — The governed California property-graph/data-right slice is locally validated and published as draft PR #8 on August 1, 2026, stacked directly after draft PR #7. The prior M1–M7 renewal implementation remains a locally validated reusable foundation and published stacked PR series; it is not evidence that profiles, interventions, capital plans, funding, verification, model mapping, recognition commitments, recognition submissions, programme administration, deployment, or external validation exist.
+M2 — The identity and secure-evidence slice is locally validated on August 1, 2026 and ready for publication as the next branch stacked directly after draft PR #8. The prior M1–M7 renewal implementation remains a locally validated reusable foundation and published stacked PR series; it is not evidence that profiles, interventions, capital plans, funding, verification, model mapping, recognition commitments, recognition submissions, programme administration, deployment, or external validation exist.
+
+## Replacement north-star M2 locally validated
+
+- Expanded production persistence from 73 to 75 tables and from 147 to 157 guards/triggers with purpose-specific portfolio assignments and immutable data-access logs; case assignments now retain the same purpose/data-domain/revocation metadata.
+- Expanded the executable role ceiling from 11 compatibility roles to 18 roles including property operator administrator, property manager, contractor evidence contributor, independent verifier, programme administrator, insurer/MGA reviewer, and lender/funder reviewer. Separation-of-duty tests reject policy/submission/funding/market-response mutations outside each role boundary.
+- Identity resolution now admits only active, unrevoked, unexpired direct case assignments plus direct/team portfolio assignments. The exact assignment permission set is intersected with the organization-role ceiling for each requested portfolio or case; empty, wrong-scope, expired, and revoked assignments fail closed.
+- Added an authorization-enforced `AccessControlService`, three authenticated APIs, purpose/permission/data-domain validation, role-domain constraints, transactional audit events, reason-bound revocation, and immutable access-log recording. Database guards reject cross-tenant portfolio/member/team/external/case references even if service code is bypassed.
+- Added the responsive `/access` workspace with meaningful loading, permission/error, empty, and populated states; functional synthetic assignment create/revoke; production API mode; security posture; append-only access ledger; and explicit ecosystem role boundaries. No production role switch exists.
+- Added 5 M2 contract tests and expanded the identity matrix. The complete suite is 14 files/56 tests; the focused access/identity/data-plane suite is 21/21.
+- Complete local release gates passed: ESLint, strict TypeScript, 237-file secret scan, 21-page/42-API build, 12/12 deterministic evaluation, 18-pattern claims scan, 16/16 serial desktop/mobile Playwright scenarios, 75-table schema regeneration/no drift, exactly 157 migrated guards/triggers, and `npm audit --audit-level=moderate` with 0 vulnerabilities.
+- Browser inspection covered 1280-pixel desktop, 834-pixel tablet, and Pixel 7 mobile. The first mobile role matrix used an inner horizontal scroll; it was converted to fully labeled stacked rows, rebuilt, rerun, and re-inspected with no measured document overflow.
+- Managed OIDC/MFA, PostgreSQL/RLS, private bucket/KMS/scanner, secrets, rate limits, operational restore, and authorized customer/partner role validation remain deployment/external gates. No live customer, contractor, verifier, insurer, lender, or programme user has validated this slice.
 
 ## Replacement north-star M1 locally validated
 
@@ -110,7 +122,7 @@ M1 — The governed California property-graph/data-right slice is locally valida
 ## Next
 
 - Keep draft PR #7 stacked on M7 until the predecessor is ready; local merge-tree and GitHub both report the exact M0 stack conflict-free at publication.
-- Keep draft PR #8 stacked on draft PR #7, then begin M2 resilience roles, portfolio assignment, and purpose-specific data-access logging without weakening the current tenant boundary.
+- Publish the M2 identity/access branch stacked on draft PR #8, verify exact ancestry/local merge tree/GitHub mergeability, then begin the production California brokerage wedge without weakening the tenant or assignment boundary.
 - Validate the property graph against the selected managed PostgreSQL/PostGIS provider and evaluate defense-in-depth RLS; the local PGlite and nullable EPSG:4326-ready GeoJSON contracts are not provider, PostGIS, or performance evidence.
 - Validate rights-cleared brokerage exports and correspondence against the generic adapters; fixture compatibility is not certification. Validate any external OCR/document-intelligence provider only after licensing, egress, retention, credentials, security, latency, cost, and error behavior are approved.
 - Validate the M2 migration and contract suite against the selected managed PostgreSQL service; PGlite is PostgreSQL-compatible local evidence, not production-provider evidence.

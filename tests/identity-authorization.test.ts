@@ -55,7 +55,7 @@ describe("production identity and deny-by-default authorization", () => {
 
   test("denies cross-tenant access for every production resource class", () => {
     expect(new Set(resourceClasses).size).toBe(resourceClasses.length);
-    expect(resourceClasses).toHaveLength(69);
+    expect(resourceClasses).toHaveLength(71);
     const owner: AuthorizationContext = {
       organizationId: "org-alpha",
       actorSubject: "owner-alpha",
@@ -93,6 +93,64 @@ describe("production identity and deny-by-default authorization", () => {
         },
       ),
     ).toThrow(AuthorizationDeniedError);
+  });
+
+  test("keeps resilience ecosystem roles inside explicit separation-of-duty boundaries", () => {
+    const context = (role: AuthorizationContext["role"]): AuthorizationContext => ({
+      organizationId: "org-boundary",
+      actorSubject: `identity:${role}`,
+      principalType: "membership",
+      role,
+      grantedScopes: [],
+      assignedCaseIds: ["case-assigned"],
+      assignedPortfolioIds: ["portfolio-assigned"],
+    });
+    const request = (
+      resource: Parameters<typeof assertAuthorized>[1]["resource"],
+      action: Parameters<typeof assertAuthorized>[1]["action"],
+    ) => ({
+      resource,
+      action,
+      resourceOrganizationId: "org-boundary",
+      caseId: "case-assigned",
+    });
+
+    expect(() =>
+      assertAuthorized(
+        context("contractor_evidence_contributor"),
+        request("policy", "read"),
+      ),
+    ).toThrow(AuthorizationDeniedError);
+    expect(() =>
+      assertAuthorized(
+        context("independent_verifier"),
+        request("market_response", "create"),
+      ),
+    ).toThrow(AuthorizationDeniedError);
+    expect(() =>
+      assertAuthorized(
+        context("insurer_mga_reviewer"),
+        request("evidence_item", "create"),
+      ),
+    ).toThrow(AuthorizationDeniedError);
+    expect(() =>
+      assertAuthorized(
+        context("lender_funder_reviewer"),
+        request("submission", "create"),
+      ),
+    ).toThrow(AuthorizationDeniedError);
+    expect(() =>
+      assertAuthorized(
+        context("programme_administrator"),
+        request("market_response", "create"),
+      ),
+    ).toThrow(AuthorizationDeniedError);
+    expect(() =>
+      assertAuthorized(
+        context("insurer_mga_reviewer"),
+        request("market_response", "create"),
+      ),
+    ).not.toThrow();
   });
 
   test("accepts a one-time invitation, issues an opaque session, and revokes membership sessions", async () => {
