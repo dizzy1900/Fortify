@@ -42,6 +42,11 @@ import {
   GovernedSourceStateError,
   GovernedSourceValidationError,
 } from "@/lib/production/governed-source-service";
+import {
+  FundingProjectStateError,
+  FundingProjectService,
+  FundingProjectValidationError,
+} from "@/lib/production/funding-project-service";
 
 export const SESSION_COOKIE_NAME =
   process.env.NODE_ENV === "production"
@@ -64,6 +69,11 @@ export async function resolveRequestPrincipal(
       return {
         authorization: await service.resolveExternalAccess(token),
         expiresAt: "grant-managed",
+      };
+    if (token.startsWith("fproject_"))
+      return {
+        authorization: await new FundingProjectService(getProductionDatabase()).resolveExternalProjectToken(token),
+        expiresAt: "assignment-managed",
       };
     throw new AuthenticationError();
   }
@@ -145,6 +155,10 @@ export function authenticationFailure(error: unknown) {
   if (error instanceof GovernedSourceValidationError)
     return Response.json({ error: error.message }, { status: 400 });
   if (error instanceof GovernedSourceStateError)
+    return Response.json({ error: error.message }, { status: 409 });
+  if (error instanceof FundingProjectValidationError)
+    return Response.json({ error: error.message }, { status: 400 });
+  if (error instanceof FundingProjectStateError)
     return Response.json({ error: error.message }, { status: 409 });
   const message =
     error instanceof AuthenticationError
