@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M3 — The live California brokerage wedge is locally validated on August 1, 2026 and is ready for stacked publication after draft PR #9. The prior M1–M7 renewal implementation remains a locally validated reusable foundation and published stacked PR series; it is not evidence that governed California sources, profiles, interventions, capital plans, funding, verification, model mapping, recognition commitments, live recognition delivery/outcomes, programme administration, deployment, or external validation exist.
+M3 — The live California brokerage wedge is locally validated on August 1, 2026 and published as draft PR #10, stacked directly after draft PR #9. The prior M1–M7 renewal implementation remains a locally validated reusable foundation and published stacked PR series; it is not evidence that governed California sources, profiles, interventions, capital plans, funding, verification, model mapping, recognition commitments, live recognition delivery/outcomes, programme administration, deployment, or external validation exist.
 
 ## Replacement north-star M3 locally validated
 
@@ -15,6 +15,7 @@ M3 — The live California brokerage wedge is locally validated on August 1, 202
 - Browser inspection covered 1280-pixel desktop, 834-pixel tablet, and Pixel 7 mobile. The first inspection found local-time date drift and a clipped mobile tab; UTC date-only display and a four-column mobile tab grid were implemented, rebuilt, rerun, and re-inspected with no measured document overflow.
 - The production fixture generated a five-page Letter PDF and a four-entry ZIP containing the exact PDF, manifest, letter, and evidence exhibit. All pages were rendered; a right-edge footer overflow was repaired, regenerated, and re-inspected. ZIP integrity, manifest semantics, artifact sizes, and SHA-256 readback passed.
 - Rights-cleared brokerage data, ten-case customer operation, managed PostgreSQL/OIDC/private-storage/scanner deployment, live request delivery, brokerage acceptance, and any insurance/recognition outcome remain explicit external or deployment gates.
+- Publication used `codex/m3-live-brokerage-wedge` stacked on refreshed `origin/codex/m2-resilience-access-control`. The exact local merge tree `99eda38cf22b0a8ae3e62636cd3621b3e61bfb90` completed without conflicts; remote readback matched implementation commit `9eb70ab217d3cb16ba9fb070da000c2d693c031a`; and GitHub draft PR #10 reported the intended base/head and `mergeable=true`.
 
 ## Replacement north-star M2 locally validated
 

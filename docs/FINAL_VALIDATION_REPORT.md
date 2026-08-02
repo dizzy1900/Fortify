@@ -22,6 +22,8 @@ The production fixture emitted a five-page PDF 1.7 on US Letter paper plus a fou
 
 No rights-cleared California brokerage export, managed PostgreSQL/PostGIS or RLS deployment, managed OIDC/MFA provider, private bucket/KMS/scanner, live external request delivery, ten-case production run, carrier/underwriter review, broker acceptance, or market outcome has been validated. M3 is locally validated but neither deployment-validated nor externally validated.
 
+Publication used branch `codex/m3-live-brokerage-wedge` stacked on refreshed `origin/codex/m2-resilience-access-control`. Exact ancestry and ahead/behind checks passed, `git diff --check` passed, and local `git merge-tree --write-tree` produced `99eda38cf22b0a8ae3e62636cd3621b3e61bfb90` without conflicts. The initial published implementation head and remote SHA both resolved to `9eb70ab217d3cb16ba9fb070da000c2d693c031a`. GitHub draft PR #10 readback reported base `codex/m2-resilience-access-control` at `decdd43c0a31162c187ae39fb911852a0fdf8ace`, head `codex/m3-live-brokerage-wedge` at `9eb70ab217d3cb16ba9fb070da000c2d693c031a`, and `mergeable=true`.
+
 ## Replacement north-star M2 identity/secure-evidence local-validation addendum
 
 The complete local release surface passed against the final lockfile: ESLint, strict TypeScript, 14 Vitest files/56 tests, a 237-file secret scan, the 21-page/42-API production build, 12/12 deterministic sandbox checks, the 18-pattern claims scan, and 16/16 serial Playwright scenarios across desktop Chromium and Pixel 7. Production schema regeneration reported 75 tables and no drift; the migrated database exposed exactly 157 unique guards/triggers. `npm audit --audit-level=moderate` reported 0 vulnerabilities. `git diff --check` passed before publication.
