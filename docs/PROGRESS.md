@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M5 — The governed target-profile, intervention, baseline-gap, and transparent capital-planning slice is locally validated on August 1, 2026 and ready to publish as a draft PR stacked directly after M4 draft PR #11. It does not prove physical resilience, engineering adequacy, real cost, funding eligibility, modeled benefit, insurer treatment, recognition, customer acceptance, deployment, or external validation.
+M5 — The governed target-profile, intervention, baseline-gap, and transparent capital-planning slice is locally validated on August 1, 2026 and published as draft PR #12, stacked directly after M4 draft PR #11. It does not prove physical resilience, engineering adequacy, real cost, funding eligibility, modeled benefit, insurer treatment, recognition, customer acceptance, deployment, or external validation.
 
 ## Replacement north-star M5 locally validated
 
@@ -15,6 +15,7 @@ M5 — The governed target-profile, intervention, baseline-gap, and transparent 
 - The consolidated release gate passed: ESLint, strict TypeScript, 17 files/65 tests, 276-file secret scan, 24-page/58-API build, 12/12 deterministic sandbox evaluation, 18-pattern claims scan, and 22/22 serial desktop/mobile Playwright scenarios. Schema generation reported no drift, the migrated database exposed exactly 246 guards/triggers, and `npm audit --audit-level=moderate` reported 0 vulnerabilities.
 - Desktop Chromium, 834-pixel tablet, and Pixel 7 captures were inspected with no observed clipping, collision, or document-width overflow.
 - All planning content is deterministic development-fixture evidence. Qualified technical review, rights-cleared inputs, real contractor scopes/costs, funding decisions, modeled analysis, insurer acknowledgement, customer use, and managed-provider operation remain external or later-milestone gates.
+- Publication used `codex/m5-profiles-capital-planning` stacked on refreshed `origin/codex/m4-california-source-register`. The implementation head and remote SHA both resolved to `5c65c55df4f17acb1f67a4850bb81b551a33168d`; the exact local merge tree `aec0de1ab095138facda935c8d1d4f900066f94c` completed without conflicts; and GitHub draft PR #12 reported the intended base/head, one implementation commit, and “No conflicts with base branch; merging can be performed automatically.”
 
 ## Replacement north-star M4 locally validated
 
