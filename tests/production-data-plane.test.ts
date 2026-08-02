@@ -41,7 +41,7 @@ describe("normalized PostgreSQL tenant data plane", () => {
     const triggers = await client.query<{ trigger_name: string }>(
       "select trigger_name from information_schema.triggers where trigger_schema = 'public' order by trigger_name",
     );
-    expect(tables.rows.map((row) => row.table_name)).toHaveLength(119);
+    expect(tables.rows.map((row) => row.table_name)).toHaveLength(136);
     expect(tables.rows.map((row) => row.table_name)).not.toContain("app_state");
     const triggerNames = [
       ...new Set(triggers.rows.map((row) => row.trigger_name)),
@@ -155,9 +155,16 @@ describe("normalized PostgreSQL tenant data plane", () => {
         "submission_artifacts_no_delete",
         "capital_stacks_scenario_project_guard",
         "payment_approvals_project_guard",
+        "verification_assignments_integrity_guard",
+        "verification_findings_integrity_guard",
+        "verification_conflicts_immutable_update",
+        "verification_findings_immutable_delete",
+        "verification_certificate_events_immutable_update",
+        "maintenance_obligation_events_immutable_delete",
+        "property_condition_events_immutable_update",
       ]),
     );
-    expect(triggerNames).toHaveLength(325);
+    expect(triggerNames).toHaveLength(386);
   });
 
   test("isolates reads and mutations by explicit organization context", async () => {

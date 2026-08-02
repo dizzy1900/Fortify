@@ -134,6 +134,13 @@
       "when": 1785646197145,
       "tag": "0018_normal_jack_flag",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1785649570182,
+      "tag": "0019_lush_robbie_robertson",
+      "breakpoints": true
     }
   ]
 }

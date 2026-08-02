@@ -3655,6 +3655,357 @@ export const maintenanceEvents = pgTable(
   ],
 );
 
+export const verificationOrganizations = pgTable(
+  "verification_organizations",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    legalName: text("legal_name").notNull(),
+    organizationType: text("organization_type").notNull(),
+    website: text("website"),
+    status: text("status").notNull().default("active"),
+    limitations: text("limitations").notNull(),
+  },
+  (table) => [
+    uniqueIndex("verification_organizations_org_name_unique").on(table.organizationId, table.legalName),
+    check("verification_organizations_status_check", sql`${table.status} in ('active', 'suspended', 'inactive')`),
+    check("verification_organizations_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const verifiers = pgTable(
+  "verifiers",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    verificationOrganizationId: text("verification_organization_id").notNull().references(() => verificationOrganizations.id, { onDelete: "restrict" }),
+    externalPrincipalId: text("external_principal_id").references(() => externalPrincipals.id, { onDelete: "restrict" }),
+    displayName: text("display_name").notNull(),
+    email: text("email").notNull(),
+    status: text("status").notNull().default("active"),
+  },
+  (table) => [
+    uniqueIndex("verifiers_org_email_unique").on(table.organizationId, table.email),
+    check("verifiers_status_check", sql`${table.status} in ('active', 'suspended', 'inactive')`),
+    check("verifiers_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const verifierCredentials = pgTable(
+  "verifier_credentials",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    verifierId: text("verifier_id").notNull().references(() => verifiers.id, { onDelete: "restrict" }),
+    versionNumber: integer("version_number").notNull(),
+    credentialType: text("credential_type").notNull(),
+    issuer: text("issuer").notNull(),
+    credentialReference: text("credential_reference").notNull(),
+    jurisdiction: text("jurisdiction").notNull(),
+    scope: jsonb("scope").$type<string[]>().notNull().default([]),
+    issuedOn: date("issued_on", { mode: "string" }).notNull(),
+    expiresOn: date("expires_on", { mode: "string" }).notNull(),
+    sourceVersion: text("source_version").notNull(),
+    sourceUrl: text("source_url"),
+    verifyCurrentStatus: text("verify_current_status").notNull().default("unreviewed"),
+    supersedesCredentialId: text("supersedes_credential_id").references((): AnyPgColumn => verifierCredentials.id, { onDelete: "restrict" }),
+    authorSubject: text("author_subject").notNull(),
+  },
+  (table) => [
+    uniqueIndex("verifier_credentials_org_verifier_version_unique").on(table.organizationId, table.verifierId, table.versionNumber),
+    check("verifier_credentials_version_check", sql`${table.versionNumber} >= 1`),
+    check("verifier_credentials_dates_check", sql`${table.expiresOn} >= ${table.issuedOn}`),
+    check("verifier_credentials_status_check", sql`${table.verifyCurrentStatus} in ('unreviewed', 'verified_current', 'expired', 'revoked', 'unable_to_verify')`),
+    check("verifier_credentials_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const verifierCredentialReviews = pgTable(
+  "verifier_credential_reviews",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    credentialId: text("credential_id").notNull().references(() => verifierCredentials.id, { onDelete: "restrict" }),
+    decision: text("decision").notNull(),
+    reviewerSubject: text("reviewer_subject").notNull(),
+    sourceChecked: boolean("source_checked").notNull().default(false),
+    note: text("note").notNull(),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("verifier_credential_reviews_org_credential_unique").on(table.organizationId, table.credentialId),
+    check("verifier_credential_reviews_decision_check", sql`${table.decision} in ('approved', 'rejected', 'changes_requested')`),
+    check("verifier_credential_reviews_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const verificationAssignments = pgTable(
+  "verification_assignments",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    projectId: text("project_id").notNull().references(() => resilienceProjects.id, { onDelete: "restrict" }),
+    profileVersionId: text("profile_version_id").notNull().references(() => targetProfileVersions.id, { onDelete: "restrict" }),
+    verifierId: text("verifier_id").notNull().references(() => verifiers.id, { onDelete: "restrict" }),
+    credentialId: text("credential_id").notNull().references(() => verifierCredentials.id, { onDelete: "restrict" }),
+    purpose: text("purpose").notNull(),
+    scope: jsonb("scope").$type<string[]>().notNull().default([]),
+    tokenHash: text("token_hash").notNull(),
+    assignedBy: text("assigned_by").notNull(),
+    assignedAt: timestamp("assigned_at", { withTimezone: true, mode: "string" }).notNull(),
+    dueOn: date("due_on", { mode: "string" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "string" }),
+    reinspectionOfAssignmentId: text("reinspection_of_assignment_id").references((): AnyPgColumn => verificationAssignments.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    uniqueIndex("verification_assignments_token_unique").on(table.tokenHash),
+    index("verification_assignments_org_project_idx").on(table.organizationId, table.projectId),
+    check("verification_assignments_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const verificationConflictDeclarations = pgTable(
+  "verification_conflict_declarations",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    assignmentId: text("assignment_id").notNull().references(() => verificationAssignments.id, { onDelete: "restrict" }),
+    declaration: text("declaration").notNull(),
+    conflictState: text("conflict_state").notNull(),
+    disclosedRelationships: jsonb("disclosed_relationships").$type<string[]>().notNull().default([]),
+    signedBy: text("signed_by").notNull(),
+    signedAt: timestamp("signed_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("verification_conflicts_org_assignment_unique").on(table.organizationId, table.assignmentId),
+    check("verification_conflicts_state_check", sql`${table.conflictState} in ('no_conflict_declared', 'conflict_disclosed', 'unable_to_determine')`),
+    check("verification_conflicts_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const verificationMethods = pgTable(
+  "verification_methods",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    assignmentId: text("assignment_id").notNull().references(() => verificationAssignments.id, { onDelete: "restrict" }),
+    methodType: text("method_type").notNull(),
+    methodVersion: text("method_version").notNull(),
+    performedBy: text("performed_by").notNull(),
+    performedAt: timestamp("performed_at", { withTimezone: true, mode: "string" }).notNull(),
+    latitude: numeric("latitude", { precision: 9, scale: 6 }),
+    longitude: numeric("longitude", { precision: 9, scale: 6 }),
+    measurementJson: jsonb("measurement_json").$type<Record<string, unknown>>().notNull().default({}),
+    limitations: text("limitations").notNull(),
+  },
+  (table) => [
+    check("verification_methods_type_check", sql`${table.methodType} in ('desktop_review', 'site_visit', 'photographic_review', 'geolocation_check', 'timestamp_check', 'measurement')`),
+    check("verification_methods_location_check", sql`(${table.latitude} is null and ${table.longitude} is null) or (${table.latitude} between -90 and 90 and ${table.longitude} between -180 and 180)`),
+    check("verification_methods_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const verificationFindings = pgTable(
+  "verification_findings",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    assignmentId: text("assignment_id").notNull().references(() => verificationAssignments.id, { onDelete: "restrict" }),
+    methodId: text("method_id").notNull().references(() => verificationMethods.id, { onDelete: "restrict" }),
+    projectInterventionId: text("project_intervention_id").notNull().references(() => projectInterventions.id, { onDelete: "restrict" }),
+    criterionId: text("criterion_id").notNull().references(() => targetProfileCriteria.id, { onDelete: "restrict" }),
+    conclusion: text("conclusion").notNull(),
+    evidenceLevel: text("evidence_level").notNull(),
+    statement: text("statement").notNull(),
+    limitations: text("limitations").notNull(),
+    verifierSubject: text("verifier_subject").notNull(),
+    concludedAt: timestamp("concluded_at", { withTimezone: true, mode: "string" }).notNull(),
+    signatureHash: text("signature_hash").notNull(),
+  },
+  (table) => [
+    check("verification_findings_conclusion_check", sql`${table.conclusion} in ('conforming', 'nonconforming', 'insufficient_evidence', 'not_observed')`),
+    check("verification_findings_evidence_level_check", sql`${table.evidenceLevel} in ('physical_specification', 'verified_installation', 'modelled_vulnerability_reduction', 'modelled_expected_loss_reduction', 'filed_rating_treatment', 'underwriting_treatment', 'financing_or_programme_treatment', 'observed_event_performance', 'claims_evidence')`),
+    check("verification_findings_signature_check", sql`char_length(${table.signatureHash}) = 64`),
+    check("verification_findings_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const verificationFindingEvidenceLinks = pgTable(
+  "verification_finding_evidence_links",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    findingId: text("finding_id").notNull().references(() => verificationFindings.id, { onDelete: "restrict" }),
+    evidenceVersionId: text("evidence_version_id").notNull().references(() => evidenceVersions.id, { onDelete: "restrict" }),
+    relationship: text("relationship").notNull(),
+  },
+  (table) => [
+    uniqueIndex("verification_finding_evidence_unique").on(table.organizationId, table.findingId, table.evidenceVersionId),
+    check("verification_finding_evidence_relationship_check", sql`${table.relationship} in ('supports', 'contradicts', 'context_only')`),
+    check("verification_finding_evidence_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const verificationFindingReviews = pgTable(
+  "verification_finding_reviews",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    findingId: text("finding_id").notNull().references(() => verificationFindings.id, { onDelete: "restrict" }),
+    decision: text("decision").notNull(),
+    reviewerSubject: text("reviewer_subject").notNull(),
+    evidenceAndMethodChecked: boolean("evidence_and_method_checked").notNull().default(false),
+    note: text("note").notNull(),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("verification_finding_reviews_org_finding_unique").on(table.organizationId, table.findingId),
+    check("verification_finding_reviews_decision_check", sql`${table.decision} in ('approved', 'rejected', 'changes_requested')`),
+    check("verification_finding_reviews_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const verificationExceptions = pgTable(
+  "verification_exceptions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    assignmentId: text("assignment_id").notNull().references(() => verificationAssignments.id, { onDelete: "restrict" }),
+    findingId: text("finding_id").references(() => verificationFindings.id, { onDelete: "restrict" }),
+    exceptionType: text("exception_type").notNull(),
+    description: text("description").notNull(),
+    severity: text("severity").notNull(),
+    openedBy: text("opened_by").notNull(),
+    openedAt: timestamp("opened_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    check("verification_exceptions_severity_check", sql`${table.severity} in ('low', 'medium', 'high', 'critical')`),
+    check("verification_exceptions_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const verificationCorrectiveActions = pgTable(
+  "verification_corrective_actions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    exceptionId: text("exception_id").notNull().references(() => verificationExceptions.id, { onDelete: "restrict" }),
+    actionType: text("action_type").notNull(),
+    description: text("description").notNull(),
+    state: text("state").notNull(),
+    responsibleSubject: text("responsible_subject").notNull(),
+    dueOn: date("due_on", { mode: "string" }),
+    evidenceVersionId: text("evidence_version_id").references(() => evidenceVersions.id, { onDelete: "restrict" }),
+    recordedBy: text("recorded_by").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true, mode: "string" }).notNull(),
+    supersedesActionId: text("supersedes_action_id").references((): AnyPgColumn => verificationCorrectiveActions.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    check("verification_corrective_actions_state_check", sql`${table.state} in ('required', 'submitted', 'accepted', 'rejected', 'cancelled')`),
+    check("verification_corrective_actions_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const verificationCertificates = pgTable(
+  "verification_certificates",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    assignmentId: text("assignment_id").notNull().references(() => verificationAssignments.id, { onDelete: "restrict" }),
+    certificateNumber: text("certificate_number").notNull(),
+    conclusionHash: text("conclusion_hash").notNull(),
+    issuedBy: text("issued_by").notNull(),
+    issuedAt: timestamp("issued_at", { withTimezone: true, mode: "string" }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }).notNull(),
+    humanConfirmed: boolean("human_confirmed").notNull().default(false),
+    limitations: text("limitations").notNull(),
+  },
+  (table) => [
+    uniqueIndex("verification_certificates_org_number_unique").on(table.organizationId, table.certificateNumber),
+    check("verification_certificates_hash_check", sql`char_length(${table.conclusionHash}) = 64`),
+    check("verification_certificates_dates_check", sql`${table.expiresAt} > ${table.issuedAt}`),
+    check("verification_certificates_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const verificationCertificateEvents = pgTable(
+  "verification_certificate_events",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    certificateId: text("certificate_id").notNull().references(() => verificationCertificates.id, { onDelete: "restrict" }),
+    eventType: text("event_type").notNull(),
+    rationale: text("rationale").notNull(),
+    decidedBy: text("decided_by").notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true, mode: "string" }).notNull(),
+    supersedesEventId: text("supersedes_event_id").references((): AnyPgColumn => verificationCertificateEvents.id, { onDelete: "restrict" }),
+  },
+  (table) => [
+    check("verification_certificate_events_type_check", sql`${table.eventType} in ('issued', 'expired', 'revoked', 'reinstated')`),
+    check("verification_certificate_events_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const maintenanceObligations = pgTable(
+  "maintenance_obligations",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    certificateId: text("certificate_id").notNull().references(() => verificationCertificates.id, { onDelete: "restrict" }),
+    interventionVersionId: text("intervention_version_id").notNull().references(() => interventionVersions.id, { onDelete: "restrict" }),
+    title: text("title").notNull(),
+    requirement: text("requirement").notNull(),
+    recurrenceRule: text("recurrence_rule").notNull(),
+    evidenceRequirement: text("evidence_requirement").notNull(),
+    nextDueAt: timestamp("next_due_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    index("maintenance_obligations_org_due_idx").on(table.organizationId, table.nextDueAt),
+    check("maintenance_obligations_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const maintenanceObligationEvents = pgTable(
+  "maintenance_obligation_events",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    obligationId: text("obligation_id").notNull().references(() => maintenanceObligations.id, { onDelete: "restrict" }),
+    eventType: text("event_type").notNull(),
+    evidenceVersionId: text("evidence_version_id").references(() => evidenceVersions.id, { onDelete: "restrict" }),
+    note: text("note").notNull(),
+    recordedBy: text("recorded_by").notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true, mode: "string" }).notNull(),
+  },
+  (table) => [
+    check("maintenance_obligation_events_type_check", sql`${table.eventType} in ('scheduled', 'evidence_refreshed', 'satisfied', 'expired', 'waived')`),
+    check("maintenance_obligation_events_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const propertyConditionEvents = pgTable(
+  "property_condition_events",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    propertyId: text("property_id").notNull().references(() => properties.id, { onDelete: "restrict" }),
+    projectId: text("project_id").references(() => resilienceProjects.id, { onDelete: "restrict" }),
+    certificateId: text("certificate_id").references(() => verificationCertificates.id, { onDelete: "restrict" }),
+    eventType: text("event_type").notNull(),
+    conditionState: text("condition_state").notNull(),
+    evidenceVersionId: text("evidence_version_id").references(() => evidenceVersions.id, { onDelete: "restrict" }),
+    observedBy: text("observed_by").notNull(),
+    observedAt: timestamp("observed_at", { withTimezone: true, mode: "string" }).notNull(),
+    note: text("note").notNull(),
+  },
+  (table) => [
+    index("property_condition_events_org_property_idx").on(table.organizationId, table.propertyId, table.observedAt),
+    check("property_condition_events_state_check", sql`${table.conditionState} in ('observed_conforming', 'observed_degraded', 'insufficient_evidence', 'not_observed')`),
+    check("property_condition_events_lifecycle_check", lifecycleValues),
+  ],
+);
+
 export const idempotencyKeys = pgTable(
   "idempotency_keys",
   {

@@ -121,6 +121,7 @@ test("public page and all workspace routes are healthy", async ({ page }) => {
     "/playbooks",
     "/resilience-planning",
     "/funding",
+    "/verification",
     "/community",
     "/policy",
     "/notice",
@@ -673,4 +674,48 @@ test("funding and execution preserves rule, cost-share, approval, scope, and exp
   expect(overflow).toBe(false);
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: testInfo.project.name === "chromium" ? "test-results/visual-inspection/funding-execution-desktop.png" : testInfo.project.name === "tablet" ? "test-results/visual-inspection/funding-execution-tablet.png" : "test-results/visual-inspection/funding-execution-mobile.png", fullPage: true });
+});
+
+test("independent verification preserves assignment, evidence, correction, certificate, and maintenance boundaries", async ({ page }, testInfo) => {
+  await page.goto("/verification");
+  await expect(page.getByRole("heading", { name: "Make every conclusion inspectable." })).toBeVisible();
+  await expect(page.getByText("Substantive-verifier boundary", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Fortify manages workflow and provenance/)).toBeVisible();
+  await expect(page.getByText("Verification record current", { exact: true })).toBeVisible();
+  await expect(page.getByText("No conflict declared", { exact: true })).toBeVisible();
+
+  await page.getByLabel("Review verification governance state").selectOption("expired_credential");
+  await expect(page.getByText("Credential expired", { exact: true })).toBeVisible();
+  await expect(page.getByText("Assignment blocked", { exact: true })).toBeVisible();
+  await page.getByLabel("Review verification governance state").selectOption("insufficient_evidence");
+  await expect(page.getByText("Evidence insufficient", { exact: true })).toBeVisible();
+  await page.getByLabel("Review verification governance state").selectOption("verified");
+
+  await page.getByRole("button", { name: "Methods & evidence" }).click();
+  await expect(page.getByText("Observation, not inference", { exact: true })).toBeVisible();
+  await expect(page.getByText("Two immutable versions cited", { exact: true })).toBeVisible();
+  await page.getByLabel("Review verification governance state").selectOption("insufficient_evidence");
+  await expect(page.getByText("Required proof unavailable", { exact: true })).toBeVisible();
+  await page.getByLabel("Review verification governance state").selectOption("verified");
+  await page.getByRole("button", { name: "Findings & exceptions" }).click();
+  await expect(page.getByText("Verified Installation", { exact: true })).toBeVisible();
+  await expect(page.getByText("Exception resolved; history retained", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Inspect corrective lineage" }).click();
+  await expect(page.getByText(/eligible for reinspection/)).toBeVisible();
+
+  await page.getByRole("button", { name: "Certificate & upkeep" }).click();
+  await expect(page.getByText("FSBR-CV-2026-014", { exact: true })).toBeVisible();
+  await expect(page.getByText("Maintenance stays evidence-bound", { exact: true })).toBeVisible();
+  await page.getByLabel("Review verification governance state").selectOption("revoked_certificate");
+  await expect(page.getByText("Certificate revoked", { exact: true })).toBeVisible();
+  await expect(page.locator(".certificate-state").getByText("Revoked", { exact: true })).toBeVisible();
+  await page.getByLabel("Review verification governance state").selectOption("no_assignment");
+  await expect(page.getByRole("heading", { name: "Project evidence is unavailable" })).toBeVisible();
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+  expect(overflow).toBe(false);
+  await page.getByLabel("Review verification governance state").selectOption("verified");
+  await page.getByRole("button", { name: "Findings & exceptions" }).click();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: testInfo.project.name === "chromium" ? "test-results/visual-inspection/independent-verification-desktop.png" : testInfo.project.name === "tablet" ? "test-results/visual-inspection/independent-verification-tablet.png" : "test-results/visual-inspection/independent-verification-mobile.png", fullPage: true });
 });
