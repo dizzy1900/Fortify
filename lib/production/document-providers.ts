@@ -242,16 +242,16 @@ const classificationRules: Array<{
     pattern: /\b(clarification|please clarify|follow-up question)\b/i,
   },
   {
+    documentType: "carrier_notice",
+    pattern: /\b(carrier notice|renewal notice|notice of renewal)\b/i,
+  },
+  {
     documentType: "evidence_request",
     pattern: /\b(evidence request|required evidence|please provide)\b/i,
   },
   {
     documentType: "underwriter_email",
     pattern: /\b(from:|subject:).*\b(underwriter|underwriting)\b/is,
-  },
-  {
-    documentType: "carrier_notice",
-    pattern: /\b(carrier notice|renewal notice|notice of renewal)\b/i,
   },
 ];
 

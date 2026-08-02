@@ -2,7 +2,19 @@
 
 ## Current milestone
 
-M2 — The identity and secure-evidence slice is locally validated on August 1, 2026 and published as draft PR #9, stacked directly after draft PR #8. The prior M1–M7 renewal implementation remains a locally validated reusable foundation and published stacked PR series; it is not evidence that profiles, interventions, capital plans, funding, verification, model mapping, recognition commitments, recognition submissions, programme administration, deployment, or external validation exist.
+M3 — The live California brokerage wedge is locally validated on August 1, 2026 and is ready for stacked publication after draft PR #9. The prior M1–M7 renewal implementation remains a locally validated reusable foundation and published stacked PR series; it is not evidence that governed California sources, profiles, interventions, capital plans, funding, verification, model mapping, recognition commitments, live recognition delivery/outcomes, programme administration, deployment, or external validation exist.
+
+## Replacement north-star M3 locally validated
+
+- Expanded production persistence from 75 to 78 tables and from 157 to 168 guards/triggers with stable governed evidence requests, immutable request versions, and immutable exact generated submission artifacts. The deny-by-default registry now covers all 74 resource classes.
+- Added `BrokerageCaseService` and four authenticated APIs for tenant/assignment-scoped workspace readback, human-confirmed request creation, controlled issue/expiry, and human-confirmed packet generation. Service-account principals cannot perform the governed member actions.
+- Packet generation composes only normalized production records, exact-readback evidence versions, human-confirmed case-linked notice facts, governed requests, and explicit contradictions. It writes deterministic PDF/ZIP/manifest/letter objects under the tenant prefix, reads each back independently, and commits clean-object, scan, submission, artifact, audit, and idempotency records transactionally. Request versions and artifacts reject update/delete.
+- The complete fixture proof begins with the real `PortfolioImportService`: a fictional California CSV creates normalized client/community/property/building/policy records, then an appeal case, durable notice intake/extraction and human review, governed request, evidence version, and immutable versioned packet. No production service imports or reads legacy `DemoState`.
+- Added the responsive `/brokerage` workspace with explicit sandbox versus production API behavior, case/policy/property and notice provenance, request draft/issue controls, human packet confirmation, exact artifact hashes, and meaningful populated/loading/error/empty states. No production role switch or dead control was introduced.
+- Full local gates passed: ESLint, strict TypeScript, 15 files/60 tests, 250-file secret scan, 22-page/46-API build, 12/12 deterministic sandbox evaluation, 18-pattern claims scan, 18/18 serial desktop/mobile Playwright scenarios, 78-table schema generation/no drift, exactly 168 migrated guards/triggers, and `npm audit --audit-level=moderate` with 0 vulnerabilities.
+- Browser inspection covered 1280-pixel desktop, 834-pixel tablet, and Pixel 7 mobile. The first inspection found local-time date drift and a clipped mobile tab; UTC date-only display and a four-column mobile tab grid were implemented, rebuilt, rerun, and re-inspected with no measured document overflow.
+- The production fixture generated a five-page Letter PDF and a four-entry ZIP containing the exact PDF, manifest, letter, and evidence exhibit. All pages were rendered; a right-edge footer overflow was repaired, regenerated, and re-inspected. ZIP integrity, manifest semantics, artifact sizes, and SHA-256 readback passed.
+- Rights-cleared brokerage data, ten-case customer operation, managed PostgreSQL/OIDC/private-storage/scanner deployment, live request delivery, brokerage acceptance, and any insurance/recognition outcome remain explicit external or deployment gates.
 
 ## Replacement north-star M2 locally validated
 

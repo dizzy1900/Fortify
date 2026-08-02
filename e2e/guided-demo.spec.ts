@@ -112,6 +112,7 @@ test("public page and all workspace routes are healthy", async ({ page }) => {
     "/sign-in",
     "/demo",
     "/portfolio",
+    "/brokerage",
     "/property-graph",
     "/access",
     "/imports",
@@ -134,6 +135,70 @@ test("public page and all workspace routes are healthy", async ({ page }) => {
     const response = await page.goto(route);
     expect(response?.status(), route).toBe(200);
     await expect(page.locator("body")).not.toBeEmpty();
+  }
+});
+
+test("California brokerage case records a confirmed request and immutable packet artifacts", async ({ page }, testInfo) => {
+  await page.goto("/brokerage");
+  await expect(
+    page.getByRole("heading", {
+      name: "One governed case, from confirmed notice to exact packet bytes.",
+    }),
+  ).toBeVisible();
+  await expect(page.getByText("Fictional California development fixture")).toBeVisible();
+  await expect(page.getByText("Human confirmed", { exact: true })).toBeVisible();
+  await expect(page.getByText("Exact bytes stored", { exact: true })).not.toBeVisible();
+
+  await page.getByRole("button", { name: "Evidence requests" }).click();
+  await page
+    .getByLabel(/I confirm this request scope/)
+    .check();
+  await page.getByRole("button", { name: "Record request draft" }).click();
+  await expect(
+    page.getByText(/human-confirmed request draft was recorded/),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Confirm and mark issued" })
+    .first()
+    .click();
+  await expect(page.getByText(/Delivery remains separate/)).toBeVisible();
+
+  await page.getByRole("button", { name: "Packet" }).click();
+  await page
+    .getByLabel(/I confirm these packet contents/)
+    .check();
+  await page.getByRole("button", { name: "Generate immutable packet" }).click();
+  await expect(
+    page.getByText(/exact artifact hashes were recorded/),
+  ).toBeVisible();
+  await expect(page.getByText("PDF", { exact: true })).toBeVisible();
+  await expect(page.getByText("ZIP", { exact: true })).toBeVisible();
+  await expect(page.getByText("MANIFEST", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Authority remains separate/)).toBeVisible();
+
+  const assertNoOverflow = async () => {
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    );
+    expect(overflow).toBe(false);
+  };
+  await assertNoOverflow();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({
+    path:
+      testInfo.project.name === "chromium"
+        ? "test-results/visual-inspection/brokerage-case-desktop.png"
+        : "test-results/visual-inspection/brokerage-case-mobile.png",
+    fullPage: true,
+  });
+  if (testInfo.project.name === "chromium") {
+    await page.setViewportSize({ width: 834, height: 1112 });
+    await page.reload();
+    await assertNoOverflow();
+    await page.screenshot({
+      path: "test-results/visual-inspection/brokerage-case-tablet.png",
+      fullPage: true,
+    });
   }
 });
 

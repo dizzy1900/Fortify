@@ -1,0 +1,3 @@
+Client ID,Client Name,Community ID,Community Name,Property ID,Property Name,Property Class,Address 1,City,State,Zip Code,County,Building,Year Built,Units,Building Count,Policy Number,Effective Date,Expiration Date,Currency
+CLI-CA-100,Fictional Sierra Community Management,COM-CA-100,Sierra Vista Condominium,PROP-CA-100,Sierra Vista,Condominium,100 Fictional Ridge Drive,Nevada City,CA,95959,Nevada,Building A,1998,48,2,CA-POL-2027-001,2026-01-01,2027-01-01,USD
+CLI-CA-100,Fictional Sierra Community Management,COM-CA-100,Sierra Vista Condominium,PROP-CA-100,Sierra Vista,Condominium,100 Fictional Ridge Drive,Nevada City,CA,95959,Nevada,Building B,2002,48,2,CA-POL-2027-001,2026-01-01,2027-01-01,USD

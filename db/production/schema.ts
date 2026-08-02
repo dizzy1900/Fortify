@@ -2379,6 +2379,107 @@ export const tasks = pgTable(
   ],
 );
 
+export const evidenceRequests = pgTable(
+  "evidence_requests",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    caseId: text("case_id")
+      .notNull()
+      .references(() => renewalCases.id, { onDelete: "restrict" }),
+    externalPrincipalId: text("external_principal_id").references(
+      () => externalPrincipals.id,
+      { onDelete: "restrict" },
+    ),
+    recipientType: text("recipient_type").notNull(),
+    recipientLabel: text("recipient_label").notNull(),
+    status: text("status").notNull().default("draft"),
+    currentVersionId: text("current_version_id"),
+    issuedBy: text("issued_by"),
+    issuedAt: timestamp("issued_at", { withTimezone: true, mode: "string" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }),
+    fulfilledAt: timestamp("fulfilled_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    cancelledAt: timestamp("cancelled_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    cancellationReason: text("cancellation_reason"),
+  },
+  (table) => [
+    index("evidence_requests_org_case_status_idx").on(
+      table.organizationId,
+      table.caseId,
+      table.status,
+    ),
+    check(
+      "evidence_requests_recipient_check",
+      sql`${table.recipientType} in ('property_manager', 'board_contributor', 'contractor_evidence_contributor', 'other_authorized_contributor')`,
+    ),
+    check(
+      "evidence_requests_status_check",
+      sql`${table.status} in ('draft', 'issued', 'fulfilled', 'cancelled')`,
+    ),
+    check("evidence_requests_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const evidenceRequestVersions = pgTable(
+  "evidence_request_versions",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    evidenceRequestId: text("evidence_request_id")
+      .notNull()
+      .references(() => evidenceRequests.id, { onDelete: "restrict" }),
+    versionNumber: integer("version_number").notNull(),
+    purpose: text("purpose").notNull(),
+    instructions: text("instructions").notNull(),
+    dueAt: timestamp("due_at", { withTimezone: true, mode: "string" })
+      .notNull(),
+    requestedItems: jsonb("requested_items")
+      .$type<
+        Array<{
+          evidenceType: string;
+          label: string;
+          required: boolean;
+          scopeType: string;
+          scopeReference?: string;
+          guidance: string;
+        }>
+      >()
+      .notNull()
+      .default([]),
+    confirmedBy: text("confirmed_by").notNull(),
+    confirmedAt: timestamp("confirmed_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("evidence_request_versions_org_request_version_unique").on(
+      table.organizationId,
+      table.evidenceRequestId,
+      table.versionNumber,
+    ),
+    check(
+      "evidence_request_versions_number_check",
+      sql`${table.versionNumber} >= 1`,
+    ),
+    check(
+      "evidence_request_versions_purpose_check",
+      sql`char_length(trim(${table.purpose})) >= 8`,
+    ),
+    check(
+      "evidence_request_versions_instructions_check",
+      sql`char_length(trim(${table.instructions})) >= 12`,
+    ),
+    check("evidence_request_versions_lifecycle_check", lifecycleValues),
+  ],
+);
+
 export const submissions = pgTable(
   "submissions",
   {
@@ -2449,6 +2550,55 @@ export const submissionItems = pgTable(
       table.evidenceVersionId,
     ),
     check("submission_items_lifecycle_check", lifecycleValues),
+  ],
+);
+
+export const submissionArtifacts = pgTable(
+  "submission_artifacts",
+  {
+    id: text("id").primaryKey(),
+    ...tenantColumns(),
+    submissionVersionId: text("submission_version_id")
+      .notNull()
+      .references(() => submissionVersions.id, { onDelete: "restrict" }),
+    storageObjectId: text("storage_object_id")
+      .notNull()
+      .references(() => storageObjects.id, { onDelete: "restrict" }),
+    artifactType: text("artifact_type").notNull(),
+    filename: text("filename").notNull(),
+    mimeType: text("mime_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    sha256: text("sha256").notNull(),
+    generationRecipeVersion: text("generation_recipe_version").notNull(),
+    generatedAt: timestamp("generated_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("submission_artifacts_org_version_type_unique").on(
+      table.organizationId,
+      table.submissionVersionId,
+      table.artifactType,
+    ),
+    index("submission_artifacts_org_hash_type_idx").on(
+      table.organizationId,
+      table.sha256,
+      table.artifactType,
+    ),
+    check(
+      "submission_artifacts_type_check",
+      sql`${table.artifactType} in ('pdf', 'zip', 'manifest', 'letter')`,
+    ),
+    check(
+      "submission_artifacts_size_check",
+      sql`${table.sizeBytes} > 0`,
+    ),
+    check(
+      "submission_artifacts_hash_check",
+      sql`char_length(${table.sha256}) = 64`,
+    ),
+    check("submission_artifacts_lifecycle_check", lifecycleValues),
   ],
 );
 
