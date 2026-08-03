@@ -215,3 +215,4 @@ jobs:
       - run: npm ci
       - run: npm run validate:production-flow
       - run: npm run validate:operations
+      - run: npm run inventory:tenant-entry-points

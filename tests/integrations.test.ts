@@ -23,6 +23,14 @@ import {
   tenantRecord,
   type ProductionDatabaseLike,
 } from "@/lib/production/repository";
+import {
+  resolveTenantBootstrap,
+  TenantBootstrapNotFoundError,
+} from "@/lib/production/tenant-bootstrap";
+import {
+  setApplicationTransactionRole,
+  type TenantTransaction,
+} from "@/lib/production/tenant-transaction";
 import { createTenantFixture } from "./factories/production";
 
 let client: PGlite;
@@ -84,22 +92,26 @@ async function createCredential(
   };
   const accountId = `service-${key}`;
   const credentialId = `credential-${key}`;
-  await db().insert(schema.serviceAccounts).values({
-    id: accountId,
-    ...tenantRecord(context, at),
-    subject: `service:${key}`,
-    name: `Integration service ${key}`,
-    status: "active",
-  });
-  await db().insert(schema.apiCredentials).values({
-    id: credentialId,
-    ...tenantRecord(context, at),
-    serviceAccountId: accountId,
-    name: `Integration credential ${key}`,
-    credentialPrefix: `fapi_${key}`,
-    secretHash: "a".repeat(64),
-    scopes,
-  });
+  await db()
+    .insert(schema.serviceAccounts)
+    .values({
+      id: accountId,
+      ...tenantRecord(context, at),
+      subject: `service:${key}`,
+      name: `Integration service ${key}`,
+      status: "active",
+    });
+  await db()
+    .insert(schema.apiCredentials)
+    .values({
+      id: credentialId,
+      ...tenantRecord(context, at),
+      serviceAccountId: accountId,
+      name: `Integration credential ${key}`,
+      credentialPrefix: `fapi_${key}`,
+      secretHash: "a".repeat(64),
+      scopes,
+    });
   return credentialId;
 }
 
@@ -378,7 +390,10 @@ describe("governed production integration control plane", () => {
       idempotencyKey: "retry-replay-job",
       humanConfirmed: true,
     });
-    expect(replay).toMatchObject({ supersedesJobId: queued.jobId, status: "queued" });
+    expect(replay).toMatchObject({
+      supersedesJobId: queued.jobId,
+      status: "queued",
+    });
     const replayed = await setup.service.executeSyncJob(setup.tenant.context, {
       jobId: replay.jobId,
       workerId: "integration-worker-retry",
@@ -387,10 +402,19 @@ describe("governed production integration control plane", () => {
     const attempts = await db()
       .select()
       .from(schema.integrationSyncAttempts)
-      .where(eq(schema.integrationSyncAttempts.organizationId, setup.tenant.organizationId));
+      .where(
+        eq(
+          schema.integrationSyncAttempts.organizationId,
+          setup.tenant.organizationId,
+        ),
+      );
     expect(attempts).toHaveLength(3);
     expect(attempts.map((attempt) => attempt.status)).toEqual(
-      expect.arrayContaining(["failed_retryable", "failed_terminal", "succeeded"]),
+      expect.arrayContaining([
+        "failed_retryable",
+        "failed_terminal",
+        "succeeded",
+      ]),
     );
   });
 
@@ -415,6 +439,27 @@ describe("governed production integration control plane", () => {
         humanConfirmed: true,
       },
     );
+    const bootstrapOrganizationId = await database.transaction(
+      async (rawTransaction) => {
+        const transaction = rawTransaction as unknown as TenantTransaction;
+        await setApplicationTransactionRole(transaction);
+        return resolveTenantBootstrap(transaction, {
+          kind: "webhook_endpoint",
+          lookupHash: endpoint.endpointKey,
+        });
+      },
+    );
+    expect(bootstrapOrganizationId).toBe(setup.tenant.organizationId);
+    await expect(
+      database.transaction(async (rawTransaction) => {
+        const transaction = rawTransaction as unknown as TenantTransaction;
+        await setApplicationTransactionRole(transaction);
+        return resolveTenantBootstrap(transaction, {
+          kind: "webhook_endpoint",
+          lookupHash: "unknown-endpoint",
+        });
+      }),
+    ).rejects.toBeInstanceOf(TenantBootstrapNotFoundError);
     const body = new TextEncoder().encode(
       JSON.stringify({ id: "graph-event-1", resource: "message-fixture-3" }),
     );
@@ -455,27 +500,34 @@ describe("governed production integration control plane", () => {
     const stored = await db()
       .select()
       .from(schema.storageObjects)
-      .where(eq(schema.storageObjects.organizationId, setup.tenant.organizationId));
+      .where(
+        eq(schema.storageObjects.organizationId, setup.tenant.organizationId),
+      );
     expect(stored).toHaveLength(1);
-    expect(stored[0]).toMatchObject({ state: "quarantined", scanStatus: "pending" });
+    expect(stored[0]).toMatchObject({
+      state: "quarantined",
+      scanStatus: "pending",
+    });
   });
 
   test("database guards reject cross-tenant references independently of the service", async () => {
     const alpha = await connectedFixture("integration-tenant-alpha");
     const beta = await createTenantFixture(db(), "integration-tenant-beta");
     await expect(
-      db().insert(schema.integrationConnectionEvents).values({
-        id: "cross-tenant-integration-event",
-        ...tenantRecord(beta.context, "2026-08-02T13:00:00.000Z"),
-        connectionId: alpha.connection.connectionId,
-        eventType: "connected",
-        previousStatus: "configured",
-        nextStatus: "connected",
-        reason: "Cross-tenant attack fixture must fail.",
-        humanConfirmed: true,
-        actorSubject: beta.context.actorSubject,
-        occurredAt: "2026-08-02T13:00:00.000Z",
-      }),
+      db()
+        .insert(schema.integrationConnectionEvents)
+        .values({
+          id: "cross-tenant-integration-event",
+          ...tenantRecord(beta.context, "2026-08-02T13:00:00.000Z"),
+          connectionId: alpha.connection.connectionId,
+          eventType: "connected",
+          previousStatus: "configured",
+          nextStatus: "connected",
+          reason: "Cross-tenant attack fixture must fail.",
+          humanConfirmed: true,
+          actorSubject: beta.context.actorSubject,
+          occurredAt: "2026-08-02T13:00:00.000Z",
+        }),
     ).rejects.toThrow(/same organization|tenant|organization/i);
   });
 
@@ -493,6 +545,8 @@ describe("governed production integration control plane", () => {
     expect(health.detail).toContain("fixture");
     const workspace = await setup.service.getWorkspace(setup.tenant.context);
     expect(workspace.healthChecks).toHaveLength(1);
-    expect(workspace.healthChecks[0].providerVersion).toBe(setup.provider.version);
+    expect(workspace.healthChecks[0].providerVersion).toBe(
+      setup.provider.version,
+    );
   });
 });

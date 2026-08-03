@@ -1,7 +1,12 @@
-import { closeProductionDatabase, getProductionDatabase } from "@/db/production/client";
+import {
+  closeProductionDatabase,
+  getProductionDatabase,
+} from "@/db/production/client";
 import { DocumentPipelineService } from "@/lib/production/document-pipeline-service";
 import { LocalSelectableTextProvider } from "@/lib/production/document-providers";
 import { getProductionObjectStorage } from "@/lib/production/object-storage-runtime";
+import type { TenantContext } from "@/lib/production/repository";
+import { withTenantTransaction } from "@/lib/production/tenant-transaction";
 import { requireProductionRuntime } from "@/lib/runtime";
 
 async function main() {
@@ -13,27 +18,29 @@ async function main() {
     throw new Error(
       "FORTIFY_WORKER_ORGANIZATION_ID, FORTIFY_WORKER_SUBJECT, and FORTIFY_WORKER_ID are required.",
     );
-  const service = new DocumentPipelineService(
+  const context: TenantContext = {
+    organizationId,
+    actorSubject,
+    principalType: "service_account",
+    grantedScopes: [
+      "document_processing_job:update",
+      "document_processing_attempt:create",
+      "document_processing_attempt:update",
+      "document_extraction_run:create",
+      "source_document:update",
+      "source_passage:create",
+      "extracted_field:create",
+    ],
+  };
+  const result = await withTenantTransaction(
+    context,
+    async (transaction) =>
+      new DocumentPipelineService(
+        transaction,
+        getProductionObjectStorage(),
+        new LocalSelectableTextProvider(),
+      ).processNext(context, { workerId }),
     getProductionDatabase(),
-    getProductionObjectStorage(),
-    new LocalSelectableTextProvider(),
-  );
-  const result = await service.processNext(
-    {
-      organizationId,
-      actorSubject,
-      principalType: "service_account",
-      grantedScopes: [
-        "document_processing_job:update",
-        "document_processing_attempt:create",
-        "document_processing_attempt:update",
-        "document_extraction_run:create",
-        "source_document:update",
-        "source_passage:create",
-        "extracted_field:create",
-      ],
-    },
-    { workerId },
   );
   process.stdout.write(`${JSON.stringify(result)}\n`);
 }

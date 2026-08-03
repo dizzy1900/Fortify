@@ -4,7 +4,7 @@ import path from "node:path";
 import { encryptBackup } from "@/lib/production/encrypted-backup";
 import { requireProductionRuntime } from "@/lib/runtime";
 
-const { databaseUrl } = requireProductionRuntime();
+const { migrationDatabaseUrl } = requireProductionRuntime();
 const encodedKey = process.env.FORTIFY_BACKUP_ENCRYPTION_KEY_BASE64;
 const keyReference = process.env.FORTIFY_BACKUP_ENCRYPTION_KEY_REFERENCE;
 const outputPath = process.env.FORTIFY_BACKUP_OUTPUT_PATH;
@@ -16,7 +16,7 @@ const dump = execFileSync(
   "pg_dump",
   ["--format=custom", "--no-owner", "--no-acl"],
   {
-    env: { ...process.env, PGDATABASE: databaseUrl },
+    env: { ...process.env, PGDATABASE: migrationDatabaseUrl },
     maxBuffer: 1024 * 1024 * 1024,
   },
 );

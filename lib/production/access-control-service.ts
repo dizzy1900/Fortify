@@ -126,7 +126,9 @@ function validateAssignmentInput(input: AccessAssignmentInput, now: Date) {
     );
   if (
     input.permissions.length === 0 ||
-    cleanUnique(input.permissions).some((permission) => !validatePermission(permission))
+    cleanUnique(input.permissions).some(
+      (permission) => !validatePermission(permission),
+    )
   )
     throw new AccessControlValidationError(
       "Assignments require explicit resource:action permissions without wildcards.",
@@ -155,11 +157,7 @@ function enforceRoleBoundary(
   permissions: string[],
 ) {
   const forbidden: Partial<Record<OrganizationRole, AccessDataDomain[]>> = {
-    contractor_evidence_contributor: [
-      "insurance_strategy",
-      "funding",
-      "audit",
-    ],
+    contractor_evidence_contributor: ["insurance_strategy", "funding", "audit"],
     evidence_contributor: ["insurance_strategy", "funding", "audit"],
     insurer_mga_reviewer: ["funding", "programme"],
     underwriter_reviewer: ["funding", "programme"],
@@ -194,10 +192,7 @@ export class AccessControlService {
     private readonly clock: () => Date = () => new Date(),
   ) {}
 
-  async createAssignment(
-    context: TenantContext,
-    input: AccessAssignmentInput,
-  ) {
+  async createAssignment(context: TenantContext, input: AccessAssignmentInput) {
     const current = this.clock();
     validateAssignmentInput(input, current);
     const resource =
@@ -233,7 +228,9 @@ export class AccessControlService {
       const membership = memberships[0];
       if (!membership) throw new TenantResourceNotFoundError("Membership");
       if (!organizationRoles.includes(membership.role as OrganizationRole))
-        throw new AccessControlStateError("The target membership role is invalid.");
+        throw new AccessControlStateError(
+          "The target membership role is invalid.",
+        );
       enforceRoleBoundary(
         membership.role as OrganizationRole,
         dataDomains,
@@ -262,7 +259,10 @@ export class AccessControlService {
               .where(
                 and(
                   eq(schema.renewalCases.id, input.scopeId),
-                  eq(schema.renewalCases.organizationId, context.organizationId),
+                  eq(
+                    schema.renewalCases.organizationId,
+                    context.organizationId,
+                  ),
                   eq(schema.renewalCases.lifecycleStatus, "active"),
                 ),
               )
@@ -294,22 +294,26 @@ export class AccessControlService {
           caseId: input.scopeId,
         });
 
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: `${resource}.created`,
-        resourceType: resource,
-        resourceId: id,
-        detail: {
-          membershipId: membership.id,
-          scopeType: input.scopeType,
-          scopeId: input.scopeId,
-          assignmentRole: input.assignmentRole,
-          accessPurpose,
-          permissions,
-          dataDomains,
-          expiresAt: input.expiresAt ?? null,
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: `${resource}.created`,
+          resourceType: resource,
+          resourceId: id,
+          detail: {
+            membershipId: membership.id,
+            scopeType: input.scopeType,
+            scopeId: input.scopeId,
+            assignmentRole: input.assignmentRole,
+            accessPurpose,
+            permissions,
+            dataDomains,
+            expiresAt: input.expiresAt ?? null,
+          },
+          occurredAt: now,
         },
-        occurredAt: now,
-      });
+      );
       return { id, scopeType: input.scopeType };
     });
   }
@@ -380,14 +384,20 @@ export class AccessControlService {
         .where(and(eq(table.id, assignmentId), isNull(table.revokedAt)))
         .returning({ id: table.id });
       if (!updated[0])
-        throw new AccessControlStateError("The assignment changed before revocation.");
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: `${resource}.revoked`,
-        resourceType: resource,
-        resourceId: assignmentId,
-        detail: { reason: revocationReason },
-        occurredAt: now,
-      });
+        throw new AccessControlStateError(
+          "The assignment changed before revocation.",
+        );
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: `${resource}.revoked`,
+          resourceType: resource,
+          resourceId: assignmentId,
+          detail: { reason: revocationReason },
+          occurredAt: now,
+        },
+      );
       return { id: assignmentId, scopeType, revokedAt: now };
     });
   }
@@ -398,7 +408,14 @@ export class AccessControlService {
       accessPurpose: string;
       resourceType: string;
       resourceId: string;
-      action: "read" | "create" | "update" | "delete" | "manage" | "upload" | "download";
+      action:
+        | "read"
+        | "create"
+        | "update"
+        | "delete"
+        | "manage"
+        | "upload"
+        | "download";
       outcome?: "allowed" | "denied";
       portfolioId?: string;
       caseId?: string;
@@ -469,8 +486,6 @@ export class AccessControlService {
       organizations,
       memberships,
       identities,
-      teams,
-      teamMemberships,
       portfolios,
       cases,
       portfolioAssignments,
@@ -481,12 +496,24 @@ export class AccessControlService {
       storageObjects,
     ] = await Promise.all([
       this.database
-        .select()
+        .select({
+          id: schema.organizations.id,
+          name: schema.organizations.name,
+          environment: schema.organizations.environment,
+          synthetic: schema.organizations.synthetic,
+        })
         .from(schema.organizations)
         .where(eq(schema.organizations.id, context.organizationId))
         .limit(1),
       this.database
-        .select()
+        .select({
+          id: schema.memberships.id,
+          identityId: schema.memberships.identityId,
+          role: schema.memberships.role,
+          status: schema.memberships.status,
+          acceptedAt: schema.memberships.acceptedAt,
+          revokedAt: schema.memberships.revokedAt,
+        })
         .from(schema.memberships)
         .where(eq(schema.memberships.organizationId, context.organizationId)),
       this.database
@@ -506,41 +533,93 @@ export class AccessControlService {
           ),
         ),
       this.database
-        .select()
-        .from(schema.teams)
-        .where(eq(schema.teams.organizationId, context.organizationId)),
-      this.database
-        .select()
-        .from(schema.teamMemberships)
-        .where(eq(schema.teamMemberships.organizationId, context.organizationId)),
-      this.database
-        .select()
+        .select({
+          id: schema.propertyPortfolios.id,
+          name: schema.propertyPortfolios.name,
+          jurisdiction: schema.propertyPortfolios.jurisdiction,
+          primaryPeril: schema.propertyPortfolios.primaryPeril,
+        })
         .from(schema.propertyPortfolios)
-        .where(eq(schema.propertyPortfolios.organizationId, context.organizationId)),
+        .where(
+          eq(schema.propertyPortfolios.organizationId, context.organizationId),
+        ),
       this.database
-        .select()
+        .select({
+          id: schema.renewalCases.id,
+          title: schema.renewalCases.title,
+          status: schema.renewalCases.status,
+          renewalDate: schema.renewalCases.renewalDate,
+        })
         .from(schema.renewalCases)
         .where(eq(schema.renewalCases.organizationId, context.organizationId)),
       this.database
-        .select()
+        .select({
+          id: schema.portfolioAssignments.id,
+          portfolioId: schema.portfolioAssignments.portfolioId,
+          membershipId: schema.portfolioAssignments.membershipId,
+          teamId: schema.portfolioAssignments.teamId,
+          assignmentRole: schema.portfolioAssignments.assignmentRole,
+          accessPurpose: schema.portfolioAssignments.accessPurpose,
+          permissions: schema.portfolioAssignments.permissions,
+          dataDomains: schema.portfolioAssignments.dataDomains,
+          expiresAt: schema.portfolioAssignments.expiresAt,
+          revokedAt: schema.portfolioAssignments.revokedAt,
+          revocationReason: schema.portfolioAssignments.revocationReason,
+        })
         .from(schema.portfolioAssignments)
-        .where(eq(schema.portfolioAssignments.organizationId, context.organizationId)),
+        .where(
+          eq(
+            schema.portfolioAssignments.organizationId,
+            context.organizationId,
+          ),
+        ),
       this.database
-        .select()
+        .select({
+          id: schema.caseAssignments.id,
+          caseId: schema.caseAssignments.caseId,
+          membershipId: schema.caseAssignments.membershipId,
+          assignmentRole: schema.caseAssignments.assignmentRole,
+          accessPurpose: schema.caseAssignments.accessPurpose,
+          permissions: schema.caseAssignments.permissions,
+          dataDomains: schema.caseAssignments.dataDomains,
+          expiresAt: schema.caseAssignments.expiresAt,
+          revokedAt: schema.caseAssignments.revokedAt,
+          revocationReason: schema.caseAssignments.revocationReason,
+        })
         .from(schema.caseAssignments)
-        .where(eq(schema.caseAssignments.organizationId, context.organizationId)),
+        .where(
+          eq(schema.caseAssignments.organizationId, context.organizationId),
+        ),
       this.database
-        .select()
+        .select({
+          id: schema.supportAccessGrants.id,
+          reason: schema.supportAccessGrants.reason,
+          scopes: schema.supportAccessGrants.scopes,
+          expiresAt: schema.supportAccessGrants.expiresAt,
+          revokedAt: schema.supportAccessGrants.revokedAt,
+        })
         .from(schema.supportAccessGrants)
-        .where(eq(schema.supportAccessGrants.organizationId, context.organizationId)),
+        .where(
+          eq(schema.supportAccessGrants.organizationId, context.organizationId),
+        ),
       this.database
-        .select()
+        .select({
+          id: schema.dataAccessLogs.id,
+          actorSubject: schema.dataAccessLogs.actorSubject,
+          accessPurpose: schema.dataAccessLogs.accessPurpose,
+          resourceType: schema.dataAccessLogs.resourceType,
+          resourceId: schema.dataAccessLogs.resourceId,
+          action: schema.dataAccessLogs.action,
+          outcome: schema.dataAccessLogs.outcome,
+          dataClasses: schema.dataAccessLogs.dataClasses,
+          occurredAt: schema.dataAccessLogs.occurredAt,
+        })
         .from(schema.dataAccessLogs)
         .where(eq(schema.dataAccessLogs.organizationId, context.organizationId))
         .orderBy(desc(schema.dataAccessLogs.occurredAt))
         .limit(50),
       this.database
-        .select()
+        .select({ id: schema.sessions.id })
         .from(schema.sessions)
         .where(
           and(
@@ -550,11 +629,19 @@ export class AccessControlService {
           ),
         ),
       this.database
-        .select()
+        .select({
+          encryptionMode: schema.storageObjects.encryptionMode,
+          state: schema.storageObjects.state,
+          scanStatus: schema.storageObjects.scanStatus,
+        })
         .from(schema.storageObjects)
-        .where(eq(schema.storageObjects.organizationId, context.organizationId)),
+        .where(
+          eq(schema.storageObjects.organizationId, context.organizationId),
+        ),
     ]);
-    const identityById = new Map(identities.map((identity) => [identity.id, identity]));
+    const identityById = new Map(
+      identities.map((identity) => [identity.id, identity]),
+    );
     return {
       organization: organizations[0] ?? null,
       currentPrincipal: {
@@ -579,32 +666,15 @@ export class AccessControlService {
           revokedAt: membership.revokedAt,
         };
       }),
-      teams,
-      teamMemberships,
-      portfolios: portfolios.map(({ id, name, jurisdiction, primaryPeril }) => ({
-        id,
-        name,
-        jurisdiction,
-        primaryPeril,
-      })),
-      cases: cases.map(({ id, title, status, renewalDate }) => ({
-        id,
-        title,
-        status,
-        renewalDate,
-      })),
+      portfolios,
+      cases,
       portfolioAssignments,
       caseAssignments,
-      supportGrants: supportGrants.map((grant) => ({
-        id: grant.id,
-        reason: grant.reason,
-        scopes: grant.scopes,
-        expiresAt: grant.expiresAt,
-        revokedAt: grant.revokedAt,
-      })),
+      supportGrants,
       accessLogs,
       securityPosture: {
-        identityInterface: "OIDC authorization code with PKCE, state, and nonce",
+        identityInterface:
+          "OIDC authorization code with PKCE, state, and nonce",
         localProviderProductionState: "disabled",
         activeSessionCount: sessions.length,
         mfaCapableMembershipCount: memberships.filter((membership) => {

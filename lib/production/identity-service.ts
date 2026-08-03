@@ -12,7 +12,10 @@ import {
   type AuthorizationContext,
   type OrganizationRole,
 } from "@/lib/production/authorization";
-import type { AuthenticationAttemptMaterial, VerifiedIdentityProfile } from "./identity-provider";
+import type {
+  AuthenticationAttemptMaterial,
+  VerifiedIdentityProfile,
+} from "./identity-provider";
 import {
   appendAudit,
   tenantRecord,
@@ -168,25 +171,44 @@ export class IdentityService {
     const current = this.clock();
     const now = iso(current);
     return this.database.transaction(async (transaction) => {
-      const rows = await transaction
-        .select()
-        .from(schema.authenticationAttempts)
+      const consumed = await transaction
+        .update(schema.authenticationAttempts)
+        .set({ consumedAt: now })
         .where(
           and(
             eq(schema.authenticationAttempts.providerKey, providerKey),
-            eq(schema.authenticationAttempts.stateHash, hashOpaqueSecret(state)),
+            eq(
+              schema.authenticationAttempts.stateHash,
+              hashOpaqueSecret(state),
+            ),
             isNull(schema.authenticationAttempts.consumedAt),
+            gt(schema.authenticationAttempts.expiresAt, now),
           ),
         )
-        .limit(1);
-      const attempt = rows[0];
-      if (!attempt) throw new AuthenticationError("The authentication attempt is invalid or already used.");
-      if (hasExpired(attempt.expiresAt, current))
-        throw new ExpiredCredentialError("The authentication attempt expired.");
-      await transaction
-        .update(schema.authenticationAttempts)
-        .set({ consumedAt: now })
-        .where(eq(schema.authenticationAttempts.id, attempt.id));
+        .returning();
+      const attempt = consumed[0];
+      if (!attempt) {
+        const existing = await transaction
+          .select({ expiresAt: schema.authenticationAttempts.expiresAt })
+          .from(schema.authenticationAttempts)
+          .where(
+            and(
+              eq(schema.authenticationAttempts.providerKey, providerKey),
+              eq(
+                schema.authenticationAttempts.stateHash,
+                hashOpaqueSecret(state),
+              ),
+            ),
+          )
+          .limit(1);
+        if (existing[0] && hasExpired(existing[0].expiresAt, current))
+          throw new ExpiredCredentialError(
+            "The authentication attempt expired.",
+          );
+        throw new AuthenticationError(
+          "The authentication attempt is invalid or already used.",
+        );
+      }
       return {
         state,
         nonce: attempt.nonce,
@@ -255,9 +277,7 @@ export class IdentityService {
         expiresAt: iso(expiresAt),
         lastSeenAt: iso(issuedAt),
         userAgent: input.userAgent?.slice(0, 500),
-        ipHash: input.ipAddress
-          ? hashOpaqueSecret(input.ipAddress)
-          : undefined,
+        ipHash: input.ipAddress ? hashOpaqueSecret(input.ipAddress) : undefined,
       });
       const context: TenantContext = {
         organizationId: membership.organizationId,
@@ -267,13 +287,17 @@ export class IdentityService {
         grantedScopes: [],
         sessionId,
       };
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: "session.created",
-        resourceType: "session",
-        resourceId: sessionId,
-        detail: { identityId: identity.id, expiresAt: iso(expiresAt) },
-        occurredAt: iso(issuedAt),
-      });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: "session.created",
+          resourceType: "session",
+          resourceId: sessionId,
+          detail: { identityId: identity.id, expiresAt: iso(expiresAt) },
+          occurredAt: iso(issuedAt),
+        },
+      );
       return {
         token,
         sessionId,
@@ -310,17 +334,15 @@ export class IdentityService {
       )
       .limit(1);
     const identity = identities[0];
-    if (!identity) throw new RevokedCredentialError("The identity is inactive.");
+    if (!identity)
+      throw new RevokedCredentialError("The identity is inactive.");
     const memberships = await this.database
       .select()
       .from(schema.memberships)
       .where(
         and(
           eq(schema.memberships.identityId, identity.id),
-          eq(
-            schema.memberships.organizationId,
-            session.activeOrganizationId,
-          ),
+          eq(schema.memberships.organizationId, session.activeOrganizationId),
           eq(schema.memberships.status, "active"),
           eq(schema.memberships.lifecycleStatus, "active"),
         ),
@@ -328,7 +350,9 @@ export class IdentityService {
       .limit(1);
     const membership = memberships[0];
     if (!membership)
-      throw new RevokedCredentialError("The organization membership is inactive.");
+      throw new RevokedCredentialError(
+        "The organization membership is inactive.",
+      );
     const role = membership.role as OrganizationRole;
     let assignedCaseIds: string[] | undefined;
     let assignedPortfolioIds: string[] | undefined;
@@ -340,7 +364,10 @@ export class IdentityService {
         .from(schema.teamMemberships)
         .where(
           and(
-            eq(schema.teamMemberships.organizationId, membership.organizationId),
+            eq(
+              schema.teamMemberships.organizationId,
+              membership.organizationId,
+            ),
             eq(schema.teamMemberships.membershipId, membership.id),
             eq(schema.teamMemberships.lifecycleStatus, "active"),
           ),
@@ -355,7 +382,10 @@ export class IdentityService {
           .from(schema.caseAssignments)
           .where(
             and(
-              eq(schema.caseAssignments.organizationId, membership.organizationId),
+              eq(
+                schema.caseAssignments.organizationId,
+                membership.organizationId,
+              ),
               eq(schema.caseAssignments.membershipId, membership.id),
               eq(schema.caseAssignments.lifecycleStatus, "active"),
               isNull(schema.caseAssignments.revokedAt),
@@ -392,7 +422,9 @@ export class IdentityService {
             ),
           ),
       ]);
-      assignedCaseIds = [...new Set(caseAssignmentRows.map((row) => row.caseId))];
+      assignedCaseIds = [
+        ...new Set(caseAssignmentRows.map((row) => row.caseId)),
+      ];
       assignedPortfolioIds = [
         ...new Set(portfolioAssignmentRows.map((row) => row.portfolioId)),
       ];
@@ -436,7 +468,11 @@ export class IdentityService {
     };
   }
 
-  async revokeSession(context: TenantContext, sessionId: string, reason: string) {
+  async revokeSession(
+    context: TenantContext,
+    sessionId: string,
+    reason: string,
+  ) {
     const rows = await this.database
       .select()
       .from(schema.sessions)
@@ -444,7 +480,9 @@ export class IdentityService {
       .limit(1);
     const target = rows[0];
     if (!target || target.activeOrganizationId !== context.organizationId)
-      throw new AuthenticationError("The session was not found in the active organization.");
+      throw new AuthenticationError(
+        "The session was not found in the active organization.",
+      );
     if (context.sessionId !== sessionId)
       assertAuthorized(context, {
         action: "manage",
@@ -457,15 +495,22 @@ export class IdentityService {
         .update(schema.sessions)
         .set({ revokedAt, revocationReason: reason })
         .where(
-          and(eq(schema.sessions.id, sessionId), isNull(schema.sessions.revokedAt)),
+          and(
+            eq(schema.sessions.id, sessionId),
+            isNull(schema.sessions.revokedAt),
+          ),
         );
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: "session.revoked",
-        resourceType: "session",
-        resourceId: sessionId,
-        detail: { reason },
-        occurredAt: revokedAt,
-      });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: "session.revoked",
+          resourceType: "session",
+          resourceId: sessionId,
+          detail: { reason },
+          occurredAt: revokedAt,
+        },
+      );
     });
   }
 
@@ -479,7 +524,8 @@ export class IdentityService {
       resourceOrganizationId: context.organizationId,
     });
     const email = input.email.trim().toLowerCase();
-    if (!email.includes("@")) throw new AuthenticationError("A valid invitation email is required.");
+    if (!email.includes("@"))
+      throw new AuthenticationError("A valid invitation email is required.");
     const token = opaqueSecret("finvite");
     const now = this.clock();
     const expiresAt = plusSeconds(
@@ -505,13 +551,22 @@ export class IdentityService {
         tokenHash: hashOpaqueSecret(token),
         expiresAt: iso(expiresAt),
       });
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: "membership.invited",
-        resourceType: "membership",
-        resourceId: membershipId,
-        detail: { invitationId, email, role: input.role, expiresAt: iso(expiresAt) },
-        occurredAt: iso(now),
-      });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: "membership.invited",
+          resourceType: "membership",
+          resourceId: membershipId,
+          detail: {
+            invitationId,
+            email,
+            role: input.role,
+            expiresAt: iso(expiresAt),
+          },
+          occurredAt: iso(now),
+        },
+      );
       return { token, invitationId, membershipId, expiresAt: iso(expiresAt) };
     });
   }
@@ -524,9 +579,12 @@ export class IdentityService {
       .where(eq(schema.invitations.tokenHash, hashOpaqueSecret(token)))
       .limit(1);
     const invitation = rows[0];
-    if (!invitation) throw new AuthenticationError("The invitation is invalid.");
-    if (invitation.revokedAt) throw new RevokedCredentialError("The invitation was revoked.");
-    if (invitation.acceptedAt) throw new AuthenticationError("The invitation was already accepted.");
+    if (!invitation)
+      throw new AuthenticationError("The invitation is invalid.");
+    if (invitation.revokedAt)
+      throw new RevokedCredentialError("The invitation was revoked.");
+    if (invitation.acceptedAt)
+      throw new AuthenticationError("The invitation was already accepted.");
     if (hasExpired(invitation.expiresAt, current))
       throw new ExpiredCredentialError("The invitation expired.");
     return {
@@ -543,23 +601,47 @@ export class IdentityService {
     const current = this.clock();
     const now = iso(current);
     return this.database.transaction(async (transaction) => {
-      const rows = await transaction
-        .select()
-        .from(schema.invitations)
+      const claimed = await transaction
+        .update(schema.invitations)
+        .set({
+          acceptedAt: now,
+          updatedAt: now,
+          updatedBy: `${profile.providerKey}:${profile.providerSubject}`,
+        })
         .where(
-          lookup === "token"
-            ? eq(schema.invitations.tokenHash, hashOpaqueSecret(tokenOrId))
-            : eq(schema.invitations.id, tokenOrId),
+          and(
+            lookup === "token"
+              ? eq(schema.invitations.tokenHash, hashOpaqueSecret(tokenOrId))
+              : eq(schema.invitations.id, tokenOrId),
+            isNull(schema.invitations.acceptedAt),
+            isNull(schema.invitations.revokedAt),
+            gt(schema.invitations.expiresAt, now),
+          ),
         )
-        .limit(1);
-      const invitation = rows[0];
-      if (!invitation) throw new AuthenticationError("The invitation is invalid.");
-      if (invitation.revokedAt) throw new RevokedCredentialError("The invitation was revoked.");
-      if (invitation.acceptedAt) throw new AuthenticationError("The invitation was already accepted.");
-      if (hasExpired(invitation.expiresAt, current))
-        throw new ExpiredCredentialError("The invitation expired.");
+        .returning();
+      const invitation = claimed[0];
+      if (!invitation) {
+        const existing = await transaction
+          .select()
+          .from(schema.invitations)
+          .where(
+            lookup === "token"
+              ? eq(schema.invitations.tokenHash, hashOpaqueSecret(tokenOrId))
+              : eq(schema.invitations.id, tokenOrId),
+          )
+          .limit(1);
+        if (!existing[0])
+          throw new AuthenticationError("The invitation is invalid.");
+        if (existing[0].revokedAt)
+          throw new RevokedCredentialError("The invitation was revoked.");
+        if (hasExpired(existing[0].expiresAt, current))
+          throw new ExpiredCredentialError("The invitation expired.");
+        throw new AuthenticationError("The invitation was already accepted.");
+      }
       if (invitation.email !== profile.email.trim().toLowerCase())
-        throw new AuthenticationError("The authenticated email does not match the invitation.");
+        throw new AuthenticationError(
+          "The authenticated email does not match the invitation.",
+        );
       const identity = await upsertIdentity(
         transaction as unknown as ProductionDatabaseLike,
         profile,
@@ -584,11 +666,8 @@ export class IdentityService {
         )
         .returning();
       const membership = memberships[0];
-      if (!membership) throw new AuthenticationError("The invitation membership is inactive.");
-      await transaction
-        .update(schema.invitations)
-        .set({ acceptedAt: now, updatedAt: now, updatedBy: membership.identitySubject })
-        .where(eq(schema.invitations.id, invitation.id));
+      if (!membership)
+        throw new AuthenticationError("The invitation membership is inactive.");
       const context: TenantContext = {
         organizationId: invitation.organizationId,
         actorSubject: membership.identitySubject,
@@ -596,13 +675,17 @@ export class IdentityService {
         role: membership.role as OrganizationRole,
         grantedScopes: [],
       };
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: "membership.invitation_accepted",
-        resourceType: "membership",
-        resourceId: membership.id,
-        detail: { invitationId: invitation.id, identityId: identity.id },
-        occurredAt: now,
-      });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: "membership.invitation_accepted",
+          resourceType: "membership",
+          resourceId: membership.id,
+          detail: { invitationId: invitation.id, identityId: identity.id },
+          occurredAt: now,
+        },
+      );
       return { identity, membership };
     });
   }
@@ -640,7 +723,9 @@ export class IdentityService {
       if (!invitation)
         throw new AuthenticationError("The invitation was not found.");
       if (invitation.acceptedAt)
-        throw new AuthenticationError("An accepted invitation cannot be revoked; revoke the membership instead.");
+        throw new AuthenticationError(
+          "An accepted invitation cannot be revoked; revoke the membership instead.",
+        );
       await transaction
         .update(schema.invitations)
         .set({
@@ -664,13 +749,17 @@ export class IdentityService {
             eq(schema.memberships.organizationId, context.organizationId),
           ),
         );
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: "membership.invitation_revoked",
-        resourceType: "invitation",
-        resourceId: invitation.id,
-        detail: { membershipId: invitation.membershipId, reason },
-        occurredAt: now,
-      });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: "membership.invitation_revoked",
+          resourceType: "invitation",
+          resourceId: invitation.id,
+          detail: { membershipId: invitation.membershipId, reason },
+          occurredAt: now,
+        },
+      );
     });
   }
 
@@ -697,7 +786,8 @@ export class IdentityService {
         )
         .limit(1);
       const membership = rows[0];
-      if (!membership) throw new AuthenticationError("The membership was not found.");
+      if (!membership)
+        throw new AuthenticationError("The membership was not found.");
       if (membership.role === "organization_owner") {
         const owners = await transaction
           .select({ id: schema.memberships.id })
@@ -710,7 +800,9 @@ export class IdentityService {
             ),
           );
         if (owners.length === 1)
-          throw new AuthenticationError("The final active organization owner cannot be revoked.");
+          throw new AuthenticationError(
+            "The final active organization owner cannot be revoked.",
+          );
       }
       await transaction
         .update(schema.memberships)
@@ -733,13 +825,17 @@ export class IdentityService {
               isNull(schema.sessions.revokedAt),
             ),
           );
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: "membership.revoked",
-        resourceType: "membership",
-        resourceId: membershipId,
-        detail: { reason, sessionsRevoked: Boolean(membership.identityId) },
-        occurredAt: revokedAt,
-      });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: "membership.revoked",
+          resourceType: "membership",
+          resourceId: membershipId,
+          detail: { reason, sessionsRevoked: Boolean(membership.identityId) },
+          occurredAt: revokedAt,
+        },
+      );
     });
   }
 
@@ -777,13 +873,21 @@ export class IdentityService {
         scopes: [...new Set(input.scopes)].sort(),
         expiresAt: input.expiresAt,
       });
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: "service_account.created",
-        resourceType: "service_account",
-        resourceId: accountId,
-        detail: { credentialId, scopes: input.scopes, expiresAt: input.expiresAt ?? null },
-        occurredAt: now,
-      });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: "service_account.created",
+          resourceType: "service_account",
+          resourceId: accountId,
+          detail: {
+            credentialId,
+            scopes: input.scopes,
+            expiresAt: input.expiresAt ?? null,
+          },
+          occurredAt: now,
+        },
+      );
       return { accountId, credentialId, token, prefix };
     });
   }
@@ -800,7 +904,10 @@ export class IdentityService {
       .where(eq(schema.apiCredentials.credentialPrefix, prefix))
       .limit(1);
     const credential = credentials[0];
-    if (!credential || !safeEqualHex(credential.secretHash, hashOpaqueSecret(token)))
+    if (
+      !credential ||
+      !safeEqualHex(credential.secretHash, hashOpaqueSecret(token))
+    )
       throw new AuthenticationError();
     if (credential.revokedAt) throw new RevokedCredentialError();
     if (credential.expiresAt && hasExpired(credential.expiresAt, current))
@@ -865,13 +972,17 @@ export class IdentityService {
           revision: credentials[0].revision + 1,
         })
         .where(eq(schema.apiCredentials.id, credentialId));
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: "api_credential.revoked",
-        resourceType: "api_credential",
-        resourceId: credentialId,
-        detail: { reason },
-        occurredAt: now,
-      });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: "api_credential.revoked",
+          resourceType: "api_credential",
+          resourceId: credentialId,
+          detail: { reason },
+          occurredAt: now,
+        },
+      );
     });
   }
 
@@ -890,7 +1001,9 @@ export class IdentityService {
       resourceOrganizationId: context.organizationId,
     });
     if (hasExpired(input.expiresAt, this.clock()))
-      throw new ExpiredCredentialError("Support access must expire in the future.");
+      throw new ExpiredCredentialError(
+        "Support access must expire in the future.",
+      );
     const approvers = await this.database
       .select()
       .from(schema.memberships)
@@ -902,7 +1015,10 @@ export class IdentityService {
         ),
       )
       .limit(1);
-    if (!approvers[0]) throw new AuthenticationError("The support approver membership was not found.");
+    if (!approvers[0])
+      throw new AuthenticationError(
+        "The support approver membership was not found.",
+      );
     const now = iso(this.clock());
     const id = randomUUID();
     return this.database.transaction(async (transaction) => {
@@ -918,13 +1034,22 @@ export class IdentityService {
           expiresAt: input.expiresAt,
         })
         .returning();
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: "support_access.granted",
-        resourceType: "support_access_grant",
-        resourceId: id,
-        detail: { supportIdentityId: input.supportIdentityId, reason: input.reason, scopes: input.scopes, expiresAt: input.expiresAt },
-        occurredAt: now,
-      });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: "support_access.granted",
+          resourceType: "support_access_grant",
+          resourceId: id,
+          detail: {
+            supportIdentityId: input.supportIdentityId,
+            reason: input.reason,
+            scopes: input.scopes,
+            expiresAt: input.expiresAt,
+          },
+          occurredAt: now,
+        },
+      );
       return inserted[0];
     });
   }
@@ -955,7 +1080,8 @@ export class IdentityService {
         ),
       )
       .limit(1);
-    if (!identities[0]) throw new RevokedCredentialError("The support identity is inactive.");
+    if (!identities[0])
+      throw new RevokedCredentialError("The support identity is inactive.");
     const grant = grants[0];
     return {
       organizationId,
@@ -1001,13 +1127,17 @@ export class IdentityService {
           revision: grants[0].revision + 1,
         })
         .where(eq(schema.supportAccessGrants.id, grantId));
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: "support_access.revoked",
-        resourceType: "support_access_grant",
-        resourceId: grantId,
-        detail: { reason },
-        occurredAt: now,
-      });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: "support_access.revoked",
+          resourceType: "support_access_grant",
+          resourceId: grantId,
+          detail: { reason },
+          occurredAt: now,
+        },
+      );
     });
   }
 
@@ -1031,7 +1161,9 @@ export class IdentityService {
     });
     const now = iso(this.clock());
     if (hasExpired(input.expiresAt, this.clock()))
-      throw new ExpiredCredentialError("External access must expire in the future.");
+      throw new ExpiredCredentialError(
+        "External access must expire in the future.",
+      );
     const cases = await this.database
       .select({ id: schema.renewalCases.id })
       .from(schema.renewalCases)
@@ -1042,7 +1174,10 @@ export class IdentityService {
         ),
       )
       .limit(1);
-    if (!cases[0]) throw new AuthenticationError("The case was not found in the active organization.");
+    if (!cases[0])
+      throw new AuthenticationError(
+        "The case was not found in the active organization.",
+      );
     const token = opaqueSecret("fexternal");
     return this.database.transaction(async (transaction) => {
       const principalId = randomUUID();
@@ -1062,7 +1197,9 @@ export class IdentityService {
         caseId: input.caseId,
         externalPrincipalId: principalId,
         assignmentRole:
-          input.principalType === "external_reviewer" ? "reviewer" : "contributor",
+          input.principalType === "external_reviewer"
+            ? "reviewer"
+            : "contributor",
         permissions: input.scopes,
         expiresAt: input.expiresAt,
       });
@@ -1077,13 +1214,23 @@ export class IdentityService {
         scopes: input.scopes,
         expiresAt: input.expiresAt,
       });
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: "external_access.granted",
-        resourceType: "external_access_grant",
-        resourceId: grantId,
-        detail: { principalId, caseId: input.caseId, purpose: input.purpose, scopes: input.scopes, expiresAt: input.expiresAt },
-        occurredAt: now,
-      });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: "external_access.granted",
+          resourceType: "external_access_grant",
+          resourceId: grantId,
+          detail: {
+            principalId,
+            caseId: input.caseId,
+            purpose: input.purpose,
+            scopes: input.scopes,
+            expiresAt: input.expiresAt,
+          },
+          occurredAt: now,
+        },
+      );
       return { token, principalId, assignmentId, grantId };
     });
   }
@@ -1157,7 +1304,9 @@ export class IdentityService {
         )
         .limit(1);
       if (!grants[0])
-        throw new AuthenticationError("The external access grant was not found.");
+        throw new AuthenticationError(
+          "The external access grant was not found.",
+        );
       await transaction
         .update(schema.externalAccessGrants)
         .set({
@@ -1167,13 +1316,17 @@ export class IdentityService {
           revision: grants[0].revision + 1,
         })
         .where(eq(schema.externalAccessGrants.id, grantId));
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: "external_access.revoked",
-        resourceType: "external_access_grant",
-        resourceId: grantId,
-        detail: { reason },
-        occurredAt: now,
-      });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: "external_access.revoked",
+          resourceType: "external_access_grant",
+          resourceId: grantId,
+          detail: { reason },
+          occurredAt: now,
+        },
+      );
     });
   }
 }

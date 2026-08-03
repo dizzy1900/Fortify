@@ -36,10 +36,19 @@ export function requireProductionRuntime() {
     throw new RuntimeConfigurationError(
       "The PostgreSQL data plane is available only in production mode.",
     );
-  const databaseUrl = process.env.DATABASE_URL;
+  const migrationDatabaseUrl = process.env.DATABASE_URL;
+  const databaseUrl = process.env.FORTIFY_APP_DATABASE_URL;
+  if (!migrationDatabaseUrl)
+    throw new RuntimeConfigurationError(
+      "DATABASE_URL is required for production migrations and governed backup operations.",
+    );
   if (!databaseUrl)
     throw new RuntimeConfigurationError(
-      "DATABASE_URL is required for the production PostgreSQL data plane.",
+      "FORTIFY_APP_DATABASE_URL is required for the non-owner production application role.",
     );
-  return { databaseUrl };
+  if (databaseUrl === migrationDatabaseUrl)
+    throw new RuntimeConfigurationError(
+      "FORTIFY_APP_DATABASE_URL must use a separate non-owner login from DATABASE_URL.",
+    );
+  return { databaseUrl, migrationDatabaseUrl };
 }

@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import type { PgDatabase } from "drizzle-orm/pg-core";
 import type { PgQueryResultHKT } from "drizzle-orm/pg-core/session";
 import { createHash, randomUUID } from "node:crypto";
@@ -126,10 +126,23 @@ async function appendAudit(
     occurredAt?: string;
   },
 ) {
+  await database.execute(
+    sql`select pg_advisory_xact_lock(hashtextextended(${context.organizationId}, 0))`,
+  );
   const previous = await database
     .select({ eventHash: schema.auditEvents.eventHash })
     .from(schema.auditEvents)
-    .where(eq(schema.auditEvents.organizationId, context.organizationId))
+    .where(
+      and(
+        eq(schema.auditEvents.organizationId, context.organizationId),
+        sql`not exists (
+          select 1
+          from audit_events as successor
+          where successor.organization_id = ${context.organizationId}
+            and successor.previous_hash = ${schema.auditEvents.eventHash}
+        )`,
+      ),
+    )
     .orderBy(desc(schema.auditEvents.occurredAt), desc(schema.auditEvents.id))
     .limit(1);
   const occurredAt = input.occurredAt ?? now();
@@ -362,7 +375,8 @@ export class TenantRepository {
       if (replay[0]) {
         if (replay[0].requestHash !== requestHash)
           throw new IdempotencyConflictError();
-        return replay[0].responseJson as unknown as typeof schema.renewalCases.$inferSelect;
+        return replay[0]
+          .responseJson as unknown as typeof schema.renewalCases.$inferSelect;
       }
       const policy = await transaction
         .select({ id: schema.policies.id })

@@ -8,35 +8,50 @@ import * as schema from "./schema";
 
 let pool: Pool | undefined;
 let database: NodePgDatabase<typeof schema> | undefined;
+let migrationPool: Pool | undefined;
+let migrationDatabase: NodePgDatabase<typeof schema> | undefined;
+
+function createPool(connectionString: string, applicationName: string) {
+  return new Pool({
+    connectionString,
+    application_name: applicationName,
+    max: Number(process.env.FORTIFY_DATABASE_POOL_MAX ?? 10),
+    connectionTimeoutMillis: Number(
+      process.env.FORTIFY_DATABASE_CONNECT_TIMEOUT_MS ?? 5_000,
+    ),
+    idleTimeoutMillis: Number(
+      process.env.FORTIFY_DATABASE_IDLE_TIMEOUT_MS ?? 30_000,
+    ),
+    query_timeout: Number(
+      process.env.FORTIFY_DATABASE_QUERY_TIMEOUT_MS ?? 15_000,
+    ),
+    statement_timeout: Number(
+      process.env.FORTIFY_DATABASE_STATEMENT_TIMEOUT_MS ?? 15_000,
+    ),
+    allowExitOnIdle: true,
+  });
+}
 
 export function getProductionDatabase() {
   if (!database) {
     const { databaseUrl } = requireProductionRuntime();
-    pool = new Pool({
-      connectionString: databaseUrl,
-      application_name: "fortify-web",
-      max: Number(process.env.FORTIFY_DATABASE_POOL_MAX ?? 10),
-      connectionTimeoutMillis: Number(
-        process.env.FORTIFY_DATABASE_CONNECT_TIMEOUT_MS ?? 5_000,
-      ),
-      idleTimeoutMillis: Number(
-        process.env.FORTIFY_DATABASE_IDLE_TIMEOUT_MS ?? 30_000,
-      ),
-      query_timeout: Number(
-        process.env.FORTIFY_DATABASE_QUERY_TIMEOUT_MS ?? 15_000,
-      ),
-      statement_timeout: Number(
-        process.env.FORTIFY_DATABASE_STATEMENT_TIMEOUT_MS ?? 15_000,
-      ),
-      allowExitOnIdle: true,
-    });
+    pool = createPool(databaseUrl, "fortify-web");
     database = drizzle(pool, { schema });
   }
   return database;
 }
 
+function getProductionMigrationDatabase() {
+  if (!migrationDatabase) {
+    const { migrationDatabaseUrl } = requireProductionRuntime();
+    migrationPool = createPool(migrationDatabaseUrl, "fortify-migrations");
+    migrationDatabase = drizzle(migrationPool, { schema });
+  }
+  return migrationDatabase;
+}
+
 export async function migrateProductionDatabase() {
-  const db = getProductionDatabase();
+  const db = getProductionMigrationDatabase();
   await migrate(db, {
     migrationsFolder: path.resolve(process.cwd(), "drizzle-production"),
   });
@@ -49,8 +64,11 @@ export async function checkProductionDatabase() {
 
 export async function closeProductionDatabase() {
   await pool?.end();
+  await migrationPool?.end();
   pool = undefined;
   database = undefined;
+  migrationPool = undefined;
+  migrationDatabase = undefined;
 }
 
 export type ProductionDatabase = NodePgDatabase<typeof schema>;

@@ -30,8 +30,7 @@ let client: PGlite;
 let database: PgliteDatabase<typeof schema>;
 let currentTime: Date;
 
-const productionDatabase = () =>
-  database as unknown as ProductionDatabaseLike;
+const productionDatabase = () => database as unknown as ProductionDatabaseLike;
 const sha256 = (body: Uint8Array) =>
   createHash("sha256").update(body).digest("hex");
 
@@ -58,7 +57,9 @@ describe("secure production object storage", () => {
       { mode: "AES256" },
       () => currentTime,
     );
-    const body = new TextEncoder().encode("%PDF-1.4\nFortify evidence fixture\n%%EOF");
+    const body = new TextEncoder().encode(
+      "%PDF-1.4\nFortify evidence fixture\n%%EOF",
+    );
     const upload = await service.requestUpload(fixture.context, {
       filename: "../Board packet (final).pdf",
       mimeType: "application/pdf",
@@ -129,8 +130,14 @@ describe("secure production object storage", () => {
   });
 
   test("rejects traversal, cross-tenant finalization, metadata mismatch, infected content, and MIME spoofing", async () => {
-    const alpha = await createTenantFixture(productionDatabase(), "alpha-storage");
-    const beta = await createTenantFixture(productionDatabase(), "beta-storage");
+    const alpha = await createTenantFixture(
+      productionDatabase(),
+      "alpha-storage",
+    );
+    const beta = await createTenantFixture(
+      productionDatabase(),
+      "beta-storage",
+    );
     const adapter = new DeterministicObjectStorageAdapter();
     const service = new ProductionStorageService(
       productionDatabase(),
@@ -252,8 +259,17 @@ describe("secure production object storage", () => {
       sha256: sha256(body),
       retentionUntil: "2026-08-02T12:00:00.000Z",
     });
-    await adapter.put({ key: upload.objectKey, body, mimeType: "application/pdf", sha256: sha256(body) });
-    await service.finalizeUpload(fixture.context, upload.storageObjectId, upload.grantId);
+    await adapter.put({
+      key: upload.objectKey,
+      body,
+      mimeType: "application/pdf",
+      sha256: sha256(body),
+    });
+    await service.finalizeUpload(
+      fixture.context,
+      upload.storageObjectId,
+      upload.grantId,
+    );
     await service.scanAndPromote(
       fixture.context,
       upload.storageObjectId,
@@ -265,7 +281,11 @@ describe("secure production object storage", () => {
       upload.storageObjectId,
       { purpose: "review" },
     );
-    await service.revokeGrant(fixture.context, revoked.grantId, "review cancelled");
+    await service.revokeGrant(
+      fixture.context,
+      revoked.grantId,
+      "review cancelled",
+    );
     await expect(
       service.redeemDownloadGrant(fixture.context, revoked.grantId),
     ).rejects.toBeInstanceOf(StorageGrantError);
@@ -285,16 +305,32 @@ describe("secure production object storage", () => {
       upload.storageObjectId,
       { purpose: "authorized review" },
     );
-    const signed = await service.redeemDownloadGrant(
-      fixture.context,
-      active.grantId,
+    const redemptionResults = await Promise.allSettled([
+      service.redeemDownloadGrant(fixture.context, active.grantId),
+      service.redeemDownloadGrant(fixture.context, active.grantId),
+    ]);
+    expect(
+      redemptionResults.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
+    expect(
+      redemptionResults.filter((result) => result.status === "rejected"),
+    ).toHaveLength(1);
+    const signedResult = redemptionResults.find(
+      (result) => result.status === "fulfilled",
     );
+    if (!signedResult || signedResult.status !== "fulfilled")
+      throw new Error("One download redemption must succeed.");
+    const signed = signedResult.value;
     expect(signed.url).toContain("storage.example.test/download");
     await expect(
       service.redeemDownloadGrant(fixture.context, active.grantId),
     ).rejects.toBeInstanceOf(StorageGrantError);
     await expect(
-      service.deleteObject(fixture.context, upload.storageObjectId, "requested"),
+      service.deleteObject(
+        fixture.context,
+        upload.storageObjectId,
+        "requested",
+      ),
     ).rejects.toBeInstanceOf(StorageDeletionBlockedError);
 
     currentTime = new Date("2026-08-03T12:00:00.000Z");
@@ -304,7 +340,11 @@ describe("secure production object storage", () => {
       "Customer-approved preservation",
     );
     await expect(
-      service.deleteObject(fixture.context, upload.storageObjectId, "requested"),
+      service.deleteObject(
+        fixture.context,
+        upload.storageObjectId,
+        "requested",
+      ),
     ).rejects.toBeInstanceOf(StorageDeletionBlockedError);
   });
 });

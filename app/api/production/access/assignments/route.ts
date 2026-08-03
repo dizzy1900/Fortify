@@ -3,21 +3,24 @@ import type { AccessAssignmentInput } from "@/lib/production/access-control-serv
 import { getProductionAccessControlService } from "@/lib/production/access-control-http";
 import {
   authenticationFailure,
-  resolveRequestPrincipal,
+  withAuthenticatedTenantRequest,
 } from "@/lib/production/http-auth";
 import { requireProductionRuntime } from "@/lib/runtime";
 
 export async function POST(request: NextRequest) {
   try {
     requireProductionRuntime();
-    const principal = await resolveRequestPrincipal(request);
     const input = (await request.json()) as AccessAssignmentInput;
-    return Response.json(
-      await getProductionAccessControlService().createAssignment(
-        principal.authorization,
-        input,
-      ),
-      { status: 201 },
+    return await withAuthenticatedTenantRequest(
+      request,
+      async (principal, transaction) =>
+        Response.json(
+          await getProductionAccessControlService(transaction).createAssignment(
+            principal.authorization,
+            input,
+          ),
+          { status: 201 },
+        ),
     );
   } catch (error) {
     return authenticationFailure(error);

@@ -4,6 +4,7 @@ export type EnvironmentCheck = { key: string; ok: boolean; detail: string };
 
 const REQUIRED_PRODUCTION_VALUES = [
   "DATABASE_URL",
+  "FORTIFY_APP_DATABASE_URL",
   "FORTIFY_APP_ORIGIN",
   "FORTIFY_OIDC_PROVIDER_KEY",
   "FORTIFY_OIDC_ISSUER",
@@ -33,6 +34,19 @@ export function inspectProductionEnvironment(
     };
   });
   const origin = environment.FORTIFY_APP_ORIGIN;
+  checks.push({
+    key: "FORTIFY_DATABASE_ROLE_SEPARATION",
+    ok:
+      Boolean(environment.DATABASE_URL) &&
+      Boolean(environment.FORTIFY_APP_DATABASE_URL) &&
+      environment.DATABASE_URL !== environment.FORTIFY_APP_DATABASE_URL,
+    detail:
+      environment.DATABASE_URL &&
+      environment.FORTIFY_APP_DATABASE_URL &&
+      environment.DATABASE_URL !== environment.FORTIFY_APP_DATABASE_URL
+        ? "separate_migration_and_application_logins"
+        : "separate_non_owner_application_login_required",
+  });
   checks.push({
     key: "FORTIFY_APP_ORIGIN_HTTPS",
     ok: Boolean(origin?.startsWith("https://")),
