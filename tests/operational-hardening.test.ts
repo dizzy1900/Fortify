@@ -6,6 +6,8 @@ import { NextRequest } from "next/server";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import * as schema from "@/db/production/schema";
+import { getProductionAccessControlService } from "@/lib/production/access-control-http";
+import { AuthorizationDeniedError } from "@/lib/production/authorization";
 import {
   encryptBackup,
   restoreBackup,
@@ -22,7 +24,11 @@ import {
   RequestRateLimitError,
 } from "@/lib/production/rate-limit";
 import { withTenantTransaction } from "@/lib/production/tenant-transaction";
-import type { ProductionDatabaseLike } from "@/lib/production/repository";
+import {
+  tenantRecord,
+  TenantResourceNotFoundError,
+  type ProductionDatabaseLike,
+} from "@/lib/production/repository";
 import {
   createActiveMembership,
   createTenantFixture,
@@ -252,6 +258,211 @@ describe("M12 operational hardening", () => {
       ),
     ).rejects.toThrow("Authentication failed");
     expect(invalidOperationRan).toBe(false);
+  });
+
+  test("binds the administrative access workspace to RLS and minimizes its response", async () => {
+    vi.stubEnv(
+      "FORTIFY_REQUEST_HASH_KEY",
+      "fixture-request-hash-key-32-characters",
+    );
+    const productionDatabase = database as unknown as ProductionDatabaseLike;
+    const alpha = await createTenantFixture(productionDatabase, "access-alpha");
+    const beta = await createTenantFixture(productionDatabase, "access-beta");
+    const owner = await createActiveMembership(productionDatabase, {
+      organizationId: alpha.organizationId,
+      subject: alpha.context.actorSubject,
+      role: "organization_owner",
+    });
+    const ownerSession = await new IdentityService(
+      productionDatabase,
+    ).issueSession({
+      profile: owner.profile,
+      activeOrganizationId: alpha.organizationId,
+      ttlSeconds: 3_600,
+      userAgent: "session-secret-canary",
+      ipAddress: "198.51.100.19",
+    });
+
+    const workspace = await withAuthenticatedTenantRequest(
+      new NextRequest("https://fortify.test/api/production/access/workspace", {
+        headers: { cookie: `fortify_session=${ownerSession.token}` },
+      }),
+      async (principal, transaction) =>
+        getProductionAccessControlService(transaction).getWorkspace(
+          principal.authorization,
+        ),
+      productionDatabase,
+    );
+
+    expect(workspace.organization).toEqual({
+      id: alpha.organizationId,
+      name: "Brokerage access-alpha",
+      environment: "production",
+      synthetic: false,
+    });
+    const serializedWorkspace = JSON.stringify(workspace);
+    expect(serializedWorkspace).not.toContain(beta.organizationId);
+    expect(serializedWorkspace).not.toContain("session-secret-canary");
+    expect(serializedWorkspace).not.toContain(ownerSession.token);
+    for (const internalField of [
+      "tokenHash",
+      "ipHash",
+      "userAgent",
+      "createdBy",
+      "updatedBy",
+      "requestId",
+      "storageKey",
+    ]) {
+      expect(serializedWorkspace).not.toContain(`\"${internalField}\"`);
+    }
+
+    const propertyManager = await createActiveMembership(productionDatabase, {
+      organizationId: alpha.organizationId,
+      subject: "access-property-manager",
+      role: "property_manager",
+    });
+    const managerSession = await new IdentityService(
+      productionDatabase,
+    ).issueSession({
+      profile: propertyManager.profile,
+      activeOrganizationId: alpha.organizationId,
+      ttlSeconds: 3_600,
+    });
+    await expect(
+      withAuthenticatedTenantRequest(
+        new NextRequest(
+          "https://fortify.test/api/production/access/workspace",
+          {
+            headers: { cookie: `fortify_session=${managerSession.token}` },
+          },
+        ),
+        async (principal, transaction) =>
+          getProductionAccessControlService(transaction).getWorkspace(
+            principal.authorization,
+          ),
+        productionDatabase,
+      ),
+    ).rejects.toBeInstanceOf(AuthorizationDeniedError);
+  });
+
+  test("creates and revokes access assignments inside the authenticated tenant transaction", async () => {
+    vi.stubEnv(
+      "FORTIFY_REQUEST_HASH_KEY",
+      "fixture-request-hash-key-32-characters",
+    );
+    const productionDatabase = database as unknown as ProductionDatabaseLike;
+    const alpha = await createTenantFixture(productionDatabase, "grant-alpha");
+    const beta = await createTenantFixture(productionDatabase, "grant-beta");
+    const owner = await createActiveMembership(productionDatabase, {
+      organizationId: alpha.organizationId,
+      subject: alpha.context.actorSubject,
+      role: "organization_owner",
+    });
+    const target = await createActiveMembership(productionDatabase, {
+      organizationId: alpha.organizationId,
+      subject: "grant-target",
+      role: "property_manager",
+    });
+    const session = await new IdentityService(productionDatabase).issueSession({
+      profile: owner.profile,
+      activeOrganizationId: alpha.organizationId,
+      ttlSeconds: 3_600,
+    });
+    const at = "2026-08-03T12:00:00.000Z";
+    for (const fixture of [alpha, beta]) {
+      await database.insert(schema.propertyPortfolios).values({
+        id: `portfolio-${fixture.organizationId}`,
+        ...tenantRecord(fixture.context, at),
+        clientId: fixture.clientId,
+        name: `Portfolio ${fixture.organizationId}`,
+        jurisdiction: "US-CA",
+        primaryPeril: "wildfire",
+        sourceSystem: "test-fixture",
+        sourceRecordId: `portfolio-${fixture.organizationId}`,
+        effectiveFrom: "2026-08-03",
+        confidentialityState: "tenant_confidential",
+        dataRightClass: "property_specific_data",
+        rightsVerified: true,
+      });
+    }
+    const authenticatedRequest = () =>
+      new NextRequest(
+        "https://fortify.test/api/production/access/assignments",
+        {
+          headers: { cookie: `fortify_session=${session.token}` },
+        },
+      );
+    const assignmentInput = {
+      scopeType: "portfolio" as const,
+      scopeId: `portfolio-${alpha.organizationId}`,
+      membershipId: target.membershipId,
+      assignmentRole: "manager",
+      accessPurpose: "manage assigned property evidence",
+      permissions: ["property:read"],
+      dataDomains: ["property_identity" as const],
+    };
+
+    const assignment = await withAuthenticatedTenantRequest(
+      authenticatedRequest(),
+      async (principal, transaction) =>
+        getProductionAccessControlService(transaction).createAssignment(
+          principal.authorization,
+          assignmentInput,
+        ),
+      productionDatabase,
+    );
+    expect(assignment).toEqual({
+      id: expect.any(String),
+      scopeType: "portfolio",
+    });
+
+    await expect(
+      withAuthenticatedTenantRequest(
+        authenticatedRequest(),
+        async (principal, transaction) =>
+          getProductionAccessControlService(transaction).createAssignment(
+            principal.authorization,
+            {
+              ...assignmentInput,
+              scopeId: `portfolio-${beta.organizationId}`,
+            },
+          ),
+        productionDatabase,
+      ),
+    ).rejects.toBeInstanceOf(TenantResourceNotFoundError);
+
+    const revocation = await withAuthenticatedTenantRequest(
+      authenticatedRequest(),
+      async (principal, transaction) =>
+        getProductionAccessControlService(transaction).revokeAssignment(
+          principal.authorization,
+          "portfolio",
+          assignment.id,
+          "access purpose ended",
+        ),
+      productionDatabase,
+    );
+    expect(revocation).toMatchObject({
+      id: assignment.id,
+      scopeType: "portfolio",
+      revokedAt: expect.any(String),
+    });
+
+    const persisted = await withTenantTransaction(
+      alpha.context,
+      async (transaction) =>
+        transaction.select().from(schema.portfolioAssignments),
+      productionDatabase,
+    );
+    expect(persisted).toHaveLength(1);
+    expect(persisted[0]).toMatchObject({
+      id: assignment.id,
+      organizationId: alpha.organizationId,
+      revocationReason: "access purpose ended",
+    });
+    expect(new Date(persisted[0]?.revokedAt ?? "").toISOString()).toBe(
+      revocation.revokedAt,
+    );
   });
 
   test("rate limits with HMAC buckets and no raw identifier persistence", async () => {

@@ -8,7 +8,7 @@ import { requireProductionRuntime } from "@/lib/runtime";
 export async function GET(request: NextRequest) {
   try {
     requireProductionRuntime();
-    return withAuthenticatedTenantRequest(request, async (principal) =>
+    return await withAuthenticatedTenantRequest(request, async (principal) =>
       Response.json({
         organizationId: principal.authorization.organizationId,
         principalType: principal.authorization.principalType,

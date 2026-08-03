@@ -17,6 +17,8 @@ function relative(file) {
 }
 
 function classifyRoute(file, source) {
+  if (/\breturn\s+withAuthenticatedTenantRequest\s*\(/.test(source))
+    return "unsafe_authenticated_error_boundary";
   if (/\bwithAuthenticatedTenantRequest\s*\(/.test(source))
     return "bound_authenticated_request";
   if (
@@ -67,9 +69,15 @@ const summary = Object.fromEntries(
 
 process.stdout.write(`${JSON.stringify({ summary, entries }, null, 2)}\n`);
 
-if (entries.some((entry) => entry.status === "unclassified")) {
+if (
+  entries.some((entry) =>
+    ["unclassified", "unsafe_authenticated_error_boundary"].includes(
+      entry.status,
+    ),
+  )
+) {
   process.stderr.write(
-    "Tenant entry-point inventory has unclassified routes.\n",
+    "Tenant entry-point inventory has unclassified or unsafe authenticated routes.\n",
   );
   process.exitCode = 1;
 }

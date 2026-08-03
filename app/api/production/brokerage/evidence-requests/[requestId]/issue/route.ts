@@ -12,7 +12,7 @@ export async function POST(
 ) {
   try {
     requireProductionRuntime();
-    return withAuthenticatedTenantRequest(
+    return await withAuthenticatedTenantRequest(
       request,
       async (principal, transaction) => {
         const { requestId } = await params;

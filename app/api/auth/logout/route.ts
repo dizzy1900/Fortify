@@ -10,7 +10,7 @@ import { requireProductionRuntime } from "@/lib/runtime";
 export async function POST(request: NextRequest) {
   try {
     requireProductionRuntime();
-    return withAuthenticatedTenantRequest(
+    return await withAuthenticatedTenantRequest(
       request,
       async (principal, transaction) => {
         if (principal.authorization.sessionId)
