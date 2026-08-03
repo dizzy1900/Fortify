@@ -6,10 +6,13 @@ import {
 } from "@/lib/production/integration-providers";
 import { IntegrationService } from "@/lib/production/integration-service";
 import { getProductionObjectStorage } from "@/lib/production/object-storage-runtime";
+import type { ProductionDatabaseLike } from "@/lib/production/repository";
 
-export const getProductionIntegrationService = () =>
+export const getProductionIntegrationService = (
+  database: ProductionDatabaseLike = getProductionDatabase() as unknown as ProductionDatabaseLike,
+) =>
   new IntegrationService(
-    getProductionDatabase(),
+    database,
     getProductionObjectStorage(),
     providerBoundaryCatalog.map(
       (entry) => new UnavailableIntegrationProvider(entry.type),

@@ -1,6 +1,8 @@
 import { PGlite } from "@electric-sql/pglite";
+import { sql } from "drizzle-orm";
 import { drizzle, type PgliteDatabase } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
+import { NextRequest } from "next/server";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import * as schema from "@/db/production/schema";
@@ -13,13 +15,18 @@ import {
   validateProductionEnvironment,
 } from "@/lib/production/environment";
 import { redactLogValue } from "@/lib/production/observability";
+import { withAuthenticatedTenantRequest } from "@/lib/production/http-auth";
+import { IdentityService } from "@/lib/production/identity-service";
 import {
   consumeRequestRateLimit,
   RequestRateLimitError,
 } from "@/lib/production/rate-limit";
 import { withTenantTransaction } from "@/lib/production/tenant-transaction";
 import type { ProductionDatabaseLike } from "@/lib/production/repository";
-import { createTenantFixture } from "./factories/production";
+import {
+  createActiveMembership,
+  createTenantFixture,
+} from "./factories/production";
 
 describe("M12 operational hardening", () => {
   let client: PGlite;
@@ -45,6 +52,38 @@ describe("M12 operational hardening", () => {
     );
     expect(new Set(policies.rows.map((row) => row.tablename))).toEqual(
       new Set(tenantTables.rows.map((row) => row.table_name)),
+    );
+    const bootstrapFunctions = await client.query<{
+      security_definer: boolean;
+      configuration: string;
+    }>(`
+      select
+        procedure.prosecdef as security_definer,
+        array_to_string(procedure.proconfig, ',') as configuration
+      from pg_proc as procedure
+      inner join pg_namespace as namespace
+        on namespace.oid = procedure.pronamespace
+      where namespace.nspname = 'public'
+        and procedure.proname = 'fortify_resolve_request_tenant'
+    `);
+    expect(bootstrapFunctions.rows).toEqual([
+      {
+        security_definer: true,
+        configuration: "search_path=pg_catalog, public",
+      },
+    ]);
+    const bootstrapPrivileges = await client.query<{ grantee: string }>(`
+      select grantee
+      from information_schema.routine_privileges
+      where specific_schema = 'public'
+        and routine_name = 'fortify_resolve_request_tenant'
+        and privilege_type = 'EXECUTE'
+    `);
+    expect(bootstrapPrivileges.rows.map((row) => row.grantee)).toContain(
+      "fortify_app",
+    );
+    expect(bootstrapPrivileges.rows.map((row) => row.grantee)).not.toContain(
+      "PUBLIC",
     );
   });
 
@@ -103,6 +142,116 @@ describe("M12 operational hardening", () => {
     await client.exec("rollback");
     expect(leaked.rows).toEqual([]);
     expect(tenantSetting.rows[0]?.tenant).toBeNull();
+  });
+
+  test("resolves an opaque session and runs brokerage work in one tenant transaction", async () => {
+    vi.stubEnv(
+      "FORTIFY_REQUEST_HASH_KEY",
+      "fixture-request-hash-key-32-characters",
+    );
+    const productionDatabase = database as unknown as ProductionDatabaseLike;
+    const alpha = await createTenantFixture(
+      productionDatabase,
+      "request-alpha",
+    );
+    const beta = await createTenantFixture(productionDatabase, "request-beta");
+    const owner = await createActiveMembership(productionDatabase, {
+      organizationId: alpha.organizationId,
+      subject: alpha.context.actorSubject,
+    });
+    const session = await new IdentityService(productionDatabase).issueSession({
+      profile: owner.profile,
+      activeOrganizationId: alpha.organizationId,
+      ttlSeconds: 3_600,
+    });
+    const request = new NextRequest(
+      "https://fortify.test/api/production/brokerage/workspace",
+      {
+        headers: { cookie: `fortify_session=${session.token}` },
+      },
+    );
+
+    const observed = await withAuthenticatedTenantRequest(
+      request,
+      async (principal, transaction) => {
+        const communities = await transaction.select().from(schema.communities);
+        const contextResult = await transaction.execute(sql`
+          select
+            current_user as role,
+            nullif(current_setting('fortify.organization_id', true), '') as tenant,
+            nullif(current_setting('fortify.actor_subject', true), '') as actor
+        `);
+        const contextRows = Array.isArray(contextResult)
+          ? contextResult
+          : (contextResult as unknown as { rows: unknown[] }).rows;
+        return {
+          principal: principal.authorization,
+          communities,
+          context: contextRows[0] as {
+            role: string;
+            tenant: string;
+            actor: string;
+          },
+        };
+      },
+      productionDatabase,
+    );
+
+    expect(observed.principal.organizationId).toBe(alpha.organizationId);
+    expect(observed.communities.map((row) => row.organizationId)).toEqual([
+      alpha.organizationId,
+    ]);
+    expect(observed.communities).not.toContainEqual(
+      expect.objectContaining({ organizationId: beta.organizationId }),
+    );
+    expect(observed.context).toEqual({
+      role: "fortify_app",
+      tenant: alpha.organizationId,
+      actor: observed.principal.actorSubject,
+    });
+
+    const apiCredential = await new IdentityService(
+      productionDatabase,
+    ).createServiceAccount(alpha.context, {
+      name: "Brokerage workspace reader",
+      scopes: ["community:read"],
+    });
+    const apiObserved = await withAuthenticatedTenantRequest(
+      new NextRequest(
+        "https://fortify.test/api/production/brokerage/workspace",
+        {
+          headers: { authorization: `Bearer ${apiCredential.token}` },
+        },
+      ),
+      async (principal, transaction) => ({
+        principal: principal.authorization,
+        communities: await transaction.select().from(schema.communities),
+      }),
+      productionDatabase,
+    );
+    expect(apiObserved.principal).toMatchObject({
+      organizationId: alpha.organizationId,
+      principalType: "service_account",
+      grantedScopes: ["community:read"],
+    });
+    expect(apiObserved.communities.map((row) => row.organizationId)).toEqual([
+      alpha.organizationId,
+    ]);
+
+    let invalidOperationRan = false;
+    await expect(
+      withAuthenticatedTenantRequest(
+        new NextRequest(
+          "https://fortify.test/api/production/brokerage/workspace",
+          { headers: { cookie: "fortify_session=fsess_invalid" } },
+        ),
+        async () => {
+          invalidOperationRan = true;
+        },
+        productionDatabase,
+      ),
+    ).rejects.toThrow("Authentication failed");
+    expect(invalidOperationRan).toBe(false);
   });
 
   test("rate limits with HMAC buckets and no raw identifier persistence", async () => {

@@ -13,6 +13,25 @@ function requireTenantTransactionContext(context: TenantContext) {
     throw new TenantContextError();
 }
 
+export async function setApplicationTransactionRole(
+  transaction: TenantTransaction,
+) {
+  await transaction.execute(sql`set local role fortify_app`);
+}
+
+export async function setTenantTransactionContext(
+  transaction: TenantTransaction,
+  context: TenantContext,
+) {
+  requireTenantTransactionContext(context);
+  await transaction.execute(
+    sql`select set_config('fortify.organization_id', ${context.organizationId}, true)`,
+  );
+  await transaction.execute(
+    sql`select set_config('fortify.actor_subject', ${context.actorSubject}, true)`,
+  );
+}
+
 /**
  * Runs tenant work on one checked-out connection with transaction-local RLS
  * context. SET LOCAL prevents organization and actor state from surviving a
@@ -25,13 +44,9 @@ export async function withTenantTransaction<T>(
 ): Promise<T> {
   requireTenantTransactionContext(context);
   return database.transaction(async (transaction) => {
-    await transaction.execute(sql`set local role fortify_app`);
-    await transaction.execute(
-      sql`select set_config('fortify.organization_id', ${context.organizationId}, true)`,
-    );
-    await transaction.execute(
-      sql`select set_config('fortify.actor_subject', ${context.actorSubject}, true)`,
-    );
-    return operation(transaction as unknown as TenantTransaction);
+    const tenantTransaction = transaction as unknown as TenantTransaction;
+    await setApplicationTransactionRole(tenantTransaction);
+    await setTenantTransactionContext(tenantTransaction, context);
+    return operation(tenantTransaction);
   });
 }
