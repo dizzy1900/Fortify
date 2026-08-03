@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, gt, isNull, lt, sql } from "drizzle-orm";
 import { createHash, randomUUID } from "node:crypto";
 import * as schema from "@/db/production/schema";
 import { assertAuthorized } from "@/lib/production/authorization";
@@ -32,7 +32,9 @@ export class DeterministicMalwareScanner implements MalwareScanner {
   readonly name = "fortify-deterministic-fixture";
   readonly engineVersion = "fixture-1";
 
-  constructor(private readonly result: "clean" | "infected" | "error" = "clean") {}
+  constructor(
+    private readonly result: "clean" | "infected" | "error" = "clean",
+  ) {}
 
   async scan() {
     return {
@@ -84,15 +86,22 @@ function validateDeclaredUpload(input: {
   sizeBytes: number;
   sha256: string;
 }) {
-  if (!input.filename.trim()) throw new StorageValidationError("A filename is required.");
+  if (!input.filename.trim())
+    throw new StorageValidationError("A filename is required.");
   if (!ALLOWED_EVIDENCE_MIME_TYPES.has(input.mimeType))
     throw new StorageValidationError("The declared MIME type is not allowed.");
   if (!Number.isSafeInteger(input.sizeBytes) || input.sizeBytes <= 0)
-    throw new StorageValidationError("The declared file size must be positive.");
+    throw new StorageValidationError(
+      "The declared file size must be positive.",
+    );
   if (input.sizeBytes > MAX_EVIDENCE_BYTES)
-    throw new StorageValidationError("The file exceeds the 25 MiB evidence limit.");
+    throw new StorageValidationError(
+      "The file exceeds the 25 MiB evidence limit.",
+    );
   if (!/^[a-f0-9]{64}$/.test(input.sha256))
-    throw new StorageValidationError("A lowercase hexadecimal SHA-256 checksum is required.");
+    throw new StorageValidationError(
+      "A lowercase hexadecimal SHA-256 checksum is required.",
+    );
 }
 
 function bytesMatchMime(body: Uint8Array, mimeType: string) {
@@ -140,13 +149,18 @@ export class ProductionStorageService {
     });
     validateDeclaredUpload(input);
     const now = this.clock();
-    const expiresInSeconds = Math.min(Math.max(input.expiresInSeconds ?? 300, 30), 900);
+    const expiresInSeconds = Math.min(
+      Math.max(input.expiresInSeconds ?? 300, 30),
+      900,
+    );
     const objectId = randomUUID();
     const grantId = randomUUID();
     const filename = normalizeFilename(input.filename);
     const objectKey = `tenants/${context.organizationId}/quarantine/${objectId}/${filename}`;
     assertTenantObjectKey(objectKey, context.organizationId);
-    const expiresAt = new Date(now.getTime() + expiresInSeconds * 1000).toISOString();
+    const expiresAt = new Date(
+      now.getTime() + expiresInSeconds * 1000,
+    ).toISOString();
     const at = iso(now);
 
     await this.database.transaction(async (transaction) => {
@@ -163,7 +177,9 @@ export class ProductionStorageService {
         checksumAlgorithm: "sha256",
         encryptionMode: this.encryption.mode,
         encryptionKeyId:
-          this.encryption.mode === "aws:kms" ? this.encryption.keyId : undefined,
+          this.encryption.mode === "aws:kms"
+            ? this.encryption.keyId
+            : undefined,
         state: "pending_upload",
         scanStatus: "pending",
         retentionUntil: input.retentionUntil,
@@ -179,13 +195,22 @@ export class ProductionStorageService {
         maxUses: 1,
         useCount: 0,
       });
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: "storage.upload_requested",
-        resourceType: "storage_object",
-        resourceId: objectId,
-        detail: { objectKey, mimeType: input.mimeType, sizeBytes: input.sizeBytes, grantId },
-        occurredAt: at,
-      });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: "storage.upload_requested",
+          resourceType: "storage_object",
+          resourceId: objectId,
+          detail: {
+            objectKey,
+            mimeType: input.mimeType,
+            sizeBytes: input.sizeBytes,
+            grantId,
+          },
+          occurredAt: at,
+        },
+      );
     });
 
     return {
@@ -202,7 +227,11 @@ export class ProductionStorageService {
     };
   }
 
-  async finalizeUpload(context: TenantContext, storageObjectId: string, grantId: string) {
+  async finalizeUpload(
+    context: TenantContext,
+    storageObjectId: string,
+    grantId: string,
+  ) {
     assertAuthorized(context, {
       action: "update",
       resource: "storage_object",
@@ -221,11 +250,15 @@ export class ProductionStorageService {
     const object = rows[0];
     if (!object) throw new TenantResourceNotFoundError("Storage object");
     if (object.state !== "pending_upload")
-      throw new StorageValidationError("Only pending uploads can be finalized.");
+      throw new StorageValidationError(
+        "Only pending uploads can be finalized.",
+      );
     assertTenantObjectKey(object.objectKey, context.organizationId);
     const metadata = await this.storage.head(object.objectKey);
     if (!metadata)
-      throw new StorageValidationError("The uploaded object is not present in private storage.");
+      throw new StorageValidationError(
+        "The uploaded object is not present in private storage.",
+      );
     if (
       metadata.sizeBytes !== object.sizeBytes ||
       metadata.mimeType !== object.mimeType ||
@@ -243,7 +276,10 @@ export class ProductionStorageService {
         .where(
           and(
             eq(schema.storageAccessGrants.id, grantId),
-            eq(schema.storageAccessGrants.organizationId, context.organizationId),
+            eq(
+              schema.storageAccessGrants.organizationId,
+              context.organizationId,
+            ),
             eq(schema.storageAccessGrants.storageObjectId, storageObjectId),
           ),
         )
@@ -257,14 +293,27 @@ export class ProductionStorageService {
         grant.useCount >= grant.maxUses ||
         new Date(grant.expiresAt).getTime() <= this.clock().getTime()
       )
-        throw new StorageGrantError("The upload grant is expired, revoked, exhausted, or out of scope.");
+        throw new StorageGrantError(
+          "The upload grant is expired, revoked, exhausted, or out of scope.",
+        );
       await transaction
         .update(schema.storageAccessGrants)
-        .set({ usedAt: at, useCount: grant.useCount + 1, updatedAt: at, updatedBy: context.actorSubject, revision: grant.revision + 1 })
+        .set({
+          usedAt: at,
+          useCount: grant.useCount + 1,
+          updatedAt: at,
+          updatedBy: context.actorSubject,
+          revision: grant.revision + 1,
+        })
         .where(eq(schema.storageAccessGrants.id, grantId));
       const updated = await transaction
         .update(schema.storageObjects)
-        .set({ state: "quarantined", updatedAt: at, updatedBy: context.actorSubject, revision: object.revision + 1 })
+        .set({
+          state: "quarantined",
+          updatedAt: at,
+          updatedBy: context.actorSubject,
+          revision: object.revision + 1,
+        })
         .where(
           and(
             eq(schema.storageObjects.id, storageObjectId),
@@ -272,18 +321,26 @@ export class ProductionStorageService {
           ),
         )
         .returning();
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: "storage.upload_quarantined",
-        resourceType: "storage_object",
-        resourceId: storageObjectId,
-        detail: { grantId, sha256: object.sha256 },
-        occurredAt: at,
-      });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: "storage.upload_quarantined",
+          resourceType: "storage_object",
+          resourceId: storageObjectId,
+          detail: { grantId, sha256: object.sha256 },
+          occurredAt: at,
+        },
+      );
       return updated[0];
     });
   }
 
-  async scanAndPromote(context: TenantContext, storageObjectId: string, scanner: MalwareScanner) {
+  async scanAndPromote(
+    context: TenantContext,
+    storageObjectId: string,
+    scanner: MalwareScanner,
+  ) {
     assertAuthorized(context, {
       action: "update",
       resource: "malware_scan_result",
@@ -302,7 +359,9 @@ export class ProductionStorageService {
     const object = rows[0];
     if (!object) throw new TenantResourceNotFoundError("Storage object");
     if (object.state !== "quarantined")
-      throw new StorageValidationError("Only quarantined objects can be scanned.");
+      throw new StorageValidationError(
+        "Only quarantined objects can be scanned.",
+      );
     assertTenantObjectKey(object.objectKey, context.organizationId);
     const body = await this.storage.read(object.objectKey);
     const exactBytes =
@@ -356,16 +415,25 @@ export class ProductionStorageService {
           ),
         )
         .returning();
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action:
-          result.status === "clean"
-            ? "storage.scan_clean"
-            : "storage.scan_rejected",
-        resourceType: "storage_object",
-        resourceId: storageObjectId,
-        detail: { scanId, scanner: scanner.name, status: result.status, findings: result.findings },
-        occurredAt: at,
-      });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action:
+            result.status === "clean"
+              ? "storage.scan_clean"
+              : "storage.scan_rejected",
+          resourceType: "storage_object",
+          resourceId: storageObjectId,
+          detail: {
+            scanId,
+            scanner: scanner.name,
+            status: result.status,
+            findings: result.findings,
+          },
+          occurredAt: at,
+        },
+      );
       return { object: updated[0], scanId, result };
     });
   }
@@ -397,7 +465,9 @@ export class ProductionStorageService {
       .limit(1);
     const object = objects[0];
     if (!object || object.state !== "clean" || object.scanStatus !== "clean")
-      throw new StorageValidationError("Evidence versions require a clean scanned object.");
+      throw new StorageValidationError(
+        "Evidence versions require a clean scanned object.",
+      );
     const at = iso(this.clock());
     const evidenceItemId = randomUUID();
     const evidenceVersionId = randomUUID();
@@ -438,13 +508,20 @@ export class ProductionStorageService {
           reviewStatus: "unreviewed",
         })
         .returning();
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: "evidence.version_created_from_clean_object",
-        resourceType: "evidence_version",
-        resourceId: evidenceVersionId,
-        detail: { storageObjectId: input.storageObjectId, sha256: object.sha256 },
-        occurredAt: at,
-      });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: "evidence.version_created_from_clean_object",
+          resourceType: "evidence_version",
+          resourceId: evidenceVersionId,
+          detail: {
+            storageObjectId: input.storageObjectId,
+            sha256: object.sha256,
+          },
+          occurredAt: at,
+        },
+      );
       return versions[0];
     });
   }
@@ -487,13 +564,17 @@ export class ProductionStorageService {
         maxUses: 1,
         useCount: 0,
       });
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: "storage.download_grant_issued",
-        resourceType: "storage_access_grant",
-        resourceId: grantId,
-        detail: { storageObjectId, purpose: input.purpose, expiresAt },
-        occurredAt: iso(now),
-      });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: "storage.download_grant_issued",
+          resourceType: "storage_access_grant",
+          resourceId: grantId,
+          detail: { storageObjectId, purpose: input.purpose, expiresAt },
+          occurredAt: iso(now),
+        },
+      );
     });
     return { grantId, expiresAt };
   }
@@ -504,58 +585,91 @@ export class ProductionStorageService {
       resource: "storage_object",
       resourceOrganizationId: context.organizationId,
     });
-    const rows = await this.database
-      .select({ grant: schema.storageAccessGrants, object: schema.storageObjects })
-      .from(schema.storageAccessGrants)
-      .innerJoin(
-        schema.storageObjects,
-        eq(schema.storageAccessGrants.storageObjectId, schema.storageObjects.id),
-      )
-      .where(
-        and(
-          eq(schema.storageAccessGrants.id, grantId),
-          eq(schema.storageAccessGrants.organizationId, context.organizationId),
-          eq(schema.storageObjects.organizationId, context.organizationId),
-        ),
-      )
-      .limit(1);
-    const row = rows[0];
     const now = this.clock();
-    if (
-      !row ||
-      row.grant.operation !== "download" ||
-      row.grant.principalSubject !== context.actorSubject ||
-      row.grant.revokedAt ||
-      row.grant.useCount >= row.grant.maxUses ||
-      new Date(row.grant.expiresAt).getTime() <= now.getTime() ||
-      row.object.state !== "clean"
-    )
-      throw new StorageGrantError("The download grant is expired, revoked, exhausted, or out of scope.");
-    assertTenantObjectKey(row.object.objectKey, context.organizationId);
-    const remainingSeconds = Math.max(
-      1,
-      Math.min(60, Math.floor((new Date(row.grant.expiresAt).getTime() - now.getTime()) / 1000)),
-    );
-    const operation = await this.storage.presignDownload({
-      key: row.object.objectKey,
-      filename: row.object.originalFilename,
-      expiresInSeconds: remainingSeconds,
-    });
     const at = iso(now);
-    await this.database.transaction(async (transaction) => {
-      await transaction
+    return this.database.transaction(async (transaction) => {
+      const claimed = await transaction
         .update(schema.storageAccessGrants)
-        .set({ usedAt: at, useCount: row.grant.useCount + 1, updatedAt: at, updatedBy: context.actorSubject, revision: row.grant.revision + 1 })
-        .where(eq(schema.storageAccessGrants.id, grantId));
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: "storage.download_redeemed",
-        resourceType: "storage_access_grant",
-        resourceId: grantId,
-        detail: { storageObjectId: row.object.id, expiresInSeconds: remainingSeconds },
-        occurredAt: at,
+        .set({
+          usedAt: at,
+          useCount: sql`${schema.storageAccessGrants.useCount} + 1`,
+          updatedAt: at,
+          updatedBy: context.actorSubject,
+          revision: sql`${schema.storageAccessGrants.revision} + 1`,
+        })
+        .where(
+          and(
+            eq(schema.storageAccessGrants.id, grantId),
+            eq(
+              schema.storageAccessGrants.organizationId,
+              context.organizationId,
+            ),
+            eq(schema.storageAccessGrants.operation, "download"),
+            eq(
+              schema.storageAccessGrants.principalSubject,
+              context.actorSubject,
+            ),
+            isNull(schema.storageAccessGrants.revokedAt),
+            gt(schema.storageAccessGrants.expiresAt, at),
+            lt(
+              schema.storageAccessGrants.useCount,
+              schema.storageAccessGrants.maxUses,
+            ),
+          ),
+        )
+        .returning();
+      const grant = claimed[0];
+      if (!grant)
+        throw new StorageGrantError(
+          "The download grant is expired, revoked, exhausted, or out of scope.",
+        );
+      const objects = await transaction
+        .select()
+        .from(schema.storageObjects)
+        .where(
+          and(
+            eq(schema.storageObjects.id, grant.storageObjectId),
+            eq(schema.storageObjects.organizationId, context.organizationId),
+            eq(schema.storageObjects.state, "clean"),
+          ),
+        )
+        .limit(1);
+      const object = objects[0];
+      if (!object)
+        throw new StorageGrantError(
+          "The download grant is expired, revoked, exhausted, or out of scope.",
+        );
+      assertTenantObjectKey(object.objectKey, context.organizationId);
+      const remainingSeconds = Math.max(
+        1,
+        Math.min(
+          60,
+          Math.floor(
+            (new Date(grant.expiresAt).getTime() - now.getTime()) / 1000,
+          ),
+        ),
+      );
+      const operation = await this.storage.presignDownload({
+        key: object.objectKey,
+        filename: object.originalFilename,
+        expiresInSeconds: remainingSeconds,
       });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: "storage.download_redeemed",
+          resourceType: "storage_access_grant",
+          resourceId: grantId,
+          detail: {
+            storageObjectId: object.id,
+            expiresInSeconds: remainingSeconds,
+          },
+          occurredAt: at,
+        },
+      );
+      return operation;
     });
-    return operation;
   }
 
   async revokeGrant(context: TenantContext, grantId: string, reason: string) {
@@ -568,37 +682,60 @@ export class ProductionStorageService {
     await this.database.transaction(async (transaction) => {
       const updated = await transaction
         .update(schema.storageAccessGrants)
-        .set({ revokedAt: at, lifecycleStatus: "archived", updatedAt: at, updatedBy: context.actorSubject })
+        .set({
+          revokedAt: at,
+          lifecycleStatus: "archived",
+          updatedAt: at,
+          updatedBy: context.actorSubject,
+        })
         .where(
           and(
             eq(schema.storageAccessGrants.id, grantId),
-            eq(schema.storageAccessGrants.organizationId, context.organizationId),
+            eq(
+              schema.storageAccessGrants.organizationId,
+              context.organizationId,
+            ),
           ),
         )
         .returning();
       if (!updated[0]) throw new TenantResourceNotFoundError("Storage grant");
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: "storage.grant_revoked",
-        resourceType: "storage_access_grant",
-        resourceId: grantId,
-        detail: { reason },
-        occurredAt: at,
-      });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: "storage.grant_revoked",
+          resourceType: "storage_access_grant",
+          resourceId: grantId,
+          detail: { reason },
+          occurredAt: at,
+        },
+      );
     });
   }
 
-  async setLegalHold(context: TenantContext, storageObjectId: string, reason: string) {
+  async setLegalHold(
+    context: TenantContext,
+    storageObjectId: string,
+    reason: string,
+  ) {
     assertAuthorized(context, {
       action: "manage",
       resource: "storage_object",
       resourceOrganizationId: context.organizationId,
     });
-    if (!reason.trim()) throw new StorageValidationError("A legal-hold reason is required.");
+    if (!reason.trim())
+      throw new StorageValidationError("A legal-hold reason is required.");
     const at = iso(this.clock());
     return this.database.transaction(async (transaction) => {
       const updated = await transaction
         .update(schema.storageObjects)
-        .set({ legalHold: true, legalHoldReason: reason, lifecycleStatus: "legal_hold", updatedAt: at, updatedBy: context.actorSubject })
+        .set({
+          legalHold: true,
+          legalHoldReason: reason,
+          lifecycleStatus: "legal_hold",
+          updatedAt: at,
+          updatedBy: context.actorSubject,
+        })
         .where(
           and(
             eq(schema.storageObjects.id, storageObjectId),
@@ -607,18 +744,26 @@ export class ProductionStorageService {
         )
         .returning();
       if (!updated[0]) throw new TenantResourceNotFoundError("Storage object");
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: "storage.legal_hold_set",
-        resourceType: "storage_object",
-        resourceId: storageObjectId,
-        detail: { reason },
-        occurredAt: at,
-      });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: "storage.legal_hold_set",
+          resourceType: "storage_object",
+          resourceId: storageObjectId,
+          detail: { reason },
+          occurredAt: at,
+        },
+      );
       return updated[0];
     });
   }
 
-  async deleteObject(context: TenantContext, storageObjectId: string, reason: string) {
+  async deleteObject(
+    context: TenantContext,
+    storageObjectId: string,
+    reason: string,
+  ) {
     assertAuthorized(context, {
       action: "delete",
       resource: "storage_object",
@@ -637,37 +782,64 @@ export class ProductionStorageService {
     const object = rows[0];
     if (!object) throw new TenantResourceNotFoundError("Storage object");
     if (object.legalHold)
-      throw new StorageDeletionBlockedError("Deletion is blocked by an active legal hold.");
-    if (object.retentionUntil && new Date(object.retentionUntil).getTime() > this.clock().getTime())
-      throw new StorageDeletionBlockedError("Deletion is blocked by the retention period.");
+      throw new StorageDeletionBlockedError(
+        "Deletion is blocked by an active legal hold.",
+      );
+    if (
+      object.retentionUntil &&
+      new Date(object.retentionUntil).getTime() > this.clock().getTime()
+    )
+      throw new StorageDeletionBlockedError(
+        "Deletion is blocked by the retention period.",
+      );
     const pendingAt = iso(this.clock());
     await this.database.transaction(async (transaction) => {
       await transaction
         .update(schema.storageObjects)
-        .set({ state: "pending_deletion", lifecycleStatus: "pending_deletion", updatedAt: pendingAt, updatedBy: context.actorSubject })
+        .set({
+          state: "pending_deletion",
+          lifecycleStatus: "pending_deletion",
+          updatedAt: pendingAt,
+          updatedBy: context.actorSubject,
+        })
         .where(eq(schema.storageObjects.id, storageObjectId));
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: "storage.deletion_requested",
-        resourceType: "storage_object",
-        resourceId: storageObjectId,
-        detail: { reason },
-        occurredAt: pendingAt,
-      });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: "storage.deletion_requested",
+          resourceType: "storage_object",
+          resourceId: storageObjectId,
+          detail: { reason },
+          occurredAt: pendingAt,
+        },
+      );
     });
     await this.storage.delete(object.objectKey);
     const deletedAt = iso(this.clock());
     await this.database.transaction(async (transaction) => {
       await transaction
         .update(schema.storageObjects)
-        .set({ state: "deleted", lifecycleStatus: "deleted", deletedAt, deletedReason: reason, updatedAt: deletedAt, updatedBy: context.actorSubject })
+        .set({
+          state: "deleted",
+          lifecycleStatus: "deleted",
+          deletedAt,
+          deletedReason: reason,
+          updatedAt: deletedAt,
+          updatedBy: context.actorSubject,
+        })
         .where(eq(schema.storageObjects.id, storageObjectId));
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: "storage.object_deleted",
-        resourceType: "storage_object",
-        resourceId: storageObjectId,
-        detail: { reason },
-        occurredAt: deletedAt,
-      });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: "storage.object_deleted",
+          resourceType: "storage_object",
+          resourceId: storageObjectId,
+          detail: { reason },
+          occurredAt: deletedAt,
+        },
+      );
     });
   }
 
@@ -688,14 +860,22 @@ export class ProductionStorageService {
       );
     const manifestId = randomUUID();
     const at = iso(this.clock());
-    const items: Array<{ object: (typeof objects)[number]; backupKey: string }> = [];
+    const items: Array<{
+      object: (typeof objects)[number];
+      backupKey: string;
+    }> = [];
     for (const object of objects) {
       assertTenantObjectKey(object.objectKey, context.organizationId);
       const backupKey = `tenants/${context.organizationId}/backups/${manifestId}/${object.id}/${object.originalFilename}`;
       await this.storage.copy(object.objectKey, backupKey);
       const restored = await this.storage.read(backupKey);
-      if (restored.byteLength !== object.sizeBytes || digest(restored) !== object.sha256)
-        throw new StorageValidationError("Backup readback did not match the source object.");
+      if (
+        restored.byteLength !== object.sizeBytes ||
+        digest(restored) !== object.sha256
+      )
+        throw new StorageValidationError(
+          "Backup readback did not match the source object.",
+        );
       items.push({ object, backupKey });
     }
     const manifestPayload = items.map(({ object, backupKey }) => ({
@@ -739,18 +919,26 @@ export class ProductionStorageService {
             eq(schema.storageObjects.state, "clean"),
           ),
         );
-      await appendAudit(transaction as unknown as ProductionDatabaseLike, context, {
-        action: "storage.backup_completed",
-        resourceType: "backup_manifest",
-        resourceId: manifestId,
-        detail: { objectCount: items.length, manifestHash },
-        occurredAt: at,
-      });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: "storage.backup_completed",
+          resourceType: "backup_manifest",
+          resourceId: manifestId,
+          detail: { objectCount: items.length, manifestHash },
+          occurredAt: at,
+        },
+      );
     });
     return { manifestId, manifestHash, items: manifestPayload };
   }
 
-  async readBackupObject(context: TenantContext, manifestId: string, storageObjectId: string) {
+  async readBackupObject(
+    context: TenantContext,
+    manifestId: string,
+    storageObjectId: string,
+  ) {
     assertAuthorized(context, {
       action: "read",
       resource: "backup_manifest_item",
@@ -772,7 +960,9 @@ export class ProductionStorageService {
     assertTenantObjectKey(item.backupKey, context.organizationId);
     const body = await this.storage.read(item.backupKey);
     if (body.byteLength !== item.sizeBytes || digest(body) !== item.sha256)
-      throw new StorageValidationError("Restored bytes do not match the immutable backup manifest.");
+      throw new StorageValidationError(
+        "Restored bytes do not match the immutable backup manifest.",
+      );
     return body;
   }
 }

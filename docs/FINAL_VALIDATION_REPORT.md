@@ -1,6 +1,30 @@
 # Final validation report
 
-Status: **the replacement M12 operational-hardening slice, M0–M11 north-star slices, and preserved Colorado M1–M7 renewal foundation were locally validated through August 2, 2026**. This is not a managed-deployment, production-restore/PITR, security-certification, live-provider, vendor-semantic, external-data-right, cross-customer-rights, customer-baseline, broker-savings, programme-effectiveness, caused-loss-reduction, source-rights, legal-currentness, model-validity, semantic-acceptance, counterparty-authority, real-credential, physical-inspection, resilience-effectiveness, external-verifier, insurance-outcome, real-funding/payment, recipient-delivery, carrier-acceptance, customer-validation, programme-validation, or market-validation claim.
+Status: **the first product-convergence C0 request/authority slice and the preserved M0-M12 foundation are locally validated through August 3, 2026**. C0 as a whole remains in progress because every tenant HTTP/worker/webhook/token entry point is not yet bound to the new transaction primitive and no selected managed PostgreSQL deployment has been exercised. This is not a managed-deployment, production-restore/PITR, security-certification, live-provider, vendor-semantic, external-data-right, cross-customer-rights, customer-baseline, broker-savings, programme-effectiveness, caused-loss-reduction, source-rights, legal-currentness, model-validity, semantic-acceptance, counterparty-authority, real-credential, physical-inspection, resilience-effectiveness, external-verifier, insurance-outcome, real-funding/payment, recipient-delivery, carrier-acceptance, customer-validation, programme-validation, or market-validation claim.
+
+## Product convergence C0 request/authority local-validation addendum
+
+Migration 0027 creates the non-login `fortify_app` role with `NOSUPERUSER`, `NOCREATEDB`, `NOCREATEROLE`, `NOINHERIT`, and `NOBYPASSRLS`; revokes public table/sequence access; grants only schema/table/sequence runtime privileges; establishes forward default privileges; and adds a unique organization/previous-hash audit-chain index. Runtime now requires a separate `FORTIFY_APP_DATABASE_URL`; equality with the privileged migration/backup `DATABASE_URL` fails closed. The release workflow requires both secrets.
+
+`withTenantTransaction` drops each checked-out transaction to `fortify_app` and binds `fortify.organization_id` and `fortify.actor_subject` through transaction-local settings. The new PGlite PostgreSQL contract exercises the real role and all generated RLS policies without repository organization predicates: organization A sees only A, a write carrying organization B is rejected, organization B subsequently sees only B, and a role-bound transaction without tenant context sees no tenant rows or leaked setting. This is strong local PostgreSQL-compatible evidence, but not selected managed-provider validation and not proof that every current entry point uses the primitive.
+
+Audit append now obtains a per-organization transaction advisory lock and selects the true unreferenced chain tail before hashing. The first full-suite run correctly failed because same-timestamp events exposed the former timestamp/UUID tail-selection defect; after the tail query repair, the affected access-control suite passed 5/5 and the full bounded suite passed. The unique index prevents two successors from referencing the same prior hash.
+
+OIDC attempts, membership invitations, and one-use storage download grants now use conditional update-and-return claims inside their transaction. Concurrent local tests require exactly one fulfilled consumer and one rejected consumer. A failed downstream presign or audit append rolls the storage claim back.
+
+Final local evidence after repairs:
+
+- scoped Prettier, ESLint, and strict TypeScript passed;
+- bounded Vitest passed 24 isolated files and 94 tests;
+- normalized production-flow mapping passed 33/33 and the operational contract found 13 required artifacts plus RLS/CSP/CSRF/readiness controls;
+- the tracked-file secret scan passed 440 files;
+- the production build passed with the preserved 30 product pages and 134 API routes;
+- deterministic sandbox evaluation passed 12/12 with the unchanged 11,602-byte PDF, 51,723-byte ZIP, and manifest hash `47c5de9b8c2da8dfc040951b57697a2081fec8f1b3817e5148480aefaf9aef9a`;
+- the prohibited-claims scan passed all 18 direct patterns;
+- Playwright passed 56 scenarios with four intentional tablet/mobile skips for Chromium-owned Axe/visual baselines; and
+- live `npm audit --audit-level=moderate` initially found the newly disclosed pinned PostCSS issue, PostCSS was updated to 8.5.25, and the final audit reported zero vulnerabilities.
+
+Fresh desktop, tablet, and mobile brokerage/access captures were inspected. There was no observed clipping, collision, or document-width overflow. They also confirm that milestone-labelled workspaces and synthetic fixture navigation are still visible, so the C2 unified case-first shell and design-system conversion remain explicitly incomplete.
 
 ## Replacement north-star M12 operational hardening local-validation addendum
 
@@ -340,21 +364,21 @@ GitHub checks subsequently ran on the stacked M5 PR. CodeQL/security passed. The
 
 ## Measured gates
 
-| Gate | Exact result |
-|---|---|
-| Fresh-lockfile setup | `npm ci` passed from `package-lock.json` with 459 packages installed |
-| Consolidated gate | `npm run verify` exited 0 |
-| ESLint | Passed |
-| Strict TypeScript | Passed with `tsc --noEmit` |
-| Unit/integration | 3 files, 9 tests passed |
-| Production build | Next.js 16.2.12 webpack build passed; 16 product routes and 7 API routes |
-| Deterministic evaluation | 12/12 checks passed; reset digest matched `db9db21485615453` |
-| Guided browser demo | 4/4 passed serially against the production standalone server: desktop Chrome and Pixel 7, full story plus all-route health |
-| Runtime dependency audit | `npm audit --omit=dev`: 0 vulnerabilities |
-| Full dependency audit | 4 moderate development-only findings remain in Drizzle Kit's legacy `@esbuild-kit` chain; npm proposes a breaking downgrade, so they are recorded rather than forced |
-| Claims scan | No prohibited promise/affiliation phrases found in seeded UI source |
-| Secret scan | No credential-shaped assignments or bearer tokens found in repository source/configuration |
-| Diff hygiene | `git diff --check` passed |
+| Gate                     | Exact result                                                                                                                                                         |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fresh-lockfile setup     | `npm ci` passed from `package-lock.json` with 459 packages installed                                                                                                 |
+| Consolidated gate        | `npm run verify` exited 0                                                                                                                                            |
+| ESLint                   | Passed                                                                                                                                                               |
+| Strict TypeScript        | Passed with `tsc --noEmit`                                                                                                                                           |
+| Unit/integration         | 3 files, 9 tests passed                                                                                                                                              |
+| Production build         | Next.js 16.2.12 webpack build passed; 16 product routes and 7 API routes                                                                                             |
+| Deterministic evaluation | 12/12 checks passed; reset digest matched `db9db21485615453`                                                                                                         |
+| Guided browser demo      | 4/4 passed serially against the production standalone server: desktop Chrome and Pixel 7, full story plus all-route health                                           |
+| Runtime dependency audit | `npm audit --omit=dev`: 0 vulnerabilities                                                                                                                            |
+| Full dependency audit    | 4 moderate development-only findings remain in Drizzle Kit's legacy `@esbuild-kit` chain; npm proposes a breaking downgrade, so they are recorded rather than forced |
+| Claims scan              | No prohibited promise/affiliation phrases found in seeded UI source                                                                                                  |
+| Secret scan              | No credential-shaped assignments or bearer tokens found in repository source/configuration                                                                           |
+| Diff hygiene             | `git diff --check` passed                                                                                                                                            |
 
 The first hot-reload E2E attempt exposed reloads caused by runtime file writes, so the final suite was moved to the built standalone server. The production-server rerun passed without that dev-watch failure mode.
 
@@ -369,25 +393,25 @@ The first hot-reload E2E attempt exposed reloads caused by runtime file writes, 
 
 ## Generated artifacts and inspection
 
-| Artifact | Result |
-|---|---|
-| `artifacts/evaluation/demo-evaluation.json` | Pass report, 12 checks |
-| `output/pdf/case-jefferson-submission-v1.pdf` | Real PDF 1.7, Letter, 6 pages, 11,602 bytes, SHA-256 `6b8f29f6c8e41a725dfe37d79831f093c9c60c3c042306dd494856e8da5bea21` |
-| `output/packets/case-jefferson-submission-v1.zip` | Real ZIP, 17 files, 51,723 bytes, SHA-256 `ed3a7e0414be5f13b12ac413afea9d4415e0823255c5231dfee919e3e0a3a8be` |
-| Manifest semantic hash | `47c5de9b8c2da8dfc040951b57697a2081fec8f1b3817e5148480aefaf9aef9a` |
-| Screenshots | Portfolio, generated packet, and maintenance/reuse views inspected at desktop size |
+| Artifact                                          | Result                                                                                                                  |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `artifacts/evaluation/demo-evaluation.json`       | Pass report, 12 checks                                                                                                  |
+| `output/pdf/case-jefferson-submission-v1.pdf`     | Real PDF 1.7, Letter, 6 pages, 11,602 bytes, SHA-256 `6b8f29f6c8e41a725dfe37d79831f093c9c60c3c042306dd494856e8da5bea21` |
+| `output/packets/case-jefferson-submission-v1.zip` | Real ZIP, 17 files, 51,723 bytes, SHA-256 `ed3a7e0414be5f13b12ac413afea9d4415e0823255c5231dfee919e3e0a3a8be`            |
+| Manifest semantic hash                            | `47c5de9b8c2da8dfc040951b57697a2081fec8f1b3817e5148480aefaf9aef9a`                                                      |
+| Screenshots                                       | Portfolio, generated packet, and maintenance/reuse views inspected at desktop size                                      |
 
 The PDF and ZIP hashes were reproduced identically across two consecutive evaluator runs. All six PDF pages were rendered to PNG and visually inspected: headers/footers, notice confirmation, requirement matrix, mitigation-action register, evidence index, caveats, and editable-letter paragraph breaks are legible with no observed clipping or overlap. ZIP inspection confirmed `manifest.json`, the editable letter, the PDF, and 14 exhibits. JPEG exhibit signatures and SHA-256 readback are covered by tests.
 
 ## Manual rubric
 
-| Dimension | Result | Evidence |
-|---|---|---|
-| Buyer relevance | Pass | Deadline triage, notice-to-packet workflow, assignments, clarification loop, and reuse align to the specialist-broker wedge |
-| Trust | Pass | Fictional labels, source/version/verify-current status, human gates, explicit missing/conflicting evidence, immutable audit, and limitations remain visible |
-| Workflow completeness | Pass | Nine guided steps complete from dangerous renewal through next-year reuse; every visible control has an implemented result |
-| Visual polish | Pass | Institutional light theme, restrained status colors, dense readable tables, local map, responsive layout, focus styles, print controls, and inspected screenshots |
-| Unsupported claims | Pass | No Fortify-created risk score, compliance designation, premium forecast, carrier promise, or official IBHS affiliation |
+| Dimension             | Result | Evidence                                                                                                                                                          |
+| --------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Buyer relevance       | Pass   | Deadline triage, notice-to-packet workflow, assignments, clarification loop, and reuse align to the specialist-broker wedge                                       |
+| Trust                 | Pass   | Fictional labels, source/version/verify-current status, human gates, explicit missing/conflicting evidence, immutable audit, and limitations remain visible       |
+| Workflow completeness | Pass   | Nine guided steps complete from dangerous renewal through next-year reuse; every visible control has an implemented result                                        |
+| Visual polish         | Pass   | Institutional light theme, restrained status colors, dense readable tables, local map, responsive layout, focus styles, print controls, and inspected screenshots |
+| Unsupported claims    | Pass   | No Fortify-created risk score, compliance designation, premium forecast, carrier promise, or official IBHS affiliation                                            |
 
 No critical manual-review issue remains.
 

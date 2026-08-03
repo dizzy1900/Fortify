@@ -36,8 +36,7 @@ let client: PGlite;
 let database: PgliteDatabase<typeof schema>;
 let currentTime: Date;
 
-const productionDatabase = () =>
-  database as unknown as ProductionDatabaseLike;
+const productionDatabase = () => database as unknown as ProductionDatabaseLike;
 
 describe("production identity and deny-by-default authorization", () => {
   beforeEach(async () => {
@@ -96,7 +95,9 @@ describe("production identity and deny-by-default authorization", () => {
   });
 
   test("keeps resilience ecosystem roles inside explicit separation-of-duty boundaries", () => {
-    const context = (role: AuthorizationContext["role"]): AuthorizationContext => ({
+    const context = (
+      role: AuthorizationContext["role"],
+    ): AuthorizationContext => ({
       organizationId: "org-boundary",
       actorSubject: `identity:${role}`,
       principalType: "membership",
@@ -159,7 +160,10 @@ describe("production identity and deny-by-default authorization", () => {
       organizationId: fixture.organizationId,
       subject: fixture.context.actorSubject,
     });
-    const service = new IdentityService(productionDatabase(), () => currentTime);
+    const service = new IdentityService(
+      productionDatabase(),
+      () => currentTime,
+    );
     const invitation = await service.inviteMembership(fixture.context, {
       email: "assistant@example.test",
       role: "assistant",
@@ -180,10 +184,22 @@ describe("production identity and deny-by-default authorization", () => {
       authenticationMethods: ["pwd", "mfa"],
       mfaCapable: true,
     };
-    const accepted = await service.acceptInvitation(invitation.token, profile);
-    await expect(
+    const acceptanceResults = await Promise.allSettled([
       service.acceptInvitation(invitation.token, profile),
-    ).rejects.toBeInstanceOf(AuthenticationError);
+      service.acceptInvitation(invitation.token, profile),
+    ]);
+    expect(
+      acceptanceResults.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
+    expect(
+      acceptanceResults.filter((result) => result.status === "rejected"),
+    ).toHaveLength(1);
+    const acceptedResult = acceptanceResults.find(
+      (result) => result.status === "fulfilled",
+    );
+    if (!acceptedResult || acceptedResult.status !== "fulfilled")
+      throw new Error("One invitation acceptance must succeed.");
+    const accepted = acceptedResult.value;
     const session = await service.issueSession({
       profile,
       activeOrganizationId: fixture.organizationId,
@@ -217,7 +233,10 @@ describe("production identity and deny-by-default authorization", () => {
       organizationId: fixture.organizationId,
       subject: fixture.context.actorSubject,
     });
-    const service = new IdentityService(productionDatabase(), () => currentTime);
+    const service = new IdentityService(
+      productionDatabase(),
+      () => currentTime,
+    );
     const session = await service.issueSession({
       profile: owner.profile,
       activeOrganizationId: fixture.organizationId,
@@ -247,7 +266,10 @@ describe("production identity and deny-by-default authorization", () => {
 
   test("limits API credentials to stored scopes and supports revocation", async () => {
     const fixture = await createTenantFixture(productionDatabase(), "service");
-    const service = new IdentityService(productionDatabase(), () => currentTime);
+    const service = new IdentityService(
+      productionDatabase(),
+      () => currentTime,
+    );
     const issued = await service.createServiceAccount(fixture.context, {
       name: "SOV importer",
       scopes: ["community:read"],
@@ -290,7 +312,10 @@ describe("production identity and deny-by-default authorization", () => {
       role: "read_only_auditor",
       email: "support@example.test",
     });
-    const service = new IdentityService(productionDatabase(), () => currentTime);
+    const service = new IdentityService(
+      productionDatabase(),
+      () => currentTime,
+    );
     const grant = await service.grantSupportAccess(fixture.context, {
       supportIdentityId: support.identityId,
       reason: "Customer-approved migration review",
@@ -335,7 +360,10 @@ describe("production identity and deny-by-default authorization", () => {
         renewalDate: "2027-01-01",
       },
     );
-    const service = new IdentityService(productionDatabase(), () => currentTime);
+    const service = new IdentityService(
+      productionDatabase(),
+      () => currentTime,
+    );
     const access = await service.createExternalCaseAccess(fixture.context, {
       caseId: caseRecord.id,
       principalType: "external_reviewer",
@@ -373,7 +401,10 @@ describe("production identity and deny-by-default authorization", () => {
   });
 
   test("rejects direct cross-tenant references in every new tenant relation", async () => {
-    const alpha = await createTenantFixture(productionDatabase(), "guard-alpha");
+    const alpha = await createTenantFixture(
+      productionDatabase(),
+      "guard-alpha",
+    );
     const beta = await createTenantFixture(productionDatabase(), "guard-beta");
     const alphaMember = await createActiveMembership(productionDatabase(), {
       organizationId: alpha.organizationId,
@@ -422,59 +453,64 @@ describe("production identity and deny-by-default authorization", () => {
     );
     const alphaOwned = tenantRecord(alpha.context, at);
     const attempts = [
-      () => database.insert(schema.invitations).values({
-        id: "cross-invitation",
-        ...alphaOwned,
-        membershipId: betaMember.membershipId,
-        email: "cross@example.test",
-        tokenHash: "cross-invitation-token",
-        expiresAt: "2026-08-02T12:00:00.000Z",
-      }),
-      () => database.insert(schema.teamMemberships).values({
-        id: "cross-team-member",
-        ...alphaOwned,
-        teamId: "team-beta",
-        membershipId: alphaMember.membershipId,
-      }),
-      () => database.insert(schema.apiCredentials).values({
-        id: "cross-api",
-        ...alphaOwned,
-        serviceAccountId: "service-beta",
-        name: "Cross credential",
-        credentialPrefix: "crossprefix",
-        secretHash: "a".repeat(64),
-        scopes: [],
-      }),
-      () => database.insert(schema.supportAccessGrants).values({
-        id: "cross-support",
-        ...alphaOwned,
-        supportIdentityId: alphaMember.identityId,
-        approvedByMembershipId: betaMember.membershipId,
-        reason: "Must fail",
-        scopes: [],
-        expiresAt: "2026-08-02T12:00:00.000Z",
-      }),
-      () => database.insert(schema.caseAssignments).values({
-        id: "cross-assignment",
-        ...alphaOwned,
-        caseId: betaCase.id,
-        membershipId: alphaMember.membershipId,
-        assignmentRole: "team_member",
-        permissions: [],
-      }),
-      () => database.insert(schema.externalAccessGrants).values({
-        id: "cross-external",
-        ...alphaOwned,
-        externalPrincipalId: "external-beta",
-        caseId: betaCase.id,
-        purpose: "Must fail",
-        tokenHash: "cross-external-token",
-        scopes: [],
-        expiresAt: "2026-08-02T12:00:00.000Z",
-      }),
+      () =>
+        database.insert(schema.invitations).values({
+          id: "cross-invitation",
+          ...alphaOwned,
+          membershipId: betaMember.membershipId,
+          email: "cross@example.test",
+          tokenHash: "cross-invitation-token",
+          expiresAt: "2026-08-02T12:00:00.000Z",
+        }),
+      () =>
+        database.insert(schema.teamMemberships).values({
+          id: "cross-team-member",
+          ...alphaOwned,
+          teamId: "team-beta",
+          membershipId: alphaMember.membershipId,
+        }),
+      () =>
+        database.insert(schema.apiCredentials).values({
+          id: "cross-api",
+          ...alphaOwned,
+          serviceAccountId: "service-beta",
+          name: "Cross credential",
+          credentialPrefix: "crossprefix",
+          secretHash: "a".repeat(64),
+          scopes: [],
+        }),
+      () =>
+        database.insert(schema.supportAccessGrants).values({
+          id: "cross-support",
+          ...alphaOwned,
+          supportIdentityId: alphaMember.identityId,
+          approvedByMembershipId: betaMember.membershipId,
+          reason: "Must fail",
+          scopes: [],
+          expiresAt: "2026-08-02T12:00:00.000Z",
+        }),
+      () =>
+        database.insert(schema.caseAssignments).values({
+          id: "cross-assignment",
+          ...alphaOwned,
+          caseId: betaCase.id,
+          membershipId: alphaMember.membershipId,
+          assignmentRole: "team_member",
+          permissions: [],
+        }),
+      () =>
+        database.insert(schema.externalAccessGrants).values({
+          id: "cross-external",
+          ...alphaOwned,
+          externalPrincipalId: "external-beta",
+          caseId: betaCase.id,
+          purpose: "Must fail",
+          tokenHash: "cross-external-token",
+          scopes: [],
+          expiresAt: "2026-08-02T12:00:00.000Z",
+        }),
     ];
-    for (const attempt of attempts)
-      await expect(attempt()).rejects.toThrow();
+    for (const attempt of attempts) await expect(attempt()).rejects.toThrow();
   });
 
   test("fails local identity closed and validates OIDC configuration", () => {
@@ -488,13 +524,14 @@ describe("production identity and deny-by-default authorization", () => {
         displayName: "Local User",
       }),
     ).toThrow(IdentityProviderConfigurationError);
-    expect(() =>
-      new OidcIdentityProvider({
-        key: "test",
-        issuer: "http://identity.example.test",
-        clientId: "client",
-        clientSecret: "secret",
-      }),
+    expect(
+      () =>
+        new OidcIdentityProvider({
+          key: "test",
+          issuer: "http://identity.example.test",
+          clientId: "client",
+          clientSecret: "secret",
+        }),
     ).toThrow(IdentityProviderConfigurationError);
     expect(
       new LocalDevelopmentIdentityProvider({
@@ -514,7 +551,10 @@ describe("production identity and deny-by-default authorization", () => {
 
   test("stores OIDC state server-side and consumes each attempt once", async () => {
     const fixture = await createTenantFixture(productionDatabase(), "oidc");
-    const service = new IdentityService(productionDatabase(), () => currentTime);
+    const service = new IdentityService(
+      productionDatabase(),
+      () => currentTime,
+    );
     await service.registerAuthenticationAttempt("enterprise-oidc", {
       state: "state-secret",
       nonce: "nonce-secret",
@@ -525,10 +565,22 @@ describe("production identity and deny-by-default authorization", () => {
     });
     const stored = await database.select().from(schema.authenticationAttempts);
     expect(stored[0].stateHash).not.toContain("state-secret");
-    const consumed = await service.consumeAuthenticationAttempt(
-      "enterprise-oidc",
-      "state-secret",
+    const consumptionResults = await Promise.allSettled([
+      service.consumeAuthenticationAttempt("enterprise-oidc", "state-secret"),
+      service.consumeAuthenticationAttempt("enterprise-oidc", "state-secret"),
+    ]);
+    expect(
+      consumptionResults.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
+    expect(
+      consumptionResults.filter((result) => result.status === "rejected"),
+    ).toHaveLength(1);
+    const consumedResult = consumptionResults.find(
+      (result) => result.status === "fulfilled",
     );
+    if (!consumedResult || consumedResult.status !== "fulfilled")
+      throw new Error("One authentication attempt consumption must succeed.");
+    const consumed = consumedResult.value;
     expect(consumed).toMatchObject({
       returnTo: "/portfolio",
       activeOrganizationId: fixture.organizationId,

@@ -2,7 +2,21 @@
 
 ## Current milestone
 
-M12 — The operational-hardening and launch-contract slice is implemented and locally validated on top of stacked draft PR [#18](https://github.com/dizzy1900/Fortify/pull/18). It does not prove a managed deployment, production RLS role, live identity/storage/provider infrastructure, PITR or managed restore, alert operation, security certification, customer use, or external acceptance.
+C0 — Request and authority safety is in progress on top of merged `main`. The first vertical slice establishes a real non-owner PostgreSQL application role, transaction-local tenant context, audit-chain serialization, and atomic one-use credential/grant consumption. Full entry-point wiring and managed PostgreSQL validation remain incomplete.
+
+## Product convergence C0 implemented this cycle
+
+- Persisted the product convergence north star, ordered implementation plan, design-system specification, and paid-pilot gate ledger. The M0-M12 foundation is now explicitly treated as input to convergence rather than proof of a coherent pilot-ready product.
+- Added migration 0027 with a `fortify_app` NOLOGIN/NOBYPASSRLS role, least-privilege schema/table/sequence grants, revoked public table/sequence access, forward default privileges, and a unique per-organization audit-chain link.
+- Separated privileged `DATABASE_URL` migration/backup access from required `FORTIFY_APP_DATABASE_URL` runtime access. Equal credentials fail closed, and release configuration now requires both secrets.
+- Added `withTenantTransaction`, which checks out one transaction, drops to `fortify_app`, and binds organization and actor through `SET LOCAL`/`set_config(..., true)`. The role/RLS test reads without repository predicates, rejects a cross-tenant write, switches tenants on the reused database, and proves no tenant setting remains outside the transaction.
+- Serialized audit appends with a per-organization transaction advisory lock before reading the prior chain head. The database unique index rejects a second successor from the same previous hash.
+- Replaced read-then-write OIDC attempt, invitation, and one-use download-grant consumption with conditional update-and-return claims. Focused concurrency tests require exactly one fulfilled consumer and one rejected consumer.
+- The first full bounded run exposed a same-timestamp audit-tail defect; selecting the unreferenced chain tail repaired it. PGlite fresh-migration hooks were raised from 30 to 90 seconds after repeated 190-table setup runs exceeded the old environment timeout; no assertion or product timeout was relaxed.
+- Final local gates pass: scoped Prettier, ESLint, strict TypeScript, 24 isolated Vitest files/94 tests, 33/33 production-flow mapping, 13-artifact operations validation, a 440-file secret scan, the 30-product-page/134-API production build, 12/12 deterministic evaluation, the 18-pattern claims scan, and 56 Playwright passes with four intentional tablet/mobile skips. PostCSS was updated to 8.5.25 after the live audit found a new moderate advisory; final `npm audit --audit-level=moderate` reports zero vulnerabilities.
+- Fresh brokerage desktop/mobile and access tablet captures were inspected without observed clipping, collision, or document-width overflow. Their milestone labels and fixture navigation confirm C2 is still incomplete. Managed-provider validation is not claimed.
+
+## Preserved M12 foundation
 
 ## M12 locally implemented this cycle
 
