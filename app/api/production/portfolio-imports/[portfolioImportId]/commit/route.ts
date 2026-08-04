@@ -1,9 +1,12 @@
 import { NextRequest } from "next/server";
 import {
   authenticationFailure,
-  resolveRequestPrincipal,
+  withAuthenticatedTenantRequest,
 } from "@/lib/production/http-auth";
-import { getProductionPortfolioImportService } from "@/lib/production/portfolio-import-http";
+import {
+  getProductionPortfolioImportService,
+  presentPortfolioImportResult,
+} from "@/lib/production/portfolio-import-http";
 import { requireProductionRuntime } from "@/lib/runtime";
 
 export async function POST(
@@ -12,15 +15,21 @@ export async function POST(
 ) {
   try {
     requireProductionRuntime();
-    const principal = await resolveRequestPrincipal(request);
     const { portfolioImportId } = await params;
     const body = (await request.json()) as { confirmAcceptedRows?: boolean };
-    return Response.json(
-      await getProductionPortfolioImportService().commit(
-        principal.authorization,
-        portfolioImportId,
-        { confirmAcceptedRows: body.confirmAcceptedRows === true },
-      ),
+    return await withAuthenticatedTenantRequest(
+      request,
+      async (principal, transaction) =>
+        Response.json(
+          presentPortfolioImportResult(
+            await getProductionPortfolioImportService(transaction).commit(
+              principal.authorization,
+              portfolioImportId,
+              { confirmAcceptedRows: body.confirmAcceptedRows === true },
+            ),
+          ),
+          { headers: { "Cache-Control": "no-store" } },
+        ),
     );
   } catch (error) {
     return authenticationFailure(error);

@@ -1,15 +1,17 @@
 import { NextRequest } from "next/server";
 import {
   authenticationFailure,
-  resolveRequestPrincipal,
+  withAuthenticatedTenantRequest,
 } from "@/lib/production/http-auth";
-import { getProductionPortfolioImportService } from "@/lib/production/portfolio-import-http";
+import {
+  getProductionPortfolioImportService,
+  presentPortfolioImportResult,
+} from "@/lib/production/portfolio-import-http";
 import { requireProductionRuntime } from "@/lib/runtime";
 
 export async function POST(request: NextRequest) {
   try {
     requireProductionRuntime();
-    const principal = await resolveRequestPrincipal(request);
     const body = (await request.json()) as {
       bookId?: string;
       storageObjectId?: string;
@@ -31,18 +33,27 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 },
       );
-    return Response.json(
-      await getProductionPortfolioImportService().preview(
-        principal.authorization,
-        {
-          bookId: body.bookId,
-          storageObjectId: body.storageObjectId,
-          mappingVersionId: body.mappingVersionId,
-          sourceSystem: body.sourceSystem,
-          idempotencyKey: body.idempotencyKey,
-        },
-      ),
-      { status: 201 },
+    return await withAuthenticatedTenantRequest(
+      request,
+      async (principal, transaction) =>
+        Response.json(
+          presentPortfolioImportResult(
+            await getProductionPortfolioImportService(transaction).preview(
+              principal.authorization,
+              {
+                bookId: body.bookId!,
+                storageObjectId: body.storageObjectId!,
+                mappingVersionId: body.mappingVersionId!,
+                sourceSystem: body.sourceSystem!,
+                idempotencyKey: body.idempotencyKey!,
+              },
+            ),
+          ),
+          {
+            status: 201,
+            headers: { "Cache-Control": "no-store" },
+          },
+        ),
     );
   } catch (error) {
     return authenticationFailure(error);
