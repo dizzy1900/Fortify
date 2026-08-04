@@ -2,6 +2,7 @@ import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import * as schema from "@/db/production/schema";
 import { assertAuthorized } from "@/lib/production/authorization";
+import { hashOpaqueSecret } from "@/lib/production/identity-service";
 import { appendAudit, tenantRecord, TenantResourceNotFoundError, type ProductionDatabaseLike, type TenantContext } from "@/lib/production/repository";
 
 export type VerificationEvidenceLevel =
@@ -110,13 +111,13 @@ export class VerificationService {
       if (!prior[0]) throw new VerificationStateError("Reinspection must reference an assignment for the same project.");
     }
     const at = this.clock().toISOString(), id = randomUUID(), token = `fverify_${randomBytes(32).toString("base64url")}`;
-    await this.database.insert(schema.verificationAssignments).values({ id, ...tenantRecord(context, at), projectId: input.projectId, profileVersionId: input.profileVersionId, verifierId: input.verifierId, credentialId: input.credentialId, purpose: required(input.purpose, "Assignment purpose"), scope: input.scope, tokenHash: digest(token), assignedBy: context.actorSubject, assignedAt: at, dueOn: input.dueOn, expiresAt: input.expiresAt, reinspectionOfAssignmentId: input.reinspectionOfAssignmentId });
+    await this.database.insert(schema.verificationAssignments).values({ id, ...tenantRecord(context, at), projectId: input.projectId, profileVersionId: input.profileVersionId, verifierId: input.verifierId, credentialId: input.credentialId, purpose: required(input.purpose, "Assignment purpose"), scope: input.scope, tokenHash: hashOpaqueSecret(token), assignedBy: context.actorSubject, assignedAt: at, dueOn: input.dueOn, expiresAt: input.expiresAt, reinspectionOfAssignmentId: input.reinspectionOfAssignmentId });
     await appendAudit(this.database, context, { action: "verification_assignment.created", resourceType: "verification_assignment", resourceId: id, detail: { projectId: input.projectId, profileVersionId: input.profileVersionId, credentialId: input.credentialId, reinspectionOfAssignmentId: input.reinspectionOfAssignmentId ?? null }, occurredAt: at });
     return { assignmentId: id, token };
   }
 
   async resolveExternalVerificationToken(rawToken: string): Promise<TenantContext> {
-    const tokenHash = digest(required(rawToken, "Verification access token"));
+    const tokenHash = hashOpaqueSecret(required(rawToken, "Verification access token"));
     const assignment = await this.database.select().from(schema.verificationAssignments).where(eq(schema.verificationAssignments.tokenHash, tokenHash)).limit(1);
     if (!assignment[0] || assignment[0].revokedAt || new Date(assignment[0].expiresAt).getTime() <= this.clock().getTime()) throw new VerificationStateError("Verification access is invalid, expired, or revoked.");
     const [verifier, credential] = await Promise.all([
