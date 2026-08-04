@@ -21,6 +21,10 @@ import {
   PortfolioImportValidationError,
 } from "@/lib/production/portfolio-import-service";
 import {
+  ResiliencePlanningStateError,
+  ResiliencePlanningValidationError,
+} from "@/lib/production/resilience-planning-service";
+import {
   PlaybookApplicabilityError,
   PlaybookStateError,
   PlaybookValidationError,
@@ -318,6 +322,10 @@ export function authenticationFailure(error: unknown) {
   if (error instanceof GovernedSourceValidationError)
     return Response.json({ error: error.message }, { status: 400 });
   if (error instanceof GovernedSourceStateError)
+    return Response.json({ error: error.message }, { status: 409 });
+  if (error instanceof ResiliencePlanningValidationError)
+    return Response.json({ error: error.message }, { status: 400 });
+  if (error instanceof ResiliencePlanningStateError)
     return Response.json({ error: error.message }, { status: 409 });
   if (error instanceof FundingProjectValidationError)
     return Response.json({ error: error.message }, { status: 400 });
