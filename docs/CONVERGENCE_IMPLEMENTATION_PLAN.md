@@ -11,7 +11,7 @@ Status: in progress.
 3. Prove real RLS filtering, write rejection, and pool-context reset under the application role.
 4. Route every authenticated tenant operation through that primitive, including workers and inbound integration resolution.
 5. Make audit append serialization and OIDC, invitation, session, and one-use grant consumption concurrency-safe.
-6. Complete CSRF, cookie/session rotation, permission, rate-limit, and response-minimization attacks.
+6. Complete CSRF, cookie/session rotation, permission, rate-limit, and response-minimization attacks. Local attack coverage is complete; the same boundary must be replayed on selected managed PostgreSQL.
 
 Exit evidence: a real PostgreSQL test exercises a non-owner login; every tenant entry point is enumerated and bound; concurrency attacks have one winner; no tenant setting survives a transaction; lint, typecheck, migration, unit/integration, tenant-isolation, build, and browser gates pass.
 

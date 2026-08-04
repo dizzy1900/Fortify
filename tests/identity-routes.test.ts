@@ -1,12 +1,21 @@
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle, type PgliteDatabase } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import * as schema from "@/db/production/schema";
+import {
+  IdentityService,
+  RevokedCredentialError,
+} from "@/lib/production/identity-service";
+import {
+  clearSessionCookie,
+  setSessionCookie,
+} from "@/lib/production/http-auth";
 import type { ProductionDatabaseLike } from "@/lib/production/repository";
 import { withTenantTransaction } from "@/lib/production/tenant-transaction";
+import { proxy } from "@/proxy";
 import {
   createActiveMembership,
   createTenantFixture,
@@ -41,8 +50,13 @@ vi.mock("@/lib/production/identity-provider", async (importOriginal) => {
 });
 
 import { POST as localSignIn } from "@/app/api/auth/local/route";
+import { POST as logout } from "@/app/api/auth/logout/route";
 import { GET as oidcCallback } from "@/app/api/auth/oidc/callback/route";
 import { GET as oidcStart } from "@/app/api/auth/oidc/start/route";
+import {
+  GET as readSession,
+  POST as rotateSession,
+} from "@/app/api/auth/session/route";
 
 describe("identity route request binding", () => {
   let client: PGlite;
@@ -135,7 +149,7 @@ describe("identity route request binding", () => {
     });
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("set-cookie")).toMatch(
-      /fortify_session=fsess_[^;]+;.*HttpOnly.*SameSite=Lax/i,
+      /fortify_session=fsess_[^;]+;.*HttpOnly.*SameSite=Strict.*Priority=high/i,
     );
   });
 
@@ -187,6 +201,7 @@ describe("identity route request binding", () => {
     vi.stubEnv("FORTIFY_APP_ORIGIN", "");
     const misconfigured = await oidcCallback(callbackRequest());
     expect(misconfigured.status).toBe(503);
+    expect(misconfigured.headers.get("cache-control")).toBe("no-store");
     vi.stubEnv("FORTIFY_APP_ORIGIN", "https://fortify.test");
     const completed = await oidcCallback(callbackRequest());
     expect(completed.status).toBe(307);
@@ -195,13 +210,189 @@ describe("identity route request binding", () => {
     );
     expect(completed.headers.get("cache-control")).toBe("no-store");
     expect(completed.headers.get("set-cookie")).toMatch(
-      /fortify_session=fsess_[^;]+;.*HttpOnly.*SameSite=Lax/i,
+      /fortify_session=fsess_[^;]+;.*HttpOnly.*SameSite=Strict.*Priority=high/i,
     );
     const replay = await oidcCallback(callbackRequest());
     expect(replay.status).toBe(401);
     expect(await replay.json()).toEqual({
-      error: "The authentication attempt is invalid or already used.",
+      error: "Authentication failed.",
     });
+  });
+
+  test("minimizes, rotates, and revokes only interactive sessions", async () => {
+    const tenant = await createTenantFixture(
+      routeState.database!,
+      "session-route",
+    );
+    const owner = await createActiveMembership(routeState.database!, {
+      organizationId: tenant.organizationId,
+      subject: tenant.context.actorSubject,
+      role: "organization_owner",
+    });
+    const identity = new IdentityService(routeState.database!);
+    const original = await identity.issueSession({
+      profile: owner.profile,
+      activeOrganizationId: tenant.organizationId,
+      ttlSeconds: 3_600,
+      userAgent: "original-session-agent",
+      ipAddress: "198.51.100.24",
+    });
+    const sessionRequest = (token: string, method = "GET") =>
+      new NextRequest("https://fortify.test/api/auth/session", {
+        method,
+        headers: {
+          cookie: `fortify_session=${token}`,
+          "user-agent": "rotated-session-agent",
+        },
+      });
+
+    const read = await readSession(sessionRequest(original.token));
+    expect(read.status).toBe(200);
+    expect(read.headers.get("cache-control")).toBe("no-store");
+    expect(await read.json()).toEqual({
+      role: "organization_owner",
+      expiresAt: original.expiresAt,
+    });
+
+    const rotated = await rotateSession(sessionRequest(original.token, "POST"));
+    expect(rotated.status).toBe(200);
+    expect(rotated.headers.get("cache-control")).toBe("no-store");
+    expect(await rotated.clone().json()).toEqual({
+      ok: true,
+      expiresAt: original.expiresAt,
+    });
+    const setCookie = rotated.headers.get("set-cookie") ?? "";
+    expect(setCookie).toMatch(
+      /fortify_session=fsess_[^;]+;.*HttpOnly.*SameSite=Strict.*Priority=high/i,
+    );
+    expect(setCookie).not.toContain(original.token);
+    const rotatedToken = /fortify_session=([^;]+)/i.exec(setCookie)?.[1];
+    expect(rotatedToken).toMatch(/^fsess_/);
+    if (!rotatedToken) throw new Error("Rotated session cookie is required.");
+    await expect(
+      identity.resolveSession(original.token),
+    ).rejects.toBeInstanceOf(RevokedCredentialError);
+    await expect(identity.resolveSession(rotatedToken)).resolves.toMatchObject({
+      authorization: {
+        organizationId: tenant.organizationId,
+        role: "organization_owner",
+      },
+      expiresAt: original.expiresAt,
+    });
+
+    const apiCredential = await identity.createServiceAccount(tenant.context, {
+      name: "Session endpoint attack",
+      scopes: ["community:read"],
+    });
+    for (const handler of [readSession, rotateSession, logout]) {
+      const denied = await handler(
+        new NextRequest("https://fortify.test/api/auth/session", {
+          method: handler === readSession ? "GET" : "POST",
+          headers: { authorization: `Bearer ${apiCredential.token}` },
+        }),
+      );
+      expect(denied.status).toBe(401);
+      expect(denied.headers.get("cache-control")).toBe("no-store");
+      expect(await denied.json()).toEqual({ error: "Authentication failed." });
+    }
+
+    const loggedOut = await logout(
+      new NextRequest("https://fortify.test/api/auth/logout", {
+        method: "POST",
+        headers: { cookie: `fortify_session=${rotatedToken}` },
+      }),
+    );
+    expect(loggedOut.status).toBe(200);
+    expect(loggedOut.headers.get("cache-control")).toBe("no-store");
+    expect(loggedOut.headers.get("set-cookie")).toMatch(
+      /fortify_session=;.*Expires=Thu, 01 Jan 1970 00:00:00 GMT.*HttpOnly.*SameSite=Strict.*Priority=high/i,
+    );
+    await expect(identity.resolveSession(rotatedToken)).rejects.toBeInstanceOf(
+      RevokedCredentialError,
+    );
+
+    const stale = await readSession(sessionRequest(rotatedToken));
+    expect(stale.status).toBe(401);
+    expect(stale.headers.get("cache-control")).toBe("no-store");
+    expect(stale.headers.get("set-cookie")).toMatch(
+      /fortify_session=;.*Expires=Thu, 01 Jan 1970 00:00:00 GMT.*HttpOnly.*SameSite=Strict.*Priority=high/i,
+    );
+    expect(await stale.json()).toEqual({ error: "Authentication failed." });
+  });
+
+  test("rejects cross-site browser-session mutations while allowing exact same-origin and bearer requests", async () => {
+    const mutate = (headers: Record<string, string>) =>
+      proxy(
+        new NextRequest("https://fortify.test/api/production/communities", {
+          method: "POST",
+          headers,
+        }),
+      );
+
+    for (const cookieName of ["fortify_session", "__Host-fortify_session"]) {
+      const attackHeaders: Array<Record<string, string>> = [
+        { cookie: `${cookieName}=fsess_fixture` },
+        {
+          cookie: `${cookieName}=fsess_fixture`,
+          origin: "https://attacker.example.test",
+          "sec-fetch-site": "cross-site",
+        },
+        {
+          cookie: `${cookieName}=fsess_fixture`,
+          origin: "https://fortify.test",
+          "sec-fetch-site": "same-site",
+        },
+      ];
+      for (const headers of attackHeaders) {
+        const denied = mutate(headers);
+        expect(denied.status).toBe(403);
+        expect(denied.headers.get("cache-control")).toBe("no-store");
+        expect(denied.headers.get("x-content-type-options")).toBe("nosniff");
+        expect(await denied.json()).toEqual({
+          error: "Cross-site request rejected.",
+        });
+      }
+    }
+
+    const allowed = mutate({
+      cookie: "fortify_session=fsess_fixture",
+      origin: "https://fortify.test",
+      "sec-fetch-site": "same-origin",
+    });
+    expect(allowed.status).toBe(200);
+    expect(allowed.headers.get("x-middleware-next")).toBe("1");
+
+    const bearer = mutate({ authorization: "Bearer fapi_fixture" });
+    expect(bearer.status).toBe(200);
+    expect(bearer.headers.get("x-middleware-next")).toBe("1");
+
+    const safeRead = proxy(
+      new NextRequest("https://fortify.test/api/auth/session", {
+        headers: { cookie: "fortify_session=fsess_fixture" },
+      }),
+    );
+    expect(safeRead.status).toBe(200);
+  });
+
+  test("uses a secure host-only cookie in production", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const issued = NextResponse.json({ ok: true });
+    setSessionCookie(
+      issued,
+      "fsess_production-cookie",
+      "2026-08-02T12:00:00.000Z",
+    );
+    expect(issued.headers.get("set-cookie")).toMatch(
+      /__Host-fortify_session=fsess_production-cookie;.*Secure;.*HttpOnly;.*SameSite=Strict;.*Priority=high/i,
+    );
+    expect(issued.headers.get("set-cookie")).not.toMatch(/Domain=/i);
+
+    const cleared = NextResponse.json({ ok: true });
+    clearSessionCookie(cleared);
+    expect(cleared.headers.get("set-cookie")).toMatch(
+      /__Host-fortify_session=;.*Expires=Thu, 01 Jan 1970 00:00:00 GMT;.*Secure;.*HttpOnly;.*SameSite=Strict;.*Priority=high/i,
+    );
+    expect(cleared.headers.get("set-cookie")).not.toMatch(/Domain=/i);
   });
 
   test("binds invitation OIDC start to the invitation tenant and omits raw credential fields", async () => {

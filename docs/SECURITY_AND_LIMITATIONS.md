@@ -17,7 +17,7 @@ These controls describe the current sandbox and reusable renewal foundation. The
 - The production data layer requires an organization-scoped tenant context, predicates every repository operation by organization, rejects cross-organization references with database triggers, and commits domain mutations with append-only audit events.
 - Production history records are immutable at the database layer; renewal-case creation supports replay-safe idempotency and optimistic revision checks.
 - Production OIDC uses discovery, authorization code, PKCE S256, state, and nonce through a maintained protocol library; no application JWT implementation was introduced.
-- Opaque sessions, invitation tokens, API credentials, and external grants are random and stored only as digests. Expiry and server-side revocation are enforced.
+- Opaque sessions, invitation tokens, API credentials, and external grants are random and stored only as digests. Interactive sessions resolve, rotate, and revoke atomically; rotation preserves the original absolute expiry, and concurrent rotation/revocation admit one winner. Production cookies are secure host-only HttpOnly Strict cookies. Expiry and server-side revocation are enforced.
 - The production policy is deny by default across every registered resource class. Organization mismatch and external case mismatch fail closed before repository access.
 - Support has no standing customer access; customer-approved support grants require a reason, explicit scopes, expiry, and audit trail.
 - Production object keys are tenant-prefixed and traversal-checked. Signed uploads bind MIME, size, checksum, encryption, and a short expiry; finalization independently reads metadata before quarantine.

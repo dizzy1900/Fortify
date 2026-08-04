@@ -1,4 +1,4 @@
-import type { NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { getProductionDatabase } from "@/db/production/client";
 import {
   DocumentPipelineStateError,
@@ -90,10 +90,11 @@ import {
   TenantBootstrapNotFoundError,
 } from "@/lib/production/tenant-bootstrap";
 
-export const SESSION_COOKIE_NAME =
-  process.env.NODE_ENV === "production"
+export function sessionCookieName(environment = process.env.NODE_ENV) {
+  return environment === "production"
     ? "__Host-fortify_session"
     : "fortify_session";
+}
 
 type RequestPrincipal =
   | ResolvedPrincipal
@@ -148,7 +149,7 @@ function readRequestCredential(request: NextRequest): RequestCredential {
       };
     throw new AuthenticationError();
   }
-  const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  const token = request.cookies.get(sessionCookieName())?.value;
   if (!token?.startsWith("fsess_"))
     throw new AuthenticationError("A Fortify session is required.");
   return {
@@ -247,11 +248,12 @@ export function setSessionCookie(
   expiresAt: string,
 ) {
   response.cookies.set({
-    name: SESSION_COOKIE_NAME,
+    name: sessionCookieName(),
     value: token,
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "strict",
+    priority: "high",
     path: "/",
     expires: new Date(expiresAt),
   });
@@ -259,11 +261,12 @@ export function setSessionCookie(
 
 export function clearSessionCookie(response: NextResponse) {
   response.cookies.set({
-    name: SESSION_COOKIE_NAME,
+    name: sessionCookieName(),
     value: "",
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "strict",
+    priority: "high",
     path: "/",
     expires: new Date(0),
   });
@@ -362,17 +365,19 @@ export function authenticationFailure(error: unknown) {
   const isAuthenticationFailure =
     error instanceof AuthenticationError ||
     error instanceof TenantBootstrapNotFoundError;
-  const message =
-    error instanceof AuthenticationError
-      ? error.message
-      : "Authentication failed closed.";
+  const message = isAuthenticationFailure
+    ? "Authentication failed."
+    : "Request failed closed.";
   logOperationalEvent(
     isAuthenticationFailure ? "warn" : "error",
     "request.failed",
     { errorCode: error instanceof Error ? error.name : "UnknownError" },
   );
-  return Response.json(
+  return NextResponse.json(
     { error: message },
-    { status: isAuthenticationFailure ? 401 : 500 },
+    {
+      status: isAuthenticationFailure ? 401 : 500,
+      headers: { "Cache-Control": "no-store" },
+    },
   );
 }

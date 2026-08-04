@@ -30,7 +30,7 @@ function csrfAllowed(request: NextRequest) {
   return Boolean(
     process.env.FORTIFY_APP_ORIGIN &&
       request.headers.get("origin") === process.env.FORTIFY_APP_ORIGIN &&
-      (!fetchSite || fetchSite === "same-origin" || fetchSite === "same-site"),
+      (!fetchSite || fetchSite === "same-origin"),
   );
 }
 
@@ -48,7 +48,14 @@ export function proxy(request: NextRequest) {
   )
     return Response.json(
       { error: "Cross-site request rejected." },
-      { status: 403, headers: { "x-request-id": requestIdentifier } },
+      {
+        status: 403,
+        headers: {
+          "Cache-Control": "no-store",
+          "X-Content-Type-Options": "nosniff",
+          "x-request-id": requestIdentifier,
+        },
+      },
     );
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("Content-Security-Policy", csp);

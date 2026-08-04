@@ -1,5 +1,5 @@
 import { PGlite } from "@electric-sql/pglite";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { drizzle, type PgliteDatabase } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
 import path from "node:path";
@@ -262,6 +262,141 @@ describe("production identity and deny-by-default authorization", () => {
         mfaCapable: false,
       }),
     ).rejects.toBeInstanceOf(ExpiredCredentialError);
+  });
+
+  test("rotates an active session atomically without extending its absolute lifetime", async () => {
+    const fixture = await createTenantFixture(
+      productionDatabase(),
+      "session-rotation",
+    );
+    const owner = await createActiveMembership(productionDatabase(), {
+      organizationId: fixture.organizationId,
+      subject: fixture.context.actorSubject,
+    });
+    const service = new IdentityService(
+      productionDatabase(),
+      () => currentTime,
+    );
+    const original = await service.issueSession({
+      profile: owner.profile,
+      activeOrganizationId: fixture.organizationId,
+      ttlSeconds: 3_600,
+      userAgent: "original-agent",
+      ipAddress: "192.0.2.20",
+    });
+    const principal = await service.resolveSession(original.token);
+    currentTime = new Date("2026-08-01T12:05:00.000Z");
+
+    const attempts = await Promise.allSettled([
+      service.rotateSession(principal.authorization, original.sessionId, {
+        userAgent: "rotated-agent",
+        ipAddress: "192.0.2.21",
+      }),
+      service.rotateSession(principal.authorization, original.sessionId, {
+        userAgent: "racing-agent",
+        ipAddress: "192.0.2.22",
+      }),
+    ]);
+    const winners = attempts.filter((result) => result.status === "fulfilled");
+    const losers = attempts.filter((result) => result.status === "rejected");
+    expect(winners).toHaveLength(1);
+    expect(losers).toHaveLength(1);
+    const winner = winners[0];
+    if (winner.status !== "fulfilled")
+      throw new Error("One session rotation must succeed.");
+    const winningAgent =
+      attempts[0].status === "fulfilled" ? "rotated-agent" : "racing-agent";
+    expect(winner.value.expiresAt).toBe(original.expiresAt);
+    expect(winner.value.token).not.toBe(original.token);
+    await expect(service.resolveSession(original.token)).rejects.toBeInstanceOf(
+      RevokedCredentialError,
+    );
+    await expect(
+      service.resolveSession(winner.value.token),
+    ).resolves.toMatchObject({
+      authorization: {
+        organizationId: fixture.organizationId,
+        sessionId: winner.value.sessionId,
+      },
+      expiresAt: original.expiresAt,
+    });
+
+    const stored = await database
+      .select()
+      .from(schema.sessions)
+      .where(eq(schema.sessions.identityId, owner.identityId));
+    expect(stored).toHaveLength(2);
+    const predecessor = stored.find(
+      (session) => session.id === original.sessionId,
+    );
+    expect(predecessor).toMatchObject({
+      revocationReason: "session_rotation",
+    });
+    expect(new Date(predecessor?.revokedAt ?? "").toISOString()).toBe(
+      currentTime.toISOString(),
+    );
+    expect(
+      stored.find((session) => session.id === winner.value.sessionId),
+    ).toMatchObject({
+      userAgent: winningAgent,
+      revokedAt: null,
+    });
+    expect(
+      new Date(
+        stored.find((session) => session.id === winner.value.sessionId)
+          ?.expiresAt ?? "",
+      ).toISOString(),
+    ).toBe(original.expiresAt);
+    expect(JSON.stringify(stored)).not.toContain(original.token);
+    expect(JSON.stringify(stored)).not.toContain(winner.value.token);
+
+    const rotationAudits = await database
+      .select()
+      .from(schema.auditEvents)
+      .where(
+        and(
+          eq(schema.auditEvents.action, "session.rotated"),
+          eq(schema.auditEvents.resourceId, original.sessionId),
+        ),
+      );
+    expect(rotationAudits).toHaveLength(1);
+    expect(rotationAudits[0].detail).toEqual({
+      successorSessionId: winner.value.sessionId,
+      expiresAt: original.expiresAt,
+    });
+
+    const successorPrincipal = await service.resolveSession(winner.value.token);
+    const revocations = await Promise.allSettled([
+      service.revokeSession(
+        successorPrincipal.authorization,
+        winner.value.sessionId,
+        "concurrent_logout",
+      ),
+      service.revokeSession(
+        successorPrincipal.authorization,
+        winner.value.sessionId,
+        "concurrent_logout",
+      ),
+    ]);
+    expect(
+      revocations.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
+    expect(
+      revocations.filter((result) => result.status === "rejected"),
+    ).toHaveLength(1);
+    await expect(
+      service.resolveSession(winner.value.token),
+    ).rejects.toBeInstanceOf(RevokedCredentialError);
+    const revocationAudits = await database
+      .select()
+      .from(schema.auditEvents)
+      .where(
+        and(
+          eq(schema.auditEvents.action, "session.revoked"),
+          eq(schema.auditEvents.resourceId, winner.value.sessionId),
+        ),
+      );
+    expect(revocationAudits).toHaveLength(1);
   });
 
   test("limits API credentials to stored scopes and supports revocation", async () => {

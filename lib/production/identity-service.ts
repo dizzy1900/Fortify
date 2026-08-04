@@ -311,16 +311,33 @@ export class IdentityService {
     if (!token.startsWith("fsess_")) throw new AuthenticationError();
     const current = this.clock();
     const now = iso(current);
-    const rows = await this.database
-      .select()
-      .from(schema.sessions)
-      .where(eq(schema.sessions.tokenHash, hashOpaqueSecret(token)))
-      .limit(1);
-    const session = rows[0];
-    if (!session) throw new AuthenticationError();
-    if (session.revokedAt) throw new RevokedCredentialError();
-    if (hasExpired(session.expiresAt, current))
-      throw new ExpiredCredentialError();
+    const claimed = await this.database
+      .update(schema.sessions)
+      .set({ lastSeenAt: now })
+      .where(
+        and(
+          eq(schema.sessions.tokenHash, hashOpaqueSecret(token)),
+          isNull(schema.sessions.revokedAt),
+          gt(schema.sessions.expiresAt, now),
+        ),
+      )
+      .returning();
+    const session = claimed[0];
+    if (!session) {
+      const rows = await this.database
+        .select({
+          expiresAt: schema.sessions.expiresAt,
+          revokedAt: schema.sessions.revokedAt,
+        })
+        .from(schema.sessions)
+        .where(eq(schema.sessions.tokenHash, hashOpaqueSecret(token)))
+        .limit(1);
+      if (!rows[0]) throw new AuthenticationError();
+      if (rows[0].revokedAt) throw new RevokedCredentialError();
+      if (hasExpired(rows[0].expiresAt, current))
+        throw new ExpiredCredentialError();
+      throw new AuthenticationError();
+    }
     if (!session.activeOrganizationId)
       throw new AuthenticationError("The session has no active organization.");
     const identities = await this.database
@@ -445,10 +462,6 @@ export class IdentityService {
           ]),
         ];
     }
-    await this.database
-      .update(schema.sessions)
-      .set({ lastSeenAt: now })
-      .where(eq(schema.sessions.id, session.id));
     return {
       authorization: {
         organizationId: membership.organizationId,
@@ -464,8 +477,78 @@ export class IdentityService {
       },
       identity,
       membership,
-      expiresAt: session.expiresAt,
+      expiresAt: iso(new Date(session.expiresAt)),
     };
+  }
+
+  async rotateSession(
+    context: TenantContext,
+    sessionId: string,
+    input: { userAgent?: string; ipAddress?: string } = {},
+  ) {
+    if (context.sessionId !== sessionId)
+      throw new AuthenticationError("Only the active session can be rotated.");
+    const rotatedAt = iso(this.clock());
+    const token = opaqueSecret("fsess");
+    const successorSessionId = randomUUID();
+    return this.database.transaction(async (transaction) => {
+      const rotated = await transaction
+        .update(schema.sessions)
+        .set({
+          revokedAt: rotatedAt,
+          revocationReason: "session_rotation",
+        })
+        .where(
+          and(
+            eq(schema.sessions.id, sessionId),
+            eq(schema.sessions.activeOrganizationId, context.organizationId),
+            isNull(schema.sessions.revokedAt),
+            gt(schema.sessions.expiresAt, rotatedAt),
+          ),
+        )
+        .returning();
+      const predecessor = rotated[0];
+      if (!predecessor)
+        throw new AuthenticationError(
+          "The active session could not be rotated.",
+        );
+      const expiresAt = iso(new Date(predecessor.expiresAt));
+      await transaction.insert(schema.sessions).values({
+        id: successorSessionId,
+        identityId: predecessor.identityId,
+        activeOrganizationId: predecessor.activeOrganizationId,
+        tokenHash: hashOpaqueSecret(token),
+        authenticationMethod: predecessor.authenticationMethod,
+        authenticationMethods: predecessor.authenticationMethods,
+        issuedAt: rotatedAt,
+        expiresAt,
+        lastSeenAt: rotatedAt,
+        userAgent:
+          input.userAgent?.slice(0, 500) ?? predecessor.userAgent ?? undefined,
+        ipHash: input.ipAddress
+          ? hashOpaqueSecret(input.ipAddress)
+          : (predecessor.ipHash ?? undefined),
+      });
+      await appendAudit(
+        transaction as unknown as ProductionDatabaseLike,
+        context,
+        {
+          action: "session.rotated",
+          resourceType: "session",
+          resourceId: sessionId,
+          detail: {
+            successorSessionId,
+            expiresAt,
+          },
+          occurredAt: rotatedAt,
+        },
+      );
+      return {
+        token,
+        sessionId: successorSessionId,
+        expiresAt,
+      };
+    });
   }
 
   async revokeSession(
@@ -473,25 +556,25 @@ export class IdentityService {
     sessionId: string,
     reason: string,
   ) {
-    const rows = await this.database
-      .select()
-      .from(schema.sessions)
-      .where(eq(schema.sessions.id, sessionId))
-      .limit(1);
-    const target = rows[0];
-    if (!target || target.activeOrganizationId !== context.organizationId)
-      throw new AuthenticationError(
-        "The session was not found in the active organization.",
-      );
-    if (context.sessionId !== sessionId)
-      assertAuthorized(context, {
-        action: "manage",
-        resource: "membership",
-        resourceOrganizationId: context.organizationId,
-      });
     const revokedAt = iso(this.clock());
     await this.database.transaction(async (transaction) => {
-      await transaction
+      const rows = await transaction
+        .select()
+        .from(schema.sessions)
+        .where(eq(schema.sessions.id, sessionId))
+        .limit(1);
+      const target = rows[0];
+      if (!target || target.activeOrganizationId !== context.organizationId)
+        throw new AuthenticationError(
+          "The session was not found in the active organization.",
+        );
+      if (context.sessionId !== sessionId)
+        assertAuthorized(context, {
+          action: "manage",
+          resource: "membership",
+          resourceOrganizationId: context.organizationId,
+        });
+      const revoked = await transaction
         .update(schema.sessions)
         .set({ revokedAt, revocationReason: reason })
         .where(
@@ -499,6 +582,11 @@ export class IdentityService {
             eq(schema.sessions.id, sessionId),
             isNull(schema.sessions.revokedAt),
           ),
+        )
+        .returning({ id: schema.sessions.id });
+      if (!revoked[0])
+        throw new RevokedCredentialError(
+          "The session has already been revoked.",
         );
       await appendAudit(
         transaction as unknown as ProductionDatabaseLike,
