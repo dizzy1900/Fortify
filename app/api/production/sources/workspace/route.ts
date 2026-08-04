@@ -1,20 +1,28 @@
 import { NextRequest } from "next/server";
 import {
   authenticationFailure,
-  resolveRequestPrincipal,
+  withAuthenticatedTenantRequest,
 } from "@/lib/production/http-auth";
-import { getProductionGovernedSourceService } from "@/lib/production/governed-source-http";
+import {
+  getProductionGovernedSourceService,
+  presentGovernedSourceWorkspace,
+} from "@/lib/production/governed-source-http";
 import { requireProductionRuntime } from "@/lib/runtime";
 
 export async function GET(request: NextRequest) {
   try {
     requireProductionRuntime();
-    const principal = await resolveRequestPrincipal(request);
-    return Response.json(
-      await getProductionGovernedSourceService().getWorkspace(
-        principal.authorization,
-      ),
-      { headers: { "Cache-Control": "no-store" } },
+    return await withAuthenticatedTenantRequest(
+      request,
+      async (principal, transaction) =>
+        Response.json(
+          presentGovernedSourceWorkspace(
+            await getProductionGovernedSourceService(transaction).getWorkspace(
+              principal.authorization,
+            ),
+          ),
+          { headers: { "Cache-Control": "no-store" } },
+        ),
     );
   } catch (error) {
     return authenticationFailure(error);

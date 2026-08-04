@@ -35,8 +35,14 @@ export type SourceImpactReport = {
   affected: {
     playbooks: Array<{ id: string; versionId: string; name: string }>;
     cases: Array<{ id: string; title: string; renewalDate: string }>;
-    profiles: { state: "available"; items: Array<{ id: string; versionId: string; name: string }> };
-    reports: { state: "available"; items: Array<{ id: string; title: string; reportType: string }> };
+    profiles: {
+      state: "available";
+      items: Array<{ id: string; versionId: string; name: string }>;
+    };
+    reports: {
+      state: "available";
+      items: Array<{ id: string; title: string; reportType: string }>;
+    };
   };
   limitations: string[];
 };
@@ -132,7 +138,7 @@ function requiredHttpUrl(value: string | undefined, label: string) {
   const normalized = requiredText(value, label);
   try {
     const url = new URL(normalized);
-    if (!['http:', 'https:'].includes(url.protocol)) throw new Error();
+    if (!["http:", "https:"].includes(url.protocol)) throw new Error();
   } catch {
     throw new GovernedSourceValidationError(
       `${label} must be an HTTP or HTTPS URL.`,
@@ -247,7 +253,10 @@ export class GovernedSourceService {
       input.publicationDate,
       "Publication date",
     );
-    const effectiveFrom = optionalIsoDate(input.effectiveFrom, "Effective-from date");
+    const effectiveFrom = optionalIsoDate(
+      input.effectiveFrom,
+      "Effective-from date",
+    );
     const effectiveTo = optionalIsoDate(input.effectiveTo, "Effective-to date");
     const nextReviewDate = requiredIsoDate(
       input.nextReviewDate,
@@ -442,7 +451,10 @@ export class GovernedSourceService {
         throw new GovernedSourceStateError(
           "Approval requires exact-source comparison and a rights decision.",
         );
-      if (input.decision === "approved" && version[0].rightsStatus === "pending")
+      if (
+        input.decision === "approved" &&
+        version[0].rightsStatus === "pending"
+      )
         throw new GovernedSourceStateError(
           "Rights must be approved or explicitly restricted before approval.",
         );
@@ -491,11 +503,11 @@ export class GovernedSourceService {
             schema.governedSourceDependencies.organizationId,
             context.organizationId,
           ),
-          eq(
-            schema.governedSourceDependencies.sourceVersionId,
-            fromVersionId,
-          ),
-          inArray(schema.governedSourceDependencies.relationship, ["relied_on", "input_lineage"]),
+          eq(schema.governedSourceDependencies.sourceVersionId, fromVersionId),
+          inArray(schema.governedSourceDependencies.relationship, [
+            "relied_on",
+            "input_lineage",
+          ]),
         ),
       )
       .orderBy(asc(schema.governedSourceDependencies.pinnedAt));
@@ -522,19 +534,16 @@ export class GovernedSourceService {
           .innerJoin(
             schema.marketPlaybooks,
             and(
-              eq(
-                schema.marketPlaybooks.id,
-                schema.playbookVersions.playbookId,
-              ),
-              eq(
-                schema.marketPlaybooks.organizationId,
-                context.organizationId,
-              ),
+              eq(schema.marketPlaybooks.id, schema.playbookVersions.playbookId),
+              eq(schema.marketPlaybooks.organizationId, context.organizationId),
             ),
           )
           .where(
             and(
-              eq(schema.playbookVersions.organizationId, context.organizationId),
+              eq(
+                schema.playbookVersions.organizationId,
+                context.organizationId,
+              ),
               inArray(schema.playbookVersions.id, playbookIds),
             ),
           )
@@ -556,16 +565,49 @@ export class GovernedSourceService {
       : [];
     const profiles = profileVersionIds.length
       ? await database
-          .select({ id: schema.targetProfiles.id, versionId: schema.targetProfileVersions.id, name: schema.targetProfiles.name })
+          .select({
+            id: schema.targetProfiles.id,
+            versionId: schema.targetProfileVersions.id,
+            name: schema.targetProfiles.name,
+          })
           .from(schema.targetProfileVersions)
-          .innerJoin(schema.targetProfiles, and(eq(schema.targetProfiles.id, schema.targetProfileVersions.profileId), eq(schema.targetProfiles.organizationId, context.organizationId)))
-          .where(and(eq(schema.targetProfileVersions.organizationId, context.organizationId), inArray(schema.targetProfileVersions.id, profileVersionIds)))
+          .innerJoin(
+            schema.targetProfiles,
+            and(
+              eq(
+                schema.targetProfiles.id,
+                schema.targetProfileVersions.profileId,
+              ),
+              eq(schema.targetProfiles.organizationId, context.organizationId),
+            ),
+          )
+          .where(
+            and(
+              eq(
+                schema.targetProfileVersions.organizationId,
+                context.organizationId,
+              ),
+              inArray(schema.targetProfileVersions.id, profileVersionIds),
+            ),
+          )
       : [];
     const reports = reportIds.length
       ? await database
-          .select({ id: schema.analyticsReports.id, title: schema.analyticsReports.title, reportType: schema.analyticsReports.reportType })
+          .select({
+            id: schema.analyticsReports.id,
+            title: schema.analyticsReports.title,
+            reportType: schema.analyticsReports.reportType,
+          })
           .from(schema.analyticsReports)
-          .where(and(eq(schema.analyticsReports.organizationId, context.organizationId), inArray(schema.analyticsReports.id, reportIds)))
+          .where(
+            and(
+              eq(
+                schema.analyticsReports.organizationId,
+                context.organizationId,
+              ),
+              inArray(schema.analyticsReports.id, reportIds),
+            ),
+          )
       : [];
     return {
       sourceId,
@@ -667,6 +709,13 @@ export class GovernedSourceService {
         throw new GovernedSourceStateError(
           "Publication requires independent approval, exact-source comparison, a rights decision, verified-current state, and human confirmation.",
         );
+      if (
+        input.decision === "published" &&
+        review[0]?.reviewerSubject === context.actorSubject
+      )
+        throw new GovernedSourceStateError(
+          "A source reviewer cannot publish the same version.",
+        );
       const publishedAt = this.clock().toISOString();
       const publicationId = randomUUID();
       await database.insert(schema.governedSourcePublications).values({
@@ -746,7 +795,10 @@ export class GovernedSourceService {
     context: TenantContext,
     input: {
       sourceVersionId: string;
-      consumerType: "playbook_version" | "renewal_case" | "target_profile_version";
+      consumerType:
+        | "playbook_version"
+        | "renewal_case"
+        | "target_profile_version";
       consumerId: string;
       relationship: "relied_on" | "reference_only";
       rationale: string;
@@ -808,13 +860,14 @@ export class GovernedSourceService {
           .select()
           .from(schema.governedSources)
           .where(eq(schema.governedSources.organizationId, organization))
-          .orderBy(schema.governedSources.issuingAuthority, schema.governedSources.title),
+          .orderBy(
+            schema.governedSources.issuingAuthority,
+            schema.governedSources.title,
+          ),
         this.database
           .select()
           .from(schema.governedSourceVersions)
-          .where(
-            eq(schema.governedSourceVersions.organizationId, organization),
-          )
+          .where(eq(schema.governedSourceVersions.organizationId, organization))
           .orderBy(desc(schema.governedSourceVersions.createdAt)),
         this.database
           .select()
@@ -849,7 +902,8 @@ export class GovernedSourceService {
       dependencies,
       alerts,
       unavailableImpactTargets: {
-        reports: "Generated analytics reports preserve exact source-version lineage and require explicit regeneration after source change.",
+        reports:
+          "Generated analytics reports preserve exact source-version lineage and require explicit regeneration after source change.",
       },
       doctrine: {
         extractedRulesAutomaticallyOperative: false,

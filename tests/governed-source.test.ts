@@ -18,14 +18,10 @@ import { createTenantFixture } from "./factories/production";
 
 let client: PGlite;
 let database: PgliteDatabase<typeof schema>;
-const productionDatabase = () =>
-  database as unknown as ProductionDatabaseLike;
+const productionDatabase = () => database as unknown as ProductionDatabaseLike;
 const at = "2026-08-01T12:00:00.000Z";
 
-function asActor(
-  context: TenantContext,
-  actorSubject: string,
-): TenantContext {
+function asActor(context: TenantContext, actorSubject: string): TenantContext {
   return {
     ...context,
     actorSubject,
@@ -144,6 +140,13 @@ describe("governed California source register", () => {
       rightsConfirmed: true,
     });
     await expect(
+      service.publishVersion(asActor(fixture.context, "source-reviewer"), {
+        sourceVersionId: first.sourceVersionId,
+        decision: "published",
+        note: "The reviewer cannot also publish.",
+      }),
+    ).rejects.toBeInstanceOf(GovernedSourceStateError);
+    await expect(
       service.publishVersion(fixture.context, {
         sourceVersionId: first.sourceVersionId,
         decision: "published",
@@ -173,7 +176,8 @@ describe("governed California source register", () => {
       snapshotState: "metadata_only_restricted",
       rightsStatus: "restricted",
       redistributionAllowed: false,
-      useRestrictions: "Metadata-only successor; source redistribution restricted.",
+      useRestrictions:
+        "Metadata-only successor; source redistribution restricted.",
       structuredSummary: {
         change: "Successor fixture for dependency impact",
       },
@@ -184,13 +188,16 @@ describe("governed California source register", () => {
       changeSummary: "Register reviewed successor metadata.",
       supersedesVersionId: first.sourceVersionId,
     });
-    await service.reviewVersion(asActor(fixture.context, "successor-reviewer"), {
-      sourceVersionId: second.sourceVersionId,
-      decision: "approved",
-      note: "Successor and rights boundary independently reviewed.",
-      sourceCompared: true,
-      rightsConfirmed: true,
-    });
+    await service.reviewVersion(
+      asActor(fixture.context, "successor-reviewer"),
+      {
+        sourceVersionId: second.sourceVersionId,
+        decision: "approved",
+        note: "Successor and rights boundary independently reviewed.",
+        sourceCompared: true,
+        rightsConfirmed: true,
+      },
+    );
     const published = await service.publishVersion(
       asActor(fixture.context, "successor-publisher"),
       {
@@ -228,7 +235,10 @@ describe("governed California source register", () => {
   });
 
   test("keeps model-assisted, unconfirmed, rights-pending, and cross-tenant records non-operative", async () => {
-    const alpha = await createTenantFixture(productionDatabase(), "source-alpha");
+    const alpha = await createTenantFixture(
+      productionDatabase(),
+      "source-alpha",
+    );
     const beta = await createTenantFixture(productionDatabase(), "source-beta");
     const { service, source } = await registerSource(alpha, "blocked");
     const pendingRights = await service.createVersion(alpha.context, {
