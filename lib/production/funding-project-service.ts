@@ -2,6 +2,7 @@ import { and, asc, desc, eq } from "drizzle-orm";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import * as schema from "@/db/production/schema";
 import { assertAuthorized } from "@/lib/production/authorization";
+import { hashOpaqueSecret } from "@/lib/production/identity-service";
 import {
   appendAudit,
   tenantRecord,
@@ -105,7 +106,6 @@ export class FundingProjectValidationError extends Error {
 export class FundingProjectStateError extends Error {
   constructor(message: string) { super(message); this.name = "FundingProjectStateError"; }
 }
-
 const required = (value: string | undefined, label: string) => {
   if (!value?.trim()) throw new FundingProjectValidationError(`${label} is required.`);
   return value.trim();
@@ -373,7 +373,7 @@ export class FundingProjectService {
       const dependencies = milestones.flatMap((item) => (item.source.dependsOnCodes ?? []).map((dependency) => ({ id: randomUUID(), ...tenantRecord(context, at), milestoneId: item.id, dependsOnMilestoneId: milestoneByCode.get(dependency)! })));
       if (dependencies.length) await db.insert(schema.projectMilestoneDependencies).values(dependencies);
       const collaboratorTokens = input.collaborators.map((item) => ({ item, token: `fproject_${randomBytes(32).toString("base64url")}`, id: randomUUID() }));
-      if (collaboratorTokens.length) await db.insert(schema.projectExternalAssignments).values(collaboratorTokens.map(({ item, token, id }) => ({ id, ...tenantRecord(context, at), projectId: input.projectId, externalPrincipalId: item.externalPrincipalId, collaboratorRole: item.collaboratorRole, purpose: required(item.purpose, "Collaborator purpose"), tokenHash: digest(token), scopes: item.scopes, dueOn: item.dueOn ? isoDate(item.dueOn, "Collaborator due date") : undefined, expiresAt: item.expiresAt })));
+      if (collaboratorTokens.length) await db.insert(schema.projectExternalAssignments).values(collaboratorTokens.map(({ item, token, id }) => ({ id, ...tenantRecord(context, at), projectId: input.projectId, externalPrincipalId: item.externalPrincipalId, collaboratorRole: item.collaboratorRole, purpose: required(item.purpose, "Collaborator purpose"), tokenHash: hashOpaqueSecret(token), scopes: item.scopes, dueOn: item.dueOn ? isoDate(item.dueOn, "Collaborator due date") : undefined, expiresAt: item.expiresAt })));
       const benefitIds = input.benefits.map(() => randomUUID());
       if (input.benefits.length) await db.insert(schema.stakeholderBenefitLedgerEntries).values(input.benefits.map((item, index) => ({ id: benefitIds[index], ...tenantRecord(context, at), projectId: input.projectId, stakeholderType: required(item.stakeholderType, "Stakeholder type"), stakeholderName: required(item.stakeholderName, "Stakeholder name"), expectedBenefitCategory: required(item.expectedBenefitCategory, "Expected benefit category"), expectedCostCents: item.expectedCostCents, fundingContributionCents: item.fundingContributionCents, evidenceLevel: item.evidenceLevel, source: required(item.source, "Benefit source"), timeframe: required(item.timeframe, "Benefit timeframe"), uncertainty: required(item.uncertainty, "Benefit uncertainty"), commitmentState: item.commitmentState, realisedResponseState: item.realisedResponseState ?? "not_observed", correctionOfId: item.correctionOfId })));
       await appendAudit(db, context, { action: "project_execution.created", resourceType: "resilience_project", resourceId: input.projectId, detail: { milestoneCount: milestones.length, dependencyCount: dependencies.length, collaboratorCount: collaboratorTokens.length, benefitEntryCount: benefitIds.length }, occurredAt: at });
@@ -382,7 +382,7 @@ export class FundingProjectService {
   }
 
   async resolveExternalProjectToken(rawToken: string): Promise<TenantContext> {
-    const tokenHash = digest(required(rawToken, "Project access token"));
+    const tokenHash = hashOpaqueSecret(required(rawToken, "Project access token"));
     const assignment = await this.database.select().from(schema.projectExternalAssignments).where(eq(schema.projectExternalAssignments.tokenHash, tokenHash)).limit(1);
     if (!assignment[0] || assignment[0].revokedAt || new Date(assignment[0].expiresAt).getTime() <= this.clock().getTime()) throw new FundingProjectStateError("Project access is invalid, expired, or revoked.");
     const principal = await this.database.select().from(schema.externalPrincipals).where(and(eq(schema.externalPrincipals.organizationId, assignment[0].organizationId), eq(schema.externalPrincipals.id, assignment[0].externalPrincipalId), eq(schema.externalPrincipals.status, "active"))).limit(1);

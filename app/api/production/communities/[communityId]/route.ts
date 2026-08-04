@@ -1,7 +1,12 @@
 import { NextRequest } from "next/server";
-import { getProductionDatabase } from "@/db/production/client";
-import { authenticationFailure, resolveRequestPrincipal } from "@/lib/production/http-auth";
-import { TenantRepository } from "@/lib/production/repository";
+import {
+  getProductionTenantRepository,
+  presentCommunitySummary,
+} from "@/lib/production/community-http";
+import {
+  authenticationFailure,
+  withAuthenticatedTenantRequest,
+} from "@/lib/production/http-auth";
 import { requireProductionRuntime } from "@/lib/runtime";
 
 export async function PATCH(
@@ -10,7 +15,6 @@ export async function PATCH(
 ) {
   try {
     requireProductionRuntime();
-    const principal = await resolveRequestPrincipal(request);
     const { communityId } = await params;
     const body = (await request.json()) as {
       summary?: unknown;
@@ -24,14 +28,22 @@ export async function PATCH(
         { error: "summary and integer expectedRevision are required." },
         { status: 400 },
       );
-    const repository = new TenantRepository(getProductionDatabase());
-    return Response.json(
-      await repository.updateCommunitySummary(
-        principal.authorization,
-        communityId,
-        body.expectedRevision as number,
-        body.summary,
-      ),
+    return await withAuthenticatedTenantRequest(
+      request,
+      async (principal, transaction) =>
+        Response.json(
+          presentCommunitySummary(
+            await getProductionTenantRepository(
+              transaction,
+            ).updateCommunitySummary(
+              principal.authorization,
+              communityId,
+              body.expectedRevision as number,
+              body.summary as string,
+            ),
+          ),
+          { headers: { "Cache-Control": "no-store" } },
+        ),
     );
   } catch (error) {
     return authenticationFailure(error);

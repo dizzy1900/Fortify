@@ -1,16 +1,28 @@
 import { NextRequest } from "next/server";
-import { getProductionDatabase } from "@/db/production/client";
-import { authenticationFailure, resolveRequestPrincipal } from "@/lib/production/http-auth";
-import { TenantRepository } from "@/lib/production/repository";
+import {
+  getProductionTenantRepository,
+  presentCommunity,
+} from "@/lib/production/community-http";
+import {
+  authenticationFailure,
+  withAuthenticatedTenantRequest,
+} from "@/lib/production/http-auth";
 import { requireProductionRuntime } from "@/lib/runtime";
 
 export async function GET(request: NextRequest) {
   try {
     requireProductionRuntime();
-    const principal = await resolveRequestPrincipal(request);
-    const repository = new TenantRepository(getProductionDatabase());
-    return Response.json(
-      await repository.listCommunities(principal.authorization),
+    return await withAuthenticatedTenantRequest(
+      request,
+      async (principal, transaction) =>
+        Response.json(
+          (
+            await getProductionTenantRepository(transaction).listCommunities(
+              principal.authorization,
+            )
+          ).map(presentCommunity),
+          { headers: { "Cache-Control": "no-store" } },
+        ),
     );
   } catch (error) {
     return authenticationFailure(error);

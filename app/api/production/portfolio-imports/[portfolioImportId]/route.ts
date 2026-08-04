@@ -1,9 +1,12 @@
 import { NextRequest } from "next/server";
 import {
   authenticationFailure,
-  resolveRequestPrincipal,
+  withAuthenticatedTenantRequest,
 } from "@/lib/production/http-auth";
-import { getProductionPortfolioImportService } from "@/lib/production/portfolio-import-http";
+import {
+  getProductionPortfolioImportService,
+  presentPortfolioImportResult,
+} from "@/lib/production/portfolio-import-http";
 import { requireProductionRuntime } from "@/lib/runtime";
 
 export async function GET(
@@ -12,14 +15,19 @@ export async function GET(
 ) {
   try {
     requireProductionRuntime();
-    const principal = await resolveRequestPrincipal(request);
     const { portfolioImportId } = await params;
-    return Response.json(
-      await getProductionPortfolioImportService().getImport(
-        principal.authorization,
-        portfolioImportId,
-      ),
-      { headers: { "Cache-Control": "no-store" } },
+    return await withAuthenticatedTenantRequest(
+      request,
+      async (principal, transaction) =>
+        Response.json(
+          presentPortfolioImportResult(
+            await getProductionPortfolioImportService(transaction).getImport(
+              principal.authorization,
+              portfolioImportId,
+            ),
+          ),
+          { headers: { "Cache-Control": "no-store" } },
+        ),
     );
   } catch (error) {
     return authenticationFailure(error);

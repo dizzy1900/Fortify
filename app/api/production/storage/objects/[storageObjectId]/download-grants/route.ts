@@ -1,5 +1,8 @@
 import { NextRequest } from "next/server";
-import { authenticationFailure, resolveRequestPrincipal } from "@/lib/production/http-auth";
+import {
+  authenticationFailure,
+  withAuthenticatedTenantRequest,
+} from "@/lib/production/http-auth";
 import { getProductionStorageService } from "@/lib/production/storage-http";
 import { requireProductionRuntime } from "@/lib/runtime";
 
@@ -9,18 +12,25 @@ export async function POST(
 ) {
   try {
     requireProductionRuntime();
-    const principal = await resolveRequestPrincipal(request);
     const { storageObjectId } = await params;
     const body = (await request.json()) as { purpose?: string };
-    if (!body.purpose?.trim())
+    const purpose = body.purpose?.trim();
+    if (!purpose)
       return Response.json({ error: "purpose is required." }, { status: 400 });
-    return Response.json(
-      await getProductionStorageService().issueDownloadGrant(
-        principal.authorization,
-        storageObjectId,
-        { purpose: body.purpose },
-      ),
-      { status: 201 },
+    return await withAuthenticatedTenantRequest(
+      request,
+      async (principal, transaction) =>
+        Response.json(
+          await getProductionStorageService(transaction).issueDownloadGrant(
+            principal.authorization,
+            storageObjectId,
+            { purpose },
+          ),
+          {
+            status: 201,
+            headers: { "Cache-Control": "no-store" },
+          },
+        ),
     );
   } catch (error) {
     return authenticationFailure(error);

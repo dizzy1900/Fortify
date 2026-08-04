@@ -33,6 +33,22 @@ export async function setTenantTransactionContext(
 }
 
 /**
+ * Runs global authentication/bootstrap work as the non-owner application role.
+ * Tenant-owned records must not be accessed until the caller has resolved and
+ * set an explicit tenant context on this transaction.
+ */
+export async function withApplicationTransaction<T>(
+  operation: (transaction: TenantTransaction) => Promise<T>,
+  database: ProductionDatabaseLike = getProductionDatabase() as unknown as ProductionDatabaseLike,
+): Promise<T> {
+  return database.transaction(async (transaction) => {
+    const applicationTransaction = transaction as unknown as TenantTransaction;
+    await setApplicationTransactionRole(applicationTransaction);
+    return operation(applicationTransaction);
+  });
+}
+
+/**
  * Runs tenant work on one checked-out connection with transaction-local RLS
  * context. SET LOCAL prevents organization and actor state from surviving a
  * commit or rollback when the connection returns to the pool.
@@ -43,10 +59,8 @@ export async function withTenantTransaction<T>(
   database: ProductionDatabaseLike = getProductionDatabase() as unknown as ProductionDatabaseLike,
 ): Promise<T> {
   requireTenantTransactionContext(context);
-  return database.transaction(async (transaction) => {
-    const tenantTransaction = transaction as unknown as TenantTransaction;
-    await setApplicationTransactionRole(tenantTransaction);
+  return withApplicationTransaction(async (tenantTransaction) => {
     await setTenantTransactionContext(tenantTransaction, context);
     return operation(tenantTransaction);
-  });
+  }, database);
 }

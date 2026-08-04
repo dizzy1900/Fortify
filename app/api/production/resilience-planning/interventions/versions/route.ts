@@ -1,12 +1,27 @@
 import { NextRequest } from "next/server";
-import { authenticationFailure, resolveRequestPrincipal } from "@/lib/production/http-auth";
+import {
+  authenticationFailure,
+  withAuthenticatedTenantRequest,
+} from "@/lib/production/http-auth";
 import { getProductionResiliencePlanningService } from "@/lib/production/resilience-planning-http";
 import type { CreateInterventionVersionInput } from "@/lib/production/resilience-planning-service";
 import { requireProductionRuntime } from "@/lib/runtime";
 
 export async function POST(request: NextRequest) {
   try {
-    requireProductionRuntime(); const principal = await resolveRequestPrincipal(request);
-    return Response.json(await getProductionResiliencePlanningService().createInterventionVersion(principal.authorization, await request.json() as CreateInterventionVersionInput), { status: 201 });
-  } catch (error) { return authenticationFailure(error); }
+    requireProductionRuntime();
+    const body = (await request.json()) as CreateInterventionVersionInput;
+    return await withAuthenticatedTenantRequest(
+      request,
+      async (principal, transaction) =>
+        Response.json(
+          await getProductionResiliencePlanningService(
+            transaction,
+          ).createInterventionVersion(principal.authorization, body),
+          { status: 201, headers: { "Cache-Control": "no-store" } },
+        ),
+    );
+  } catch (error) {
+    return authenticationFailure(error);
+  }
 }

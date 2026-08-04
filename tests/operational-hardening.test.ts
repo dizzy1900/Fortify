@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { drizzle, type PgliteDatabase } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
 import { NextRequest } from "next/server";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import * as schema from "@/db/production/schema";
@@ -18,17 +19,43 @@ import {
 } from "@/lib/production/environment";
 import { redactLogValue } from "@/lib/production/observability";
 import { withAuthenticatedTenantRequest } from "@/lib/production/http-auth";
-import { IdentityService } from "@/lib/production/identity-service";
+import {
+  consumeOidcAttemptForRequest,
+  getProductionIdentityService,
+  issueIdentitySession,
+  presentMembershipInvitation,
+  resolveInvitationForOidc,
+  resolveVerifiedIdentityOrganization,
+} from "@/lib/production/identity-http";
+import {
+  AuthenticationError,
+  IdentityService,
+} from "@/lib/production/identity-service";
+import { DeterministicObjectStorageAdapter } from "@/lib/production/object-storage";
 import {
   consumeRequestRateLimit,
   RequestRateLimitError,
 } from "@/lib/production/rate-limit";
-import { withTenantTransaction } from "@/lib/production/tenant-transaction";
+import {
+  withApplicationTransaction,
+  withTenantTransaction,
+} from "@/lib/production/tenant-transaction";
+import { resolveTenantBootstrap } from "@/lib/production/tenant-bootstrap";
 import {
   tenantRecord,
   TenantResourceNotFoundError,
   type ProductionDatabaseLike,
 } from "@/lib/production/repository";
+import {
+  presentFinalizedUpload,
+  presentRequestedUpload,
+} from "@/lib/production/storage-http";
+import {
+  DeterministicMalwareScanner,
+  ProductionStorageService,
+  StorageGrantError,
+  StorageValidationError,
+} from "@/lib/production/storage-service";
 import {
   createActiveMembership,
   createTenantFixture,
@@ -463,6 +490,497 @@ describe("M12 operational hardening", () => {
     expect(new Date(persisted[0]?.revokedAt ?? "").toISOString()).toBe(
       revocation.revokedAt,
     );
+  });
+
+  test("binds membership invitations to the authenticated tenant transaction and minimizes delivery fields", async () => {
+    vi.stubEnv(
+      "FORTIFY_REQUEST_HASH_KEY",
+      "fixture-request-hash-key-32-characters",
+    );
+    const productionDatabase = database as unknown as ProductionDatabaseLike;
+    const alpha = await createTenantFixture(
+      productionDatabase,
+      "invitation-request-alpha",
+    );
+    const beta = await createTenantFixture(
+      productionDatabase,
+      "invitation-request-beta",
+    );
+    const alphaOwner = await createActiveMembership(productionDatabase, {
+      organizationId: alpha.organizationId,
+      subject: alpha.context.actorSubject,
+      role: "organization_owner",
+    });
+    const betaOwner = await createActiveMembership(productionDatabase, {
+      organizationId: beta.organizationId,
+      subject: beta.context.actorSubject,
+      role: "organization_owner",
+    });
+    const propertyManager = await createActiveMembership(productionDatabase, {
+      organizationId: alpha.organizationId,
+      subject: "invitation-property-manager",
+      role: "property_manager",
+    });
+    const identity = new IdentityService(productionDatabase);
+    const alphaSession = await identity.issueSession({
+      profile: alphaOwner.profile,
+      activeOrganizationId: alpha.organizationId,
+      ttlSeconds: 3_600,
+    });
+    const betaSession = await identity.issueSession({
+      profile: betaOwner.profile,
+      activeOrganizationId: beta.organizationId,
+      ttlSeconds: 3_600,
+    });
+    const managerSession = await identity.issueSession({
+      profile: propertyManager.profile,
+      activeOrganizationId: alpha.organizationId,
+      ttlSeconds: 3_600,
+    });
+    const request = (sessionToken: string, suffix: string) =>
+      new NextRequest(
+        `https://fortify.test/api/production/memberships/invitations${suffix}`,
+        { headers: { cookie: `fortify_session=${sessionToken}` } },
+      );
+
+    const invitation = await withAuthenticatedTenantRequest(
+      request(alphaSession.token, ""),
+      async (principal, transaction) =>
+        getProductionIdentityService(transaction).inviteMembership(
+          principal.authorization,
+          {
+            email: "invited-reviewer@example.test",
+            role: "underwriter_reviewer",
+          },
+        ),
+      productionDatabase,
+    );
+    const response = presentMembershipInvitation(
+      invitation,
+      "https://fortify.test",
+    );
+    expect(response).toEqual({
+      invitationId: invitation.invitationId,
+      membershipId: invitation.membershipId,
+      expiresAt: invitation.expiresAt,
+      acceptanceUrl: `https://fortify.test/api/auth/oidc/start?invitation=${encodeURIComponent(invitation.token)}`,
+      deliveryStatus: "ready_for_out_of_band_delivery",
+    });
+    expect(response).not.toHaveProperty("token");
+    expect(response).not.toHaveProperty("email");
+    expect(response).not.toHaveProperty("organizationId");
+    expect(response).not.toHaveProperty("tokenHash");
+
+    await expect(
+      withAuthenticatedTenantRequest(
+        request(managerSession.token, ""),
+        async (principal, transaction) =>
+          getProductionIdentityService(transaction).inviteMembership(
+            principal.authorization,
+            { email: "unauthorized@example.test", role: "assistant" },
+          ),
+        productionDatabase,
+      ),
+    ).rejects.toBeInstanceOf(AuthorizationDeniedError);
+
+    await expect(
+      withAuthenticatedTenantRequest(
+        request(betaSession.token, `/${invitation.invitationId}`),
+        async (principal, transaction) =>
+          getProductionIdentityService(transaction).revokeInvitation(
+            principal.authorization,
+            invitation.invitationId,
+            "cross-tenant attempt",
+          ),
+        productionDatabase,
+      ),
+    ).rejects.toBeInstanceOf(AuthenticationError);
+
+    await withAuthenticatedTenantRequest(
+      request(alphaSession.token, `/${invitation.invitationId}`),
+      async (principal, transaction) =>
+        getProductionIdentityService(transaction).revokeInvitation(
+          principal.authorization,
+          invitation.invitationId,
+          "reviewer access no longer required",
+        ),
+      productionDatabase,
+    );
+
+    const persisted = await withTenantTransaction(
+      alpha.context,
+      async (transaction) => ({
+        invitations: await transaction.select().from(schema.invitations),
+        memberships: await transaction.select().from(schema.memberships),
+      }),
+      productionDatabase,
+    );
+    expect(persisted.invitations).toEqual([
+      expect.objectContaining({
+        id: invitation.invitationId,
+        organizationId: alpha.organizationId,
+        revokedAt: expect.any(String),
+      }),
+    ]);
+    expect(
+      persisted.memberships.find(
+        (membership) => membership.id === invitation.membershipId,
+      ),
+    ).toMatchObject({
+      organizationId: alpha.organizationId,
+      status: "revoked",
+      revokedAt: expect.any(String),
+    });
+  });
+
+  test("binds local and OIDC bootstrap to the application role and exact tenant context", async () => {
+    vi.stubEnv(
+      "FORTIFY_REQUEST_HASH_KEY",
+      "fixture-request-hash-key-32-characters",
+    );
+    const productionDatabase = database as unknown as ProductionDatabaseLike;
+    const alpha = await createTenantFixture(
+      productionDatabase,
+      "identity-bootstrap-alpha",
+    );
+    const beta = await createTenantFixture(
+      productionDatabase,
+      "identity-bootstrap-beta",
+    );
+    const alphaOwner = await createActiveMembership(productionDatabase, {
+      organizationId: alpha.organizationId,
+      subject: alpha.context.actorSubject,
+      role: "organization_owner",
+    });
+    const invitedProfile = {
+      providerKey: "test-oidc",
+      providerSubject: "identity-bootstrap-invitee",
+      email: "identity-bootstrap-invitee@example.test",
+      emailVerified: true,
+      displayName: "Identity Bootstrap Invitee",
+      authenticationMethods: ["pwd", "mfa"],
+      mfaCapable: true,
+    };
+    const identity = new IdentityService(productionDatabase);
+    const invitation = await identity.inviteMembership(alpha.context, {
+      email: invitedProfile.email,
+      role: "underwriter_reviewer",
+    });
+    await identity.registerAuthenticationAttempt("enterprise-oidc", {
+      state: "invitation-state",
+      nonce: "invitation-nonce",
+      pkceVerifier: "invitation-pkce",
+      redirectUri: "https://fortify.test/api/auth/oidc/callback",
+      returnTo: "//attacker.example.test",
+      activeOrganizationId: alpha.organizationId,
+      invitationId: invitation.invitationId,
+    });
+
+    await expect(
+      resolveInvitationForOidc(invitation.token, productionDatabase),
+    ).resolves.toEqual({
+      invitationId: invitation.invitationId,
+      organizationId: alpha.organizationId,
+    });
+    const consumedResults = await Promise.allSettled([
+      consumeOidcAttemptForRequest(
+        "enterprise-oidc",
+        "invitation-state",
+        productionDatabase,
+      ),
+      consumeOidcAttemptForRequest(
+        "enterprise-oidc",
+        "invitation-state",
+        productionDatabase,
+      ),
+    ]);
+    expect(
+      consumedResults.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
+    expect(
+      consumedResults.filter((result) => result.status === "rejected"),
+    ).toHaveLength(1);
+    const consumedResult = consumedResults.find(
+      (result) => result.status === "fulfilled",
+    );
+    if (!consumedResult || consumedResult.status !== "fulfilled")
+      throw new Error("One request-bound OIDC attempt must be claimed.");
+    expect(consumedResult.value).toMatchObject({
+      organizationId: alpha.organizationId,
+      attempt: {
+        invitationId: invitation.invitationId,
+        returnTo: "/portfolio",
+      },
+    });
+
+    await expect(
+      issueIdentitySession(
+        {
+          organizationId: beta.organizationId,
+          profile: invitedProfile,
+          invitationId: invitation.invitationId,
+        },
+        productionDatabase,
+      ),
+    ).rejects.toBeInstanceOf(AuthenticationError);
+    const issued = await issueIdentitySession(
+      {
+        organizationId: alpha.organizationId,
+        profile: invitedProfile,
+        invitationId: invitation.invitationId,
+        userAgent: "request-bound-test",
+      },
+      productionDatabase,
+    );
+    expect(issued.accepted?.membership).toMatchObject({
+      organizationId: alpha.organizationId,
+      status: "active",
+    });
+    await expect(
+      issueIdentitySession(
+        {
+          organizationId: beta.organizationId,
+          profile: alphaOwner.profile,
+        },
+        productionDatabase,
+      ),
+    ).rejects.toBeInstanceOf(AuthenticationError);
+    await expect(
+      resolveVerifiedIdentityOrganization(
+        alphaOwner.profile,
+        productionDatabase,
+      ),
+    ).resolves.toBe(alpha.organizationId);
+
+    await identity.registerAuthenticationAttempt("enterprise-oidc", {
+      state: "unselected-organization-state",
+      nonce: "unselected-organization-nonce",
+      pkceVerifier: "unselected-organization-pkce",
+      redirectUri: "https://fortify.test/api/auth/oidc/callback",
+      returnTo: "/portfolio",
+    });
+    await expect(
+      consumeOidcAttemptForRequest(
+        "enterprise-oidc",
+        "unselected-organization-state",
+        productionDatabase,
+      ),
+    ).resolves.toMatchObject({ organizationId: undefined });
+
+    await expect(
+      withApplicationTransaction(
+        (transaction) =>
+          resolveTenantBootstrap(transaction, {
+            kind: "invitation",
+            lookupHash: "not-an-invitation-token-hash",
+          }),
+        productionDatabase,
+      ),
+    ).rejects.toThrow(
+      "No active tenant bootstrap record matched the request credential.",
+    );
+    const persisted = await withTenantTransaction(
+      alpha.context,
+      async (transaction) => ({
+        invitations: await transaction.select().from(schema.invitations),
+        sessions: await transaction.select().from(schema.sessions),
+      }),
+      productionDatabase,
+    );
+    expect(persisted.invitations).toEqual([
+      expect.objectContaining({
+        id: invitation.invitationId,
+        acceptedAt: expect.any(String),
+      }),
+    ]);
+    expect(persisted.sessions).toEqual([
+      expect.objectContaining({
+        id: issued.session.sessionId,
+        activeOrganizationId: alpha.organizationId,
+        userAgent: "request-bound-test",
+      }),
+    ]);
+  });
+
+  test("binds storage grants to the authenticated tenant transaction and exposes only required fields", async () => {
+    vi.stubEnv(
+      "FORTIFY_REQUEST_HASH_KEY",
+      "fixture-request-hash-key-32-characters",
+    );
+    const productionDatabase = database as unknown as ProductionDatabaseLike;
+    const alpha = await createTenantFixture(
+      productionDatabase,
+      "storage-request-alpha",
+    );
+    const beta = await createTenantFixture(
+      productionDatabase,
+      "storage-request-beta",
+    );
+    const alphaOwner = await createActiveMembership(productionDatabase, {
+      organizationId: alpha.organizationId,
+      subject: alpha.context.actorSubject,
+      role: "organization_owner",
+    });
+    const betaOwner = await createActiveMembership(productionDatabase, {
+      organizationId: beta.organizationId,
+      subject: beta.context.actorSubject,
+      role: "organization_owner",
+    });
+    const identity = new IdentityService(productionDatabase);
+    const alphaSession = await identity.issueSession({
+      profile: alphaOwner.profile,
+      activeOrganizationId: alpha.organizationId,
+      ttlSeconds: 3_600,
+    });
+    const betaSession = await identity.issueSession({
+      profile: betaOwner.profile,
+      activeOrganizationId: beta.organizationId,
+      ttlSeconds: 3_600,
+    });
+    const adapter = new DeterministicObjectStorageAdapter();
+    const body = new TextEncoder().encode("%PDF-1.4\nrequest-bound storage");
+    const checksum = createHash("sha256").update(body).digest("hex");
+    const request = (sessionToken: string, suffix: string) =>
+      new NextRequest(`https://fortify.test/api/production/storage/${suffix}`, {
+        headers: { cookie: `fortify_session=${sessionToken}` },
+      });
+    const storage = (transaction: ProductionDatabaseLike) =>
+      new ProductionStorageService(transaction, adapter, { mode: "AES256" });
+
+    const upload = await withAuthenticatedTenantRequest(
+      request(alphaSession.token, "uploads"),
+      async (principal, transaction) =>
+        storage(transaction).requestUpload(principal.authorization, {
+          filename: "board-packet.pdf",
+          mimeType: "application/pdf",
+          sizeBytes: body.byteLength,
+          sha256: checksum,
+        }),
+      productionDatabase,
+    );
+    const uploadResponse = presentRequestedUpload(upload);
+    expect(uploadResponse).toEqual({
+      storageObjectId: upload.storageObjectId,
+      grantId: upload.grantId,
+      operation: upload.operation,
+    });
+    expect(uploadResponse).not.toHaveProperty("objectKey");
+
+    await adapter.put({
+      key: upload.objectKey,
+      body,
+      mimeType: "application/pdf",
+      sha256: checksum,
+    });
+    const finalized = await withAuthenticatedTenantRequest(
+      request(alphaSession.token, `uploads/${upload.storageObjectId}/finalize`),
+      async (principal, transaction) =>
+        storage(transaction).finalizeUpload(
+          principal.authorization,
+          upload.storageObjectId,
+          upload.grantId,
+        ),
+      productionDatabase,
+    );
+    const finalizedResponse = presentFinalizedUpload(finalized);
+    expect(finalizedResponse).toMatchObject({
+      storageObjectId: upload.storageObjectId,
+      state: "quarantined",
+      scanStatus: "pending",
+      filename: "board-packet.pdf",
+      sha256: checksum,
+    });
+    for (const internalField of [
+      "objectKey",
+      "bucket",
+      "provider",
+      "encryptionKeyId",
+      "organizationId",
+      "createdBy",
+      "updatedBy",
+    ]) {
+      expect(finalizedResponse).not.toHaveProperty(internalField);
+    }
+
+    await withAuthenticatedTenantRequest(
+      request(alphaSession.token, `objects/${upload.storageObjectId}/scan`),
+      async (principal, transaction) =>
+        storage(transaction).scanAndPromote(
+          principal.authorization,
+          upload.storageObjectId,
+          new DeterministicMalwareScanner("clean"),
+        ),
+      productionDatabase,
+    );
+
+    await expect(
+      withAuthenticatedTenantRequest(
+        request(
+          betaSession.token,
+          `objects/${upload.storageObjectId}/download-grants`,
+        ),
+        async (principal, transaction) =>
+          storage(transaction).issueDownloadGrant(
+            principal.authorization,
+            upload.storageObjectId,
+            { purpose: "cross-tenant attempt" },
+          ),
+        productionDatabase,
+      ),
+    ).rejects.toBeInstanceOf(StorageValidationError);
+
+    const grant = await withAuthenticatedTenantRequest(
+      request(
+        alphaSession.token,
+        `objects/${upload.storageObjectId}/download-grants`,
+      ),
+      async (principal, transaction) =>
+        storage(transaction).issueDownloadGrant(
+          principal.authorization,
+          upload.storageObjectId,
+          { purpose: "review exact evidence" },
+        ),
+      productionDatabase,
+    );
+    await expect(
+      withAuthenticatedTenantRequest(
+        request(betaSession.token, `download-grants/${grant.grantId}/redeem`),
+        async (principal, transaction) =>
+          storage(transaction).redeemDownloadGrant(
+            principal.authorization,
+            grant.grantId,
+          ),
+        productionDatabase,
+      ),
+    ).rejects.toBeInstanceOf(StorageGrantError);
+
+    const redemptions = await Promise.allSettled(
+      [1, 2].map(() =>
+        withAuthenticatedTenantRequest(
+          request(
+            alphaSession.token,
+            `download-grants/${grant.grantId}/redeem`,
+          ),
+          async (principal, transaction) =>
+            storage(transaction).redeemDownloadGrant(
+              principal.authorization,
+              grant.grantId,
+            ),
+          productionDatabase,
+        ),
+      ),
+    );
+    expect(
+      redemptions.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
+    expect(
+      redemptions.filter((result) => result.status === "rejected"),
+    ).toHaveLength(1);
+    expect(
+      redemptions.find((result) => result.status === "rejected"),
+    ).toMatchObject({
+      reason: expect.any(StorageGrantError),
+    });
   });
 
   test("rate limits with HMAC buckets and no raw identifier persistence", async () => {

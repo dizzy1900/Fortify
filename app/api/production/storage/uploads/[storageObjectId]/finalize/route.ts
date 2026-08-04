@@ -1,6 +1,12 @@
 import { NextRequest } from "next/server";
-import { authenticationFailure, resolveRequestPrincipal } from "@/lib/production/http-auth";
-import { getProductionStorageService } from "@/lib/production/storage-http";
+import {
+  authenticationFailure,
+  withAuthenticatedTenantRequest,
+} from "@/lib/production/http-auth";
+import {
+  getProductionStorageService,
+  presentFinalizedUpload,
+} from "@/lib/production/storage-http";
 import { requireProductionRuntime } from "@/lib/runtime";
 
 export async function POST(
@@ -9,17 +15,24 @@ export async function POST(
 ) {
   try {
     requireProductionRuntime();
-    const principal = await resolveRequestPrincipal(request);
     const { storageObjectId } = await params;
     const body = (await request.json()) as { grantId?: string };
-    if (!body.grantId)
+    const { grantId } = body;
+    if (!grantId)
       return Response.json({ error: "grantId is required." }, { status: 400 });
-    return Response.json(
-      await getProductionStorageService().finalizeUpload(
-        principal.authorization,
-        storageObjectId,
-        body.grantId,
-      ),
+    return await withAuthenticatedTenantRequest(
+      request,
+      async (principal, transaction) =>
+        Response.json(
+          presentFinalizedUpload(
+            await getProductionStorageService(transaction).finalizeUpload(
+              principal.authorization,
+              storageObjectId,
+              grantId,
+            ),
+          ),
+          { headers: { "Cache-Control": "no-store" } },
+        ),
     );
   } catch (error) {
     return authenticationFailure(error);

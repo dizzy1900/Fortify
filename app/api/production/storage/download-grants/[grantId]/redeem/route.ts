@@ -1,5 +1,8 @@
 import { NextRequest } from "next/server";
-import { authenticationFailure, resolveRequestPrincipal } from "@/lib/production/http-auth";
+import {
+  authenticationFailure,
+  withAuthenticatedTenantRequest,
+} from "@/lib/production/http-auth";
 import { getProductionStorageService } from "@/lib/production/storage-http";
 import { requireProductionRuntime } from "@/lib/runtime";
 
@@ -9,13 +12,17 @@ export async function POST(
 ) {
   try {
     requireProductionRuntime();
-    const principal = await resolveRequestPrincipal(request);
     const { grantId } = await params;
-    return Response.json(
-      await getProductionStorageService().redeemDownloadGrant(
-        principal.authorization,
-        grantId,
-      ),
+    return await withAuthenticatedTenantRequest(
+      request,
+      async (principal, transaction) =>
+        Response.json(
+          await getProductionStorageService(transaction).redeemDownloadGrant(
+            principal.authorization,
+            grantId,
+          ),
+          { headers: { "Cache-Control": "no-store" } },
+        ),
     );
   } catch (error) {
     return authenticationFailure(error);

@@ -26,6 +26,13 @@ function classifyRoute(file, source) {
     /\bsetTenantTransactionContext\s*\(/.test(source)
   )
     return "bound_inbound_request";
+  if (
+    file.includes("/api/auth/") &&
+    /\b(resolveInvitationForOidc|consumeOidcAttemptForRequest|issueIdentitySession)\s*\(/.test(
+      source,
+    )
+  )
+    return "bound_identity_bootstrap";
   if (/\bresolveRequestPrincipal\s*\(/.test(source))
     return "unbound_authenticated_request";
   if (file.includes("/api/auth/")) return "unbound_identity_bootstrap";

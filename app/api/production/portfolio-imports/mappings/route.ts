@@ -1,19 +1,21 @@
 import { NextRequest } from "next/server";
 import {
   authenticationFailure,
-  resolveRequestPrincipal,
+  withAuthenticatedTenantRequest,
 } from "@/lib/production/http-auth";
 import type {
   ImportColumnMapping,
   ImportConstants,
 } from "@/lib/production/import-adapters";
-import { getProductionPortfolioImportService } from "@/lib/production/portfolio-import-http";
+import {
+  getProductionPortfolioImportService,
+  presentPortfolioImportMapping,
+} from "@/lib/production/portfolio-import-http";
 import { requireProductionRuntime } from "@/lib/runtime";
 
 export async function POST(request: NextRequest) {
   try {
     requireProductionRuntime();
-    const principal = await resolveRequestPrincipal(request);
     const body = (await request.json()) as {
       name?: string;
       sourceSystem?: string;
@@ -36,19 +38,26 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 },
       );
-    const saved = await getProductionPortfolioImportService().saveMapping(
-      principal.authorization,
-      {
-        name: body.name,
-        sourceSystem: body.sourceSystem,
-        fileFormat: body.fileFormat,
-        sheetName: body.sheetName,
-        headerRow: body.headerRow,
-        columnMapping: body.columnMapping,
-        constants: body.constants,
+    return await withAuthenticatedTenantRequest(
+      request,
+      async (principal, transaction) => {
+        const saved = await getProductionPortfolioImportService(
+          transaction,
+        ).saveMapping(principal.authorization, {
+          name: body.name!,
+          sourceSystem: body.sourceSystem!,
+          fileFormat: body.fileFormat!,
+          sheetName: body.sheetName,
+          headerRow: body.headerRow,
+          columnMapping: body.columnMapping!,
+          constants: body.constants,
+        });
+        return Response.json(presentPortfolioImportMapping(saved), {
+          status: saved.replayed ? 200 : 201,
+          headers: { "Cache-Control": "no-store" },
+        });
       },
     );
-    return Response.json(saved, { status: saved.replayed ? 200 : 201 });
   } catch (error) {
     return authenticationFailure(error);
   }

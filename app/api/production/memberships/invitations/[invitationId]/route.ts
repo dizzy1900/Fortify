@@ -1,7 +1,9 @@
 import { NextRequest } from "next/server";
-import { getProductionDatabase } from "@/db/production/client";
-import { authenticationFailure, resolveRequestPrincipal } from "@/lib/production/http-auth";
-import { IdentityService } from "@/lib/production/identity-service";
+import {
+  authenticationFailure,
+  withAuthenticatedTenantRequest,
+} from "@/lib/production/http-auth";
+import { getProductionIdentityService } from "@/lib/production/identity-http";
 import { requireProductionRuntime } from "@/lib/runtime";
 
 export async function DELETE(
@@ -10,17 +12,28 @@ export async function DELETE(
 ) {
   try {
     requireProductionRuntime();
-    const principal = await resolveRequestPrincipal(request);
     const { invitationId } = await params;
     const body = (await request.json().catch(() => ({}))) as {
       reason?: unknown;
     };
-    await new IdentityService(getProductionDatabase()).revokeInvitation(
-      principal.authorization,
-      invitationId,
-      typeof body.reason === "string" ? body.reason : "administrator_revocation",
+    const reason =
+      typeof body.reason === "string" && body.reason.trim()
+        ? body.reason.trim()
+        : "administrator_revocation";
+    return await withAuthenticatedTenantRequest(
+      request,
+      async (principal, transaction) => {
+        await getProductionIdentityService(transaction).revokeInvitation(
+          principal.authorization,
+          invitationId,
+          reason,
+        );
+        return new Response(null, {
+          status: 204,
+          headers: { "Cache-Control": "no-store" },
+        });
+      },
     );
-    return new Response(null, { status: 204 });
   } catch (error) {
     return authenticationFailure(error);
   }
