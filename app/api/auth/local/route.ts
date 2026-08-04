@@ -4,7 +4,8 @@ import {
   authenticationFailure,
   setSessionCookie,
 } from "@/lib/production/http-auth";
-import { IdentityService } from "@/lib/production/identity-service";
+import { issueIdentitySession } from "@/lib/production/identity-http";
+import { AuthenticationError } from "@/lib/production/identity-service";
 import { LocalDevelopmentIdentityProvider } from "@/lib/production/identity-provider";
 import { requireProductionRuntime } from "@/lib/runtime";
 import { consumeRequestRateLimit } from "@/lib/production/rate-limit";
@@ -27,16 +28,24 @@ export async function POST(request: NextRequest) {
       email: String(values.email ?? ""),
       displayName: String(values.displayName ?? ""),
     });
-    const identity = new IdentityService(database);
-    const session = await identity.issueSession({
-      profile,
-      activeOrganizationId: String(values.organizationId ?? ""),
-      userAgent: request.headers.get("user-agent") ?? undefined,
-    });
+    const organizationId = String(values.organizationId ?? "").trim();
+    if (!organizationId)
+      throw new AuthenticationError(
+        "An organization is required for local development sign-in.",
+      );
+    const { session } = await issueIdentitySession(
+      {
+        organizationId,
+        profile,
+        userAgent: request.headers.get("user-agent") ?? undefined,
+      },
+      database,
+    );
     const response = NextResponse.json({
       ok: true,
       expiresAt: session.expiresAt,
     });
+    response.headers.set("Cache-Control", "no-store");
     setSessionCookie(response, session.token, session.expiresAt);
     return response;
   } catch (error) {

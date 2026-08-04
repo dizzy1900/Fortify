@@ -20,8 +20,12 @@ import {
 import { redactLogValue } from "@/lib/production/observability";
 import { withAuthenticatedTenantRequest } from "@/lib/production/http-auth";
 import {
+  consumeOidcAttemptForRequest,
   getProductionIdentityService,
+  issueIdentitySession,
   presentMembershipInvitation,
+  resolveInvitationForOidc,
+  resolveVerifiedIdentityOrganization,
 } from "@/lib/production/identity-http";
 import {
   AuthenticationError,
@@ -32,7 +36,11 @@ import {
   consumeRequestRateLimit,
   RequestRateLimitError,
 } from "@/lib/production/rate-limit";
-import { withTenantTransaction } from "@/lib/production/tenant-transaction";
+import {
+  withApplicationTransaction,
+  withTenantTransaction,
+} from "@/lib/production/tenant-transaction";
+import { resolveTenantBootstrap } from "@/lib/production/tenant-bootstrap";
 import {
   tenantRecord,
   TenantResourceNotFoundError,
@@ -623,6 +631,175 @@ describe("M12 operational hardening", () => {
       status: "revoked",
       revokedAt: expect.any(String),
     });
+  });
+
+  test("binds local and OIDC bootstrap to the application role and exact tenant context", async () => {
+    vi.stubEnv(
+      "FORTIFY_REQUEST_HASH_KEY",
+      "fixture-request-hash-key-32-characters",
+    );
+    const productionDatabase = database as unknown as ProductionDatabaseLike;
+    const alpha = await createTenantFixture(
+      productionDatabase,
+      "identity-bootstrap-alpha",
+    );
+    const beta = await createTenantFixture(
+      productionDatabase,
+      "identity-bootstrap-beta",
+    );
+    const alphaOwner = await createActiveMembership(productionDatabase, {
+      organizationId: alpha.organizationId,
+      subject: alpha.context.actorSubject,
+      role: "organization_owner",
+    });
+    const invitedProfile = {
+      providerKey: "test-oidc",
+      providerSubject: "identity-bootstrap-invitee",
+      email: "identity-bootstrap-invitee@example.test",
+      emailVerified: true,
+      displayName: "Identity Bootstrap Invitee",
+      authenticationMethods: ["pwd", "mfa"],
+      mfaCapable: true,
+    };
+    const identity = new IdentityService(productionDatabase);
+    const invitation = await identity.inviteMembership(alpha.context, {
+      email: invitedProfile.email,
+      role: "underwriter_reviewer",
+    });
+    await identity.registerAuthenticationAttempt("enterprise-oidc", {
+      state: "invitation-state",
+      nonce: "invitation-nonce",
+      pkceVerifier: "invitation-pkce",
+      redirectUri: "https://fortify.test/api/auth/oidc/callback",
+      returnTo: "//attacker.example.test",
+      activeOrganizationId: alpha.organizationId,
+      invitationId: invitation.invitationId,
+    });
+
+    await expect(
+      resolveInvitationForOidc(invitation.token, productionDatabase),
+    ).resolves.toEqual({
+      invitationId: invitation.invitationId,
+      organizationId: alpha.organizationId,
+    });
+    const consumedResults = await Promise.allSettled([
+      consumeOidcAttemptForRequest(
+        "enterprise-oidc",
+        "invitation-state",
+        productionDatabase,
+      ),
+      consumeOidcAttemptForRequest(
+        "enterprise-oidc",
+        "invitation-state",
+        productionDatabase,
+      ),
+    ]);
+    expect(
+      consumedResults.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
+    expect(
+      consumedResults.filter((result) => result.status === "rejected"),
+    ).toHaveLength(1);
+    const consumedResult = consumedResults.find(
+      (result) => result.status === "fulfilled",
+    );
+    if (!consumedResult || consumedResult.status !== "fulfilled")
+      throw new Error("One request-bound OIDC attempt must be claimed.");
+    expect(consumedResult.value).toMatchObject({
+      organizationId: alpha.organizationId,
+      attempt: {
+        invitationId: invitation.invitationId,
+        returnTo: "/portfolio",
+      },
+    });
+
+    await expect(
+      issueIdentitySession(
+        {
+          organizationId: beta.organizationId,
+          profile: invitedProfile,
+          invitationId: invitation.invitationId,
+        },
+        productionDatabase,
+      ),
+    ).rejects.toBeInstanceOf(AuthenticationError);
+    const issued = await issueIdentitySession(
+      {
+        organizationId: alpha.organizationId,
+        profile: invitedProfile,
+        invitationId: invitation.invitationId,
+        userAgent: "request-bound-test",
+      },
+      productionDatabase,
+    );
+    expect(issued.accepted?.membership).toMatchObject({
+      organizationId: alpha.organizationId,
+      status: "active",
+    });
+    await expect(
+      issueIdentitySession(
+        {
+          organizationId: beta.organizationId,
+          profile: alphaOwner.profile,
+        },
+        productionDatabase,
+      ),
+    ).rejects.toBeInstanceOf(AuthenticationError);
+    await expect(
+      resolveVerifiedIdentityOrganization(
+        alphaOwner.profile,
+        productionDatabase,
+      ),
+    ).resolves.toBe(alpha.organizationId);
+
+    await identity.registerAuthenticationAttempt("enterprise-oidc", {
+      state: "unselected-organization-state",
+      nonce: "unselected-organization-nonce",
+      pkceVerifier: "unselected-organization-pkce",
+      redirectUri: "https://fortify.test/api/auth/oidc/callback",
+      returnTo: "/portfolio",
+    });
+    await expect(
+      consumeOidcAttemptForRequest(
+        "enterprise-oidc",
+        "unselected-organization-state",
+        productionDatabase,
+      ),
+    ).resolves.toMatchObject({ organizationId: undefined });
+
+    await expect(
+      withApplicationTransaction(
+        (transaction) =>
+          resolveTenantBootstrap(transaction, {
+            kind: "invitation",
+            lookupHash: "not-an-invitation-token-hash",
+          }),
+        productionDatabase,
+      ),
+    ).rejects.toThrow(
+      "No active tenant bootstrap record matched the request credential.",
+    );
+    const persisted = await withTenantTransaction(
+      alpha.context,
+      async (transaction) => ({
+        invitations: await transaction.select().from(schema.invitations),
+        sessions: await transaction.select().from(schema.sessions),
+      }),
+      productionDatabase,
+    );
+    expect(persisted.invitations).toEqual([
+      expect.objectContaining({
+        id: invitation.invitationId,
+        acceptedAt: expect.any(String),
+      }),
+    ]);
+    expect(persisted.sessions).toEqual([
+      expect.objectContaining({
+        id: issued.session.sessionId,
+        activeOrganizationId: alpha.organizationId,
+        userAgent: "request-bound-test",
+      }),
+    ]);
   });
 
   test("binds storage grants to the authenticated tenant transaction and exposes only required fields", async () => {

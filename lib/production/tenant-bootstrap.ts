@@ -7,7 +7,10 @@ export type TenantBootstrapKind =
   | "external_case"
   | "external_project"
   | "external_verification"
-  | "webhook_endpoint";
+  | "webhook_endpoint"
+  | "invitation"
+  | "authentication_attempt"
+  | "identity_membership";
 
 export class TenantBootstrapNotFoundError extends Error {
   constructor() {
