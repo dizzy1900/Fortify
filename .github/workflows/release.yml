@@ -51,6 +51,22 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FORTIFY_APP_DATABASE_URL: ${{ secrets.FORTIFY_APP_DATABASE_URL }}
         run: npm run db:migrate:production
+      - name: Prove managed PostgreSQL role and pooled tenant isolation
+        if: inputs.environment == 'staging'
+        env:
+          FORTIFY_RUNTIME_MODE: production
+          FORTIFY_VALIDATION_ENVIRONMENT: staging
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FORTIFY_APP_DATABASE_URL: ${{ secrets.FORTIFY_APP_DATABASE_URL }}
+        run: npm run db:validate:managed-postgres > managed-postgres-validation.json
+      - name: Preserve managed PostgreSQL validation receipt
+        if: inputs.environment == 'staging'
+        uses: actions/upload-artifact@v4
+        with:
+          name: managed-postgres-validation-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 30
+          path: managed-postgres-validation.json
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io

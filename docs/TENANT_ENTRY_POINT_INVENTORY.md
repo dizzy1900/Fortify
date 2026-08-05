@@ -44,4 +44,4 @@ The production route families are access (3), brokerage (4), communities (2), do
 
 ## Remaining C0 work
 
-The executable entry-point inventory is complete at 127/127 bound and rejects any unclassified or unawaited authenticated handler. Session rotation, cookie, CSRF, permission, rate-limit, and response-minimization attacks now pass locally. C0 still requires the selected managed PostgreSQL non-owner login and pool-reuse proof. The production sandbox seeder is an explicit administrative fixture operation and is not counted as a request or worker entry point.
+The executable entry-point inventory is complete at 127/127 bound and rejects any unclassified or unawaited authenticated handler. Session rotation, cookie, CSRF, permission, rate-limit, and response-minimization attacks now pass locally. The selected managed PostgreSQL non-owner login and pool-reuse proof is wired as a staging-only redacted release receipt, but it has not run because credentials are absent; C0 remains incomplete. The production sandbox seeder and managed validation canaries are explicit administrative fixture operations and are not counted as request or worker entry points.

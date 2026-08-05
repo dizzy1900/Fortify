@@ -17,6 +17,12 @@ import {
   inspectProductionEnvironment,
   validateProductionEnvironment,
 } from "@/lib/production/environment";
+import {
+  createManagedPostgresFailureReceipt,
+  inspectManagedPostgresValidationEnvironment,
+  ManagedPostgresValidationError,
+  validateManagedPostgresValidationEnvironment,
+} from "@/lib/production/managed-postgres-validation";
 import { redactLogValue } from "@/lib/production/observability";
 import { withAuthenticatedTenantRequest } from "@/lib/production/http-auth";
 import {
@@ -1025,6 +1031,68 @@ describe("M12 operational hardening", () => {
     expect(
       inspectProductionEnvironment(environment).some(
         (check) => check.key === "FORTIFY_APP_ORIGIN_HTTPS" && !check.ok,
+      ),
+    ).toBe(true);
+  });
+
+  test("fails the managed PostgreSQL probe closed outside staging or with shared credentials", () => {
+    const sharedUrl = "postgresql://credential-must-not-appear@example.test/db";
+    const environment = {
+      NODE_ENV: "production",
+      FORTIFY_RUNTIME_MODE: "production",
+      FORTIFY_VALIDATION_ENVIRONMENT: "production",
+      DATABASE_URL: sharedUrl,
+      FORTIFY_APP_DATABASE_URL: sharedUrl,
+    } as NodeJS.ProcessEnv;
+    expect(inspectManagedPostgresValidationEnvironment(environment)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "FORTIFY_VALIDATION_ENVIRONMENT",
+          ok: false,
+        }),
+        expect.objectContaining({
+          key: "FORTIFY_DATABASE_ROLE_SEPARATION",
+          ok: false,
+        }),
+      ]),
+    );
+    expect(() =>
+      validateManagedPostgresValidationEnvironment(environment),
+    ).toThrow(ManagedPostgresValidationError);
+    const receipt = createManagedPostgresFailureReceipt(
+      new ManagedPostgresValidationError(
+        "FORTIFY_DATABASE_ROLE_SEPARATION",
+        `Rejected ${sharedUrl}`,
+      ),
+      environment,
+      "2026-08-04T12:00:00.000Z",
+    );
+    expect(receipt).toEqual({
+      schema: "fortify.managed-postgres-validation.v1",
+      status: "fail",
+      environment: "unresolved",
+      checkedAt: "2026-08-04T12:00:00.000Z",
+      failedCheck: "FORTIFY_DATABASE_ROLE_SEPARATION",
+      detail: "Managed PostgreSQL validation failed closed.",
+    });
+    expect(JSON.stringify(receipt)).not.toContain(sharedUrl);
+  });
+
+  test("admits only an explicitly staged managed PostgreSQL probe contract", () => {
+    const environment = {
+      NODE_ENV: "production",
+      FORTIFY_RUNTIME_MODE: "production",
+      FORTIFY_VALIDATION_ENVIRONMENT: "staging",
+      DATABASE_URL: "postgresql://migration@example.test/db",
+      FORTIFY_APP_DATABASE_URL: "postgresql://application@example.test/db",
+    } as NodeJS.ProcessEnv;
+    expect(validateManagedPostgresValidationEnvironment(environment)).toEqual({
+      migrationDatabaseUrl: environment.DATABASE_URL,
+      applicationDatabaseUrl: environment.FORTIFY_APP_DATABASE_URL,
+    });
+    expect(
+      inspectManagedPostgresValidationEnvironment(environment).every(
+        (check) => check.ok,
       ),
     ).toBe(true);
   });

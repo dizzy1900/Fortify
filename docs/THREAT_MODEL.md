@@ -8,7 +8,7 @@ Assets include customer identities, portfolio and property records, policies/not
 
 | Threat                     | Prevent/detect control                                                                                                 | Residual or launch gate                                    |
 | -------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| Cross-tenant object access | deny-by-default authorization, tenant predicates, relation triggers, RLS policy pack, attack tests                     | managed non-owner role and RLS session validation pending  |
+| Cross-tenant object access | deny-by-default authorization, tenant predicates, relation triggers, RLS policy pack, attack tests, staging proof gate | managed non-owner/RLS/pool receipt pending                 |
 | Session theft or fixation  | opaque hashed sessions, atomic fixed-expiry rotation/revocation, secure host-only Strict cookie, OIDC state/nonce/PKCE | live IdP/MFA and session anomaly alerting pending          |
 | CSRF/clickjacking/XSS      | exact-origin/fetch-metadata checks, Strict cookie, frame denial, nonce CSP, contextual React escaping                  | independent penetration test pending                       |
 | Credential stuffing/DoS    | HMAC PostgreSQL rate buckets, bounded pools/timeouts, provider retry limits                                            | edge/WAF policy and load test pending                      |
