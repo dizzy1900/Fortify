@@ -17,6 +17,7 @@ import {
   PortfolioImportWorkspaceQueryService,
   portfolioImportWorkspaceQuery,
 } from "@/lib/production/contexts/portfolio-import/workspace-query";
+import { StorageObjectQueryService } from "@/lib/production/contexts/evidence-custody/storage-object-query-port";
 import { DeterministicObjectStorageAdapter } from "@/lib/production/object-storage";
 import {
   PortfolioImportService,
@@ -103,6 +104,7 @@ describe("portfolio and SOV import", () => {
     );
     const workspaceQuery = new PortfolioImportWorkspaceQueryService(
       productionDatabase(),
+      new StorageObjectQueryService(productionDatabase()),
     );
     const body = new Uint8Array(await readFile(fixturePath("generic-sov.csv")));
     const suggestion = await service.suggestMapping({

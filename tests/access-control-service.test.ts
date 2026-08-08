@@ -17,6 +17,7 @@ import {
   IdentityAccessWorkspaceQueryService,
   identityAccessWorkspaceQuery,
 } from "@/lib/production/contexts/identity-access/workspace-query";
+import { StorageObjectQueryService } from "@/lib/production/contexts/evidence-custody/storage-object-query-port";
 import { IdentityService } from "@/lib/production/identity-service";
 import {
   tenantRecord,
@@ -340,6 +341,7 @@ describe("purpose-scoped production access control", () => {
     });
     const queryService = new IdentityAccessWorkspaceQueryService(
       productionDatabase(),
+      new StorageObjectQueryService(productionDatabase()),
       () => currentTime,
     );
     const workspace = await queryService.execute(

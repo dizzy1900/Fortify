@@ -4,6 +4,7 @@ import {
   PortfolioImportWorkspaceQueryService,
   type PortfolioImportWorkspace,
 } from "@/lib/production/contexts/portfolio-import/workspace-query";
+import { StorageObjectQueryService } from "@/lib/production/contexts/evidence-custody/storage-object-query-port";
 import { getProductionObjectStorage } from "@/lib/production/object-storage-runtime";
 import { PortfolioImportService } from "@/lib/production/portfolio-import-service";
 import type { ProductionDatabaseLike } from "@/lib/production/repository";
@@ -27,7 +28,10 @@ export function getProductionPortfolioImportService(
 export function getProductionPortfolioImportWorkspaceQuery(
   database: ProductionDatabaseLike = getProductionDatabase() as unknown as ProductionDatabaseLike,
 ) {
-  return new PortfolioImportWorkspaceQueryService(database);
+  return new PortfolioImportWorkspaceQueryService(
+    database,
+    new StorageObjectQueryService(database),
+  );
 }
 
 function presentPortfolioImportFileFormat(value: string): "csv" | "xlsx" {

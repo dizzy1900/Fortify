@@ -9,6 +9,7 @@ import {
   type QueryOperation,
   defineQuery,
 } from "@/lib/production/kernel/operations";
+import type { StorageObjectQueryPort } from "@/lib/production/contexts/evidence-custody/storage-object-query-port";
 import {
   tenantRecord,
   type ProductionDatabaseLike,
@@ -42,6 +43,7 @@ export class IdentityAccessWorkspaceQueryService
 {
   constructor(
     private readonly database: ProductionDatabaseLike,
+    private readonly storageObjects: StorageObjectQueryPort,
     private readonly clock: () => Date = () => new Date(),
   ) {}
 
@@ -96,7 +98,7 @@ export class IdentityAccessWorkspaceQueryService
       supportGrants,
       accessLogs,
       sessions,
-      storageObjects,
+      storagePosture,
     ] = await Promise.all([
       this.database
         .select({
@@ -231,16 +233,7 @@ export class IdentityAccessWorkspaceQueryService
             gt(schema.sessions.expiresAt, now),
           ),
         ),
-      this.database
-        .select({
-          encryptionMode: schema.storageObjects.encryptionMode,
-          state: schema.storageObjects.state,
-          scanStatus: schema.storageObjects.scanStatus,
-        })
-        .from(schema.storageObjects)
-        .where(
-          eq(schema.storageObjects.organizationId, context.organizationId),
-        ),
+      this.storageObjects.summarizeCustody(context),
     ]);
 
     const identityById = new Map(
@@ -287,15 +280,7 @@ export class IdentityAccessWorkspaceQueryService
             : undefined;
           return membership.status === "active" && identity?.mfaCapable;
         }).length,
-        encryptedObjectCount: storageObjects.filter((object) =>
-          ["AES256", "aws:kms"].includes(object.encryptionMode),
-        ).length,
-        quarantinedObjectCount: storageObjects.filter((object) =>
-          ["pending_upload", "quarantined", "scanning"].includes(object.state),
-        ).length,
-        cleanObjectCount: storageObjects.filter(
-          (object) => object.state === "clean" && object.scanStatus === "clean",
-        ).length,
+        ...storagePosture,
       },
     };
   }

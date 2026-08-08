@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import * as schema from "@/db/production/schema";
 import { DOCUMENT_PIPELINE_VERSION } from "@/lib/contracts/document-intelligence";
 import { assertAuthorized } from "@/lib/production/authorization";
@@ -11,6 +11,7 @@ import type {
   ProductionDatabaseLike,
   TenantContext,
 } from "@/lib/production/repository";
+import type { StorageObjectQueryPort } from "@/lib/production/contexts/evidence-custody/storage-object-query-port";
 
 const workspaceReadResources = [
   "renewal_case",
@@ -61,6 +62,7 @@ export class DocumentWorkspaceQueryService
   constructor(
     private readonly database: ProductionDatabaseLike,
     private readonly textProvider: DocumentTextProvider,
+    private readonly storageObjects: StorageObjectQueryPort,
   ) {}
 
   async execute(query: DocumentWorkspaceQuery) {
@@ -125,39 +127,10 @@ export class DocumentWorkspaceQueryService
       document.storageObjectId ? [document.storageObjectId] : [],
     );
 
-    const cleanObjects = await this.database
-      .select({
-        id: schema.storageObjects.id,
-        filename: schema.storageObjects.originalFilename,
-        mimeType: schema.storageObjects.mimeType,
-        sizeBytes: schema.storageObjects.sizeBytes,
-        sha256: schema.storageObjects.sha256,
-        createdAt: schema.storageObjects.createdAt,
-      })
-      .from(schema.storageObjects)
-      .where(
-        and(
-          eq(schema.storageObjects.organizationId, organizationId),
-          eq(schema.storageObjects.state, "clean"),
-          eq(schema.storageObjects.scanStatus, "clean"),
-          inArray(schema.storageObjects.mimeType, [
-            "application/pdf",
-            "image/jpeg",
-            "image/png",
-            "text/plain",
-          ]),
-          context.assignedCaseIds
-            ? storageObjectIds.length
-              ? or(
-                  inArray(schema.storageObjects.id, storageObjectIds),
-                  eq(schema.storageObjects.createdBy, context.actorSubject),
-                )
-              : eq(schema.storageObjects.createdBy, context.actorSubject)
-            : undefined,
-        ),
-      )
-      .orderBy(desc(schema.storageObjects.createdAt))
-      .limit(100);
+    const cleanObjects = await this.storageObjects.listDocumentIntakeObjects(
+      context,
+      storageObjectIds,
+    );
 
     const jobs =
       documentIds.length === 0

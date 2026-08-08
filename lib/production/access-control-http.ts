@@ -5,6 +5,7 @@ import {
   IdentityAccessWorkspaceQueryService,
   type IdentityAccessWorkspace,
 } from "@/lib/production/contexts/identity-access/workspace-query";
+import { StorageObjectQueryService } from "@/lib/production/contexts/evidence-custody/storage-object-query-port";
 import type { ProductionDatabaseLike } from "@/lib/production/repository";
 
 export function getProductionAccessControlService(
@@ -16,7 +17,10 @@ export function getProductionAccessControlService(
 export function getProductionIdentityAccessWorkspaceQuery(
   database: ProductionDatabaseLike = getProductionDatabase() as unknown as ProductionDatabaseLike,
 ) {
-  return new IdentityAccessWorkspaceQueryService(database);
+  return new IdentityAccessWorkspaceQueryService(
+    database,
+    new StorageObjectQueryService(database),
+  );
 }
 
 export function presentIdentityAccessWorkspace(

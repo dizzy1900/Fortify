@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import * as schema from "@/db/production/schema";
 import { assertAuthorized } from "@/lib/production/authorization";
 import { portfolioImportAdapters } from "@/lib/production/import-adapters";
@@ -10,6 +10,7 @@ import type {
   ProductionDatabaseLike,
   TenantContext,
 } from "@/lib/production/repository";
+import type { StorageObjectQueryPort } from "@/lib/production/contexts/evidence-custody/storage-object-query-port";
 
 export type PortfolioImportWorkspaceQuery = QueryOperation<
   "portfolio_import.workspace",
@@ -36,7 +37,10 @@ export interface PortfolioImportWorkspaceQueryPort {
 export class PortfolioImportWorkspaceQueryService
   implements PortfolioImportWorkspaceQueryPort
 {
-  constructor(private readonly database: ProductionDatabaseLike) {}
+  constructor(
+    private readonly database: ProductionDatabaseLike,
+    private readonly storageObjects: StorageObjectQueryPort,
+  ) {}
 
   async execute(query: PortfolioImportWorkspaceQuery) {
     const { context } = query;
@@ -64,29 +68,7 @@ export class PortfolioImportWorkspaceQueryService
           ),
         )
         .orderBy(schema.books.name),
-      this.database
-        .select({
-          id: schema.storageObjects.id,
-          filename: schema.storageObjects.originalFilename,
-          mimeType: schema.storageObjects.mimeType,
-          sizeBytes: schema.storageObjects.sizeBytes,
-          sha256: schema.storageObjects.sha256,
-          state: schema.storageObjects.state,
-          scanStatus: schema.storageObjects.scanStatus,
-          createdAt: schema.storageObjects.createdAt,
-        })
-        .from(schema.storageObjects)
-        .where(
-          and(
-            eq(schema.storageObjects.organizationId, context.organizationId),
-            inArray(schema.storageObjects.mimeType, [
-              "text/csv",
-              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            ]),
-          ),
-        )
-        .orderBy(desc(schema.storageObjects.createdAt))
-        .limit(50),
+      this.storageObjects.listPortfolioImportObjects(context),
       this.database
         .select({
           id: schema.importMappings.id,

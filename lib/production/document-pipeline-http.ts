@@ -4,6 +4,7 @@ import {
   DocumentWorkspaceQueryService,
   type DocumentWorkspace,
 } from "@/lib/production/contexts/document-intelligence/workspace-query";
+import { StorageObjectQueryService } from "@/lib/production/contexts/evidence-custody/storage-object-query-port";
 import { DocumentPipelineService } from "@/lib/production/document-pipeline-service";
 import { LocalSelectableTextProvider } from "@/lib/production/document-providers";
 import { getProductionObjectStorage } from "@/lib/production/object-storage-runtime";
@@ -35,6 +36,7 @@ export function getProductionDocumentWorkspaceQuery(
   return new DocumentWorkspaceQueryService(
     database,
     getConfiguredDocumentTextProvider(),
+    new StorageObjectQueryService(database),
   );
 }
 
