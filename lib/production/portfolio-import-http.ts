@@ -1,11 +1,13 @@
 import { getProductionDatabase } from "@/db/production/client";
+import type { PortfolioImportWorkspaceResponse } from "@/lib/contracts/portfolio-import";
+import {
+  PortfolioImportWorkspaceQueryService,
+  type PortfolioImportWorkspace,
+} from "@/lib/production/contexts/portfolio-import/workspace-query";
 import { getProductionObjectStorage } from "@/lib/production/object-storage-runtime";
 import { PortfolioImportService } from "@/lib/production/portfolio-import-service";
 import type { ProductionDatabaseLike } from "@/lib/production/repository";
 
-type PortfolioImportWorkspace = Awaited<
-  ReturnType<PortfolioImportService["getWorkspace"]>
->;
 type PortfolioImportResult = Awaited<
   ReturnType<PortfolioImportService["getImport"]>
 > & { replayed?: boolean };
@@ -22,9 +24,20 @@ export function getProductionPortfolioImportService(
   return new PortfolioImportService(database, getProductionObjectStorage());
 }
 
+export function getProductionPortfolioImportWorkspaceQuery(
+  database: ProductionDatabaseLike = getProductionDatabase() as unknown as ProductionDatabaseLike,
+) {
+  return new PortfolioImportWorkspaceQueryService(database);
+}
+
+function presentPortfolioImportFileFormat(value: string): "csv" | "xlsx" {
+  if (value === "csv" || value === "xlsx") return value;
+  throw new Error("The saved portfolio import format is unsupported.");
+}
+
 export function presentPortfolioImportWorkspace(
   workspace: PortfolioImportWorkspace,
-) {
+): PortfolioImportWorkspaceResponse {
   return {
     adapters: workspace.adapters.map((adapter) => ({
       sourceSystem: adapter.sourceSystem,
@@ -51,7 +64,7 @@ export function presentPortfolioImportWorkspace(
       sourceSystem: mapping.sourceSystem,
       versionId: mapping.versionId,
       versionNumber: mapping.versionNumber,
-      fileFormat: mapping.fileFormat,
+      fileFormat: presentPortfolioImportFileFormat(mapping.fileFormat),
       sheetName: mapping.sheetName,
       headerRow: mapping.headerRow,
       columnMapping: mapping.columnMapping,

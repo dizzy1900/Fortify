@@ -13,6 +13,10 @@ import {
   genericAmsCsvAdapter,
   type ImportColumnMapping,
 } from "@/lib/production/import-adapters";
+import {
+  PortfolioImportWorkspaceQueryService,
+  portfolioImportWorkspaceQuery,
+} from "@/lib/production/contexts/portfolio-import/workspace-query";
 import { DeterministicObjectStorageAdapter } from "@/lib/production/object-storage";
 import {
   PortfolioImportService,
@@ -97,6 +101,9 @@ describe("portfolio and SOV import", () => {
       adapter,
       () => currentTime,
     );
+    const workspaceQuery = new PortfolioImportWorkspaceQueryService(
+      productionDatabase(),
+    );
     const body = new Uint8Array(await readFile(fixturePath("generic-sov.csv")));
     const suggestion = await service.suggestMapping({
       body,
@@ -142,7 +149,9 @@ describe("portfolio and SOV import", () => {
       format: "csv",
       rowCount: 3,
     });
-    const workspace = await service.getWorkspace(fixture.context);
+    const workspace = await workspaceQuery.execute(
+      portfolioImportWorkspaceQuery(fixture.context),
+    );
     expect(workspace.adapters).toHaveLength(3);
     expect(workspace.books).toContainEqual({
       id: fixture.bookId,
@@ -159,7 +168,12 @@ describe("portfolio and SOV import", () => {
       ]),
     );
     await expect(
-      service.getWorkspace({ ...fixture.context, role: "assistant" }),
+      workspaceQuery.execute(
+        portfolioImportWorkspaceQuery({
+          ...fixture.context,
+          role: "assistant",
+        }),
+      ),
     ).resolves.toMatchObject({ books: [{ id: fixture.bookId }] });
     const preview = await service.preview(fixture.context, {
       bookId: fixture.bookId,

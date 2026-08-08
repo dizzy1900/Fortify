@@ -4,9 +4,10 @@ import {
   withAuthenticatedTenantRequest,
 } from "@/lib/production/http-auth";
 import {
-  getProductionPortfolioImportService,
+  getProductionPortfolioImportWorkspaceQuery,
   presentPortfolioImportWorkspace,
 } from "@/lib/production/portfolio-import-http";
+import { portfolioImportWorkspaceQuery } from "@/lib/production/contexts/portfolio-import/workspace-query";
 import { requireProductionRuntime } from "@/lib/runtime";
 
 export async function GET(request: NextRequest) {
@@ -17,9 +18,9 @@ export async function GET(request: NextRequest) {
       async (principal, transaction) =>
         Response.json(
           presentPortfolioImportWorkspace(
-            await getProductionPortfolioImportService(transaction).getWorkspace(
-              principal.authorization,
-            ),
+            await getProductionPortfolioImportWorkspaceQuery(
+              transaction,
+            ).execute(portfolioImportWorkspaceQuery(principal.authorization)),
           ),
           { headers: { "Cache-Control": "no-store" } },
         ),

@@ -16,51 +16,11 @@ import {
   Upload,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import type { PortfolioImportWorkspaceResponse } from "@/lib/contracts/portfolio-import";
 
 type RuntimeMode = "sandbox" | "production";
-type Adapter = {
-  sourceSystem: string;
-  displayName: string;
-  externalValidationGate: string;
-};
-type WorkspaceOptions = {
-  adapters: Adapter[];
-  books: Array<{ id: string; name: string }>;
-  storageObjects: Array<{
-    id: string;
-    filename: string;
-    mimeType: string;
-    sizeBytes: number;
-    sha256: string;
-    state: string;
-    scanStatus: string;
-    createdAt: string;
-  }>;
-  mappings: Array<{
-    id: string;
-    name: string;
-    sourceSystem: string;
-    versionId: string;
-    versionNumber: number;
-    fileFormat: "csv" | "xlsx";
-    sheetName?: string | null;
-    headerRow: number;
-    columnMapping: Record<string, string>;
-    constants: Record<string, string>;
-  }>;
-  recentImports: Array<{
-    id: string;
-    filename: string;
-    sourceSystem: string;
-    status: string;
-    totalRows: number;
-    acceptedRows: number;
-    rejectedRows: number;
-    ambiguousRows: number;
-    committedRows: number;
-    createdAt: string;
-  }>;
-};
+type Adapter = PortfolioImportWorkspaceResponse["adapters"][number];
+type WorkspaceOptions = PortfolioImportWorkspaceResponse;
 type ImportRow = {
   id?: string;
   rowNumber: number;
