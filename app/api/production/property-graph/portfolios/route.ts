@@ -5,7 +5,10 @@ import {
 } from "@/lib/production/http-auth";
 import { getProductionPropertyGraphService } from "@/lib/production/property-graph-http";
 import type { PropertyGraphRegistration } from "@/lib/production/property-graph-service";
-import { parsePropertyGraphRegistration } from "@/lib/production/property-graph-service";
+import {
+  parsePropertyGraphRegistration,
+  propertyGraphRegisterCommand,
+} from "@/lib/production/property-graph-service";
 import { requireProductionRuntime } from "@/lib/runtime";
 
 export async function POST(request: NextRequest) {
@@ -20,9 +23,11 @@ export async function POST(request: NextRequest) {
       async (principal, transaction) =>
         Response.json(
           await getProductionPropertyGraphService(transaction).register(
-            principal.authorization,
-            idempotencyKey,
-            body,
+            propertyGraphRegisterCommand(
+              principal.authorization,
+              idempotencyKey,
+              body,
+            ),
           ),
           {
             status: 201,

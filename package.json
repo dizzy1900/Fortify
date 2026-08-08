@@ -34,8 +34,10 @@
     "artifacts:generate": "node --import tsx scripts/generate-artifacts.ts",
     "validate:production-flow": "node scripts/validate-production-flow.mjs",
     "validate:operations": "node scripts/validate-operations.mjs",
+    "inventory:architecture": "node --import tsx scripts/inventory-architecture.mjs --check",
+    "inventory:architecture:print": "node --import tsx scripts/inventory-architecture.mjs",
     "inventory:tenant-entry-points": "node scripts/inventory-tenant-entry-points.mjs",
-    "verify": "npm run format:check && npm run format:recognition && npm run format:programme-analytics && npm run lint && npm run typecheck && npm run test:bounded && npm run validate:production-flow && npm run validate:operations && npm run inventory:tenant-entry-points && npm run security:secrets && npm run build && npm run demo:evaluate && npm run security:claims && npm run test:e2e"
+    "verify": "npm run format:check && npm run format:recognition && npm run format:programme-analytics && npm run lint && npm run typecheck && npm run test:bounded && npm run validate:production-flow && npm run validate:operations && npm run inventory:architecture && npm run inventory:tenant-entry-points && npm run security:secrets && npm run build && npm run demo:evaluate && npm run security:claims && npm run test:e2e"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1101.0",

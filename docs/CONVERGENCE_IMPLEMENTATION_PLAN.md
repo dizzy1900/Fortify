@@ -17,9 +17,11 @@ Exit evidence: a real PostgreSQL test exercises a non-owner login; every tenant 
 
 ## C1 - Bounded architecture and semantic kernel
 
-Status: not started; blocked by C0.
+Status: in progress. The remaining C0 managed receipt is externally credential-gated; local C1 work proceeds without treating that receipt as complete.
 
 Inventory tables, routes, DTOs, services, and authorization resources. Record keep/merge/retire decisions before schema changes. Split schema and services by bounded context, generate API types from authoritative contracts, and standardize command/query, transaction, error, audit, and idempotency patterns.
+
+The first slice establishes a fail-closed inventory for all 190 tables, 185 authorization resources, 134 API routes, 33 production service/HTTP modules, and 15 client workspace DTO declarations. It introduces the shared command/query operation envelope and migrates the property-graph context to that envelope plus one shared response contract. Remaining service/schema splits, contract generation, error/audit/idempotency convergence, and duplicate DTO removal are still required.
 
 Exit evidence: dependency boundaries are enforced, duplicate contracts are removed, no production behavior depends on fixture DTOs, and retired surfaces have migration/compatibility evidence.
 

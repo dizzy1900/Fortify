@@ -2,6 +2,8 @@ import { and, eq } from "drizzle-orm";
 import * as schema from "@/db/production/schema";
 import {
   PropertyGraphService,
+  propertyGraphRegisterCommand,
+  propertyGraphWorkspaceQuery,
   type PropertyGraphRegistration,
 } from "@/lib/production/property-graph-service";
 import {
@@ -238,7 +240,12 @@ export async function seedCaliforniaPropertyGraphFixture(
     .limit(1);
   const service = new PropertyGraphService(database);
   if (receipt[0])
-    return { replayed: true, workspace: await service.getWorkspace(context) };
+    return {
+      replayed: true,
+      workspace: await service.getWorkspace(
+        propertyGraphWorkspaceQuery(context),
+      ),
+    };
 
   const repository = new TenantRepository(database);
   await repository.bootstrapOrganization({
@@ -354,13 +361,15 @@ export async function seedCaliforniaPropertyGraphFixture(
   ]);
 
   const result = await service.register(
-    context,
-    CALIFORNIA_FIXTURE_SEED_KEY,
-    graph,
+    propertyGraphRegisterCommand(
+      context,
+      CALIFORNIA_FIXTURE_SEED_KEY,
+      graph,
+    ),
   );
   return {
     replayed: result.replayed,
-    workspace: await service.getWorkspace(context),
+    workspace: await service.getWorkspace(propertyGraphWorkspaceQuery(context)),
   };
 }
 

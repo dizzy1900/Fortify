@@ -14,6 +14,7 @@ import {
 import {
   parsePropertyGraphRegistration,
   PropertyGraphService,
+  propertyGraphWorkspaceQuery,
 } from "@/lib/production/property-graph-service";
 import {
   digest,
@@ -106,7 +107,9 @@ describe("California property graph data plane", () => {
     const service = new PropertyGraphService(
       database as unknown as ProductionDatabaseLike,
     );
-    const workspace = await service.getWorkspace(californiaFixtureContext());
+    const workspace = await service.getWorkspace(
+      propertyGraphWorkspaceQuery(californiaFixtureContext()),
+    );
     expect(workspace.properties).toHaveLength(2);
     expect(
       workspace.properties.every(
@@ -212,7 +215,7 @@ describe("California property graph data plane", () => {
 
     const betaWorkspace = await new PropertyGraphService(
       database as unknown as ProductionDatabaseLike,
-    ).getWorkspace(beta.context);
+    ).getWorkspace(propertyGraphWorkspaceQuery(beta.context));
     expect(betaWorkspace.portfolios).toHaveLength(0);
     expect(betaWorkspace.properties).toHaveLength(1);
   });

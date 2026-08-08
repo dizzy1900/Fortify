@@ -17,102 +17,10 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import type { PropertyGraphWorkspaceResponse } from "@/lib/contracts/property-graph";
 
 type RuntimeMode = "sandbox" | "production";
-type GovernedRecord = {
-  id: string;
-  sourceSystem: string;
-  effectiveFrom: string | null;
-  confidentialityState: string;
-  dataRightClass: string;
-  rightsVerified: boolean;
-};
-type PropertyRecord = {
-  id: string;
-  name: string;
-  propertyClass: string;
-  unitCount: number | null;
-  buildingCount: number | null;
-  community: { name: string; summary: string } | null;
-  location: {
-    addressLine1: string;
-    city: string | null;
-    region: string;
-    postalCode: string | null;
-    county: string | null;
-  } | null;
-  buildings: Array<{ id: string; label: string; constructionYear: number | null }>;
-  parcels: Array<
-    GovernedRecord & {
-      label: string;
-      parcelNumber: string | null;
-      geometryStatus: string;
-      spatialReference: string;
-      boundaryGeojson: Record<string, unknown> | null;
-    }
-  >;
-  unitSummaries: Array<
-    GovernedRecord & {
-      label: string;
-      unitCount: number;
-      occupancyType: string;
-    }
-  >;
-  scopes: Array<
-    GovernedRecord & {
-      scopeType: string;
-      label: string;
-      details: Record<string, unknown>;
-    }
-  >;
-  aliases: Array<
-    GovernedRecord & {
-      alias: string;
-      aliasType: string;
-      reviewStatus: string;
-    }
-  >;
-  versions: Array<
-    GovernedRecord & {
-      versionNumber: number;
-      snapshotHash: string;
-      changeSummary: string;
-      recordedAt: string;
-    }
-  >;
-};
-type Workspace = {
-  organization: {
-    id: string;
-    name: string;
-    environment: string;
-    synthetic: boolean;
-  } | null;
-  portfolios: Array<
-    GovernedRecord & {
-      name: string;
-      jurisdiction: string;
-      primaryPeril: string;
-      description: string;
-      propertyIds: string[];
-    }
-  >;
-  properties: PropertyRecord[];
-  relationships: Array<
-    GovernedRecord & {
-      fromPropertyId: string;
-      toPropertyId: string;
-      relationshipType: string;
-      scopeLabel: string;
-      reviewStatus: string;
-    }
-  >;
-  governance: {
-    defaultCrossCustomerUse: string;
-    rightsVerifiedRecords: number;
-    governedRecords: number;
-  };
-};
+type Workspace = PropertyGraphWorkspaceResponse;
 
 const governed = {
   sourceSystem: "fortify-california-development-fixture",

@@ -9,7 +9,10 @@ import * as schema from "@/db/production/schema";
 import type { OrganizationRole } from "@/lib/production/authorization";
 import { IdentityService } from "@/lib/production/identity-service";
 import type { PropertyGraphRegistration } from "@/lib/production/property-graph-service";
-import { PropertyGraphService } from "@/lib/production/property-graph-service";
+import {
+  PropertyGraphService,
+  propertyGraphRegisterCommand,
+} from "@/lib/production/property-graph-service";
 import type { ProductionDatabaseLike } from "@/lib/production/repository";
 import { withTenantTransaction } from "@/lib/production/tenant-transaction";
 import {
@@ -277,14 +280,18 @@ describe("property request binding", () => {
     );
     const service = new PropertyGraphService(productionDatabase);
     await service.register(
-      alpha.context,
-      "seed-property-route-alpha",
-      registration(alpha, "seed-property-route-alpha"),
+      propertyGraphRegisterCommand(
+        alpha.context,
+        "seed-property-route-alpha",
+        registration(alpha, "seed-property-route-alpha"),
+      ),
     );
     await service.register(
-      beta.context,
-      "seed-property-route-beta",
-      registration(beta, "seed-property-route-beta"),
+      propertyGraphRegisterCommand(
+        beta.context,
+        "seed-property-route-beta",
+        registration(beta, "seed-property-route-beta"),
+      ),
     );
     const ownerSession = await issueSession(
       alpha,
