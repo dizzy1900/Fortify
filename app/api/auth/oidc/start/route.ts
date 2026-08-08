@@ -23,13 +23,13 @@ export async function GET(request: NextRequest) {
     if (!applicationOrigin)
       return Response.json(
         { error: "FORTIFY_APP_ORIGIN is required for OIDC redirects." },
-        { status: 503 },
+        { status: 503, headers: { "Cache-Control": "no-store" } },
       );
     const origin = new URL(applicationOrigin);
     if (origin.protocol !== "https:" && process.env.NODE_ENV === "production")
       return Response.json(
         { error: "FORTIFY_APP_ORIGIN must use HTTPS in production." },
-        { status: 503 },
+        { status: 503, headers: { "Cache-Control": "no-store" } },
       );
     const provider = loadOidcProvider();
     const invitationToken =

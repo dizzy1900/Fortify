@@ -17,7 +17,7 @@ These controls describe the current sandbox and reusable renewal foundation. The
 - The production data layer requires an organization-scoped tenant context, predicates every repository operation by organization, rejects cross-organization references with database triggers, and commits domain mutations with append-only audit events.
 - Production history records are immutable at the database layer; renewal-case creation supports replay-safe idempotency and optimistic revision checks.
 - Production OIDC uses discovery, authorization code, PKCE S256, state, and nonce through a maintained protocol library; no application JWT implementation was introduced.
-- Opaque sessions, invitation tokens, API credentials, and external grants are random and stored only as digests. Expiry and server-side revocation are enforced.
+- Opaque sessions, invitation tokens, API credentials, and external grants are random and stored only as digests. Interactive sessions resolve, rotate, and revoke atomically; rotation preserves the original absolute expiry, and concurrent rotation/revocation admit one winner. Production cookies are secure host-only HttpOnly Strict cookies. Expiry and server-side revocation are enforced.
 - The production policy is deny by default across every registered resource class. Organization mismatch and external case mismatch fail closed before repository access.
 - Support has no standing customer access; customer-approved support grants require a reason, explicit scopes, expiry, and audit trail.
 - Production object keys are tenant-prefixed and traversal-checked. Signed uploads bind MIME, size, checksum, encryption, and a short expiry; finalization independently reads metadata before quarantine.
@@ -32,7 +32,7 @@ These controls describe the current sandbox and reusable renewal foundation. The
 ## Deliberate MVP limitations
 
 - Demo role switching remains sandbox-only. Production OIDC/session/role infrastructure, HMAC-keyed PostgreSQL rate windows, and fail-closed production environment checks are implemented locally, but no managed provider, enforced MFA policy, production redirect registration, secret manager, provider-admin lifecycle, or deployed rate behavior has been validated.
-- SQLite and local filesystem storage target a single trusted local demo. A normalized `pg`/Drizzle adapter now exists, but no managed PostgreSQL provider or multi-instance production topology has been validated.
+- SQLite and local filesystem storage target a single trusted local demo. A normalized `pg`/Drizzle adapter and staging-only managed TLS/non-owner/RLS/same-backend pool-reset proof command now exist, but the command has no selected credentials or pass receipt and no managed PostgreSQL provider or multi-instance production topology has been validated.
 - The private S3-compatible adapter, AES256/KMS settings, quarantine states, scanner interface, legal-hold/retention hooks, deletion state, and fixture backup contract are implemented locally. No managed bucket policy, KMS rotation, live malware provider, DLP/content disarm, provider object lock, lifecycle automation, independent backup account, or monitored restore drill has been validated.
 - A signed provider URL already minted cannot be revoked before its short expiry; database revocation prevents future redemption, and the residual URL lifetime is capped at 60 seconds.
 - Notice intake supports uploaded text and text-based PDFs through deterministic local heuristics with a 2 MB limit. It does not do OCR, signature verification, or general legal interpretation.

@@ -20,13 +20,13 @@ export async function GET(request: NextRequest) {
     if (!state)
       return Response.json(
         { error: "OIDC state is required." },
-        { status: 400 },
+        { status: 400, headers: { "Cache-Control": "no-store" } },
       );
     const applicationOriginValue = process.env.FORTIFY_APP_ORIGIN;
     if (!applicationOriginValue)
       return Response.json(
         { error: "FORTIFY_APP_ORIGIN is required for OIDC redirects." },
-        { status: 503 },
+        { status: 503, headers: { "Cache-Control": "no-store" } },
       );
     const applicationOrigin = new URL(applicationOriginValue);
     if (
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     )
       return Response.json(
         { error: "FORTIFY_APP_ORIGIN must use HTTPS in production." },
-        { status: 503 },
+        { status: 503, headers: { "Cache-Control": "no-store" } },
       );
     const database = getProductionDatabase();
     await consumeRequestRateLimit(database, request, {

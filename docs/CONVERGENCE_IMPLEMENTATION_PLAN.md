@@ -4,14 +4,14 @@ This plan executes [PRODUCT_CONVERGENCE_NORTH_STAR.md](./PRODUCT_CONVERGENCE_NOR
 
 ## C0 - Request and authority safety
 
-Status: in progress.
+Status: in progress; local code paths and the executable managed-staging proof contract are complete, but no managed receipt exists.
 
 1. Separate migration and non-owner application database identities.
 2. Establish `withTenantTransaction` with transaction-local organization and actor context.
 3. Prove real RLS filtering, write rejection, and pool-context reset under the application role.
 4. Route every authenticated tenant operation through that primitive, including workers and inbound integration resolution.
 5. Make audit append serialization and OIDC, invitation, session, and one-use grant consumption concurrency-safe.
-6. Complete CSRF, cookie/session rotation, permission, rate-limit, and response-minimization attacks.
+6. Complete CSRF, cookie/session rotation, permission, rate-limit, and response-minimization attacks. Local attack coverage is complete. `npm run db:validate:managed-postgres` now replays role, RLS, cross-tenant, commit/rollback reset, and same-backend pool attacks in staging and emits a redacted receipt; it remains unexecuted without selected managed credentials.
 
 Exit evidence: a real PostgreSQL test exercises a non-owner login; every tenant entry point is enumerated and bound; concurrency attacks have one winner; no tenant setting survives a transaction; lint, typecheck, migration, unit/integration, tenant-isolation, build, and browser gates pass.
 

@@ -36,7 +36,7 @@ Apply migrations before application rollout:
 npm run db:migrate:production
 ```
 
-Use `/api/health` only for process liveness and `/api/ready` for release/readiness checks. In production, readiness fails closed unless the production environment contract is valid and PostgreSQL answers a probe. The application role must be non-owner and its organization-session/RLS behavior must be verified against the selected managed PostgreSQL service before customer data is admitted.
+Use `/api/health` only for process liveness and `/api/ready` for release/readiness checks. In production, readiness fails closed unless the production environment contract is valid and PostgreSQL answers a probe. The application login must be `NOINHERIT` and non-owner. Run `npm run db:validate:managed-postgres` only against staging with the distinct migration/application credentials; customer data remains prohibited until its redacted TLS, role, enabled-policy, cross-tenant, same-backend commit/rollback reset, and cleanup receipt passes on the selected service.
 
 Logical backup and isolated restore tooling is available through `npm run ops:backup` and `npm run ops:restore`. It uses an AES-256-GCM envelope, exact plaintext/ciphertext SHA-256 readback, and an external secret-manager reference. It is not a substitute for managed PITR, an independent backup account, retention policy, restore monitoring, or a timed staging restore exercise; follow `docs/OPERATIONS_RUNBOOK.md` and record evidence in `docs/BACKUP_RESTORE_REPORT.md`.
 
