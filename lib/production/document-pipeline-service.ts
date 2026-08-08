@@ -10,6 +10,7 @@ import {
 } from "drizzle-orm";
 import { createHash, randomUUID } from "node:crypto";
 import * as schema from "@/db/production/schema";
+import { DOCUMENT_PIPELINE_VERSION } from "@/lib/contracts/document-intelligence";
 import { assertAuthorized, AuthorizationDeniedError } from "@/lib/production/authorization";
 import {
   DeterministicCorrespondenceExtractor,
@@ -29,8 +30,6 @@ import {
   type ProductionDatabaseLike,
   type TenantContext,
 } from "@/lib/production/repository";
-
-export const DOCUMENT_PIPELINE_VERSION = "fortify-document-pipeline-v1";
 
 export class DocumentPipelineValidationError extends Error {
   constructor(message: string) {
@@ -93,126 +92,6 @@ export class DocumentPipelineService {
     ],
     private readonly clock: () => Date = () => new Date(),
   ) {}
-
-  async getWorkspace(context: TenantContext) {
-    assertAuthorized(context, {
-      action: "read",
-      resource: "source_document",
-      resourceOrganizationId: context.organizationId,
-    });
-    const organizationId = context.organizationId;
-    const [cases, cleanObjects, documents, jobs, attempts, runs, passages, candidates, reviews, facts] =
-      await Promise.all([
-        this.database
-          .select({
-            id: schema.renewalCases.id,
-            title: schema.renewalCases.title,
-            status: schema.renewalCases.status,
-          })
-          .from(schema.renewalCases)
-          .where(
-            and(
-              eq(schema.renewalCases.organizationId, organizationId),
-              eq(schema.renewalCases.lifecycleStatus, "active"),
-            ),
-          )
-          .orderBy(asc(schema.renewalCases.title)),
-        this.database
-          .select({
-            id: schema.storageObjects.id,
-            filename: schema.storageObjects.originalFilename,
-            mimeType: schema.storageObjects.mimeType,
-            sizeBytes: schema.storageObjects.sizeBytes,
-            sha256: schema.storageObjects.sha256,
-            createdAt: schema.storageObjects.createdAt,
-          })
-          .from(schema.storageObjects)
-          .where(
-            and(
-              eq(schema.storageObjects.organizationId, organizationId),
-              eq(schema.storageObjects.state, "clean"),
-              eq(schema.storageObjects.scanStatus, "clean"),
-              inArray(schema.storageObjects.mimeType, [
-                "application/pdf",
-                "image/jpeg",
-                "image/png",
-                "text/plain",
-              ]),
-            ),
-          )
-          .orderBy(desc(schema.storageObjects.createdAt))
-          .limit(100),
-        this.database
-          .select()
-          .from(schema.sourceDocuments)
-          .where(eq(schema.sourceDocuments.organizationId, organizationId))
-          .orderBy(desc(schema.sourceDocuments.createdAt))
-          .limit(100),
-        this.database
-          .select()
-          .from(schema.documentProcessingJobs)
-          .where(eq(schema.documentProcessingJobs.organizationId, organizationId))
-          .orderBy(desc(schema.documentProcessingJobs.createdAt))
-          .limit(100),
-        this.database
-          .select()
-          .from(schema.documentProcessingAttempts)
-          .where(eq(schema.documentProcessingAttempts.organizationId, organizationId))
-          .orderBy(desc(schema.documentProcessingAttempts.startedAt))
-          .limit(200),
-        this.database
-          .select()
-          .from(schema.documentExtractionRuns)
-          .where(eq(schema.documentExtractionRuns.organizationId, organizationId))
-          .orderBy(desc(schema.documentExtractionRuns.createdAt))
-          .limit(100),
-        this.database
-          .select()
-          .from(schema.sourcePassages)
-          .where(eq(schema.sourcePassages.organizationId, organizationId))
-          .orderBy(asc(schema.sourcePassages.pageNumber), asc(schema.sourcePassages.segment))
-          .limit(500),
-        this.database
-          .select()
-          .from(schema.extractedFields)
-          .where(eq(schema.extractedFields.organizationId, organizationId))
-          .orderBy(asc(schema.extractedFields.fieldKey), asc(schema.extractedFields.candidateOrdinal))
-          .limit(500),
-        this.database
-          .select()
-          .from(schema.extractedFieldReviews)
-          .where(eq(schema.extractedFieldReviews.organizationId, organizationId))
-          .orderBy(desc(schema.extractedFieldReviews.reviewedAt))
-          .limit(500),
-        this.database
-          .select()
-          .from(schema.documentFacts)
-          .where(eq(schema.documentFacts.organizationId, organizationId))
-          .orderBy(asc(schema.documentFacts.factKey), desc(schema.documentFacts.versionNumber))
-          .limit(500),
-      ]);
-    return {
-      pipelineVersion: DOCUMENT_PIPELINE_VERSION,
-      provider: {
-        key: this.textProvider.key,
-        version: this.textProvider.version,
-        modelDerived: this.textProvider.modelDerived,
-      },
-      cases,
-      cleanObjects: cleanObjects.map((object) => ({
-        ...object,
-        providerSupported: this.textProvider.supports(object.mimeType),
-      })),
-      documents,
-      jobs,
-      attempts,
-      runs,
-      passages,
-      candidates,
-      reviews,
-      facts,
-    };
-  }
 
   async intake(
     context: TenantContext,

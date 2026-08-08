@@ -13,6 +13,11 @@ import {
   assertAuthorized,
   AuthorizationDeniedError,
 } from "@/lib/production/authorization";
+import {
+  IdentityAccessWorkspaceQueryService,
+  identityAccessWorkspaceQuery,
+} from "@/lib/production/contexts/identity-access/workspace-query";
+import { StorageObjectQueryService } from "@/lib/production/contexts/evidence-custody/storage-object-query-port";
 import { IdentityService } from "@/lib/production/identity-service";
 import {
   tenantRecord,
@@ -27,8 +32,7 @@ let client: PGlite;
 let database: PgliteDatabase<typeof schema>;
 let currentTime: Date;
 
-const productionDatabase = () =>
-  database as unknown as ProductionDatabaseLike;
+const productionDatabase = () => database as unknown as ProductionDatabaseLike;
 
 describe("purpose-scoped production access control", () => {
   beforeEach(async () => {
@@ -91,16 +95,19 @@ describe("purpose-scoped production access control", () => {
       productionDatabase(),
       () => currentTime,
     );
-    const portfolioAssignment = await service.createAssignment(fixture.context, {
-      scopeType: "portfolio",
-      scopeId: fixture.portfolioId,
-      membershipId: member.membershipId,
-      assignmentRole: "manager",
-      accessPurpose: "manage property evidence",
-      permissions: ["property:read", "evidence_item:create"],
-      dataDomains: ["property_identity", "evidence"],
-      expiresAt: "2026-08-01T13:00:00.000Z",
-    });
+    const portfolioAssignment = await service.createAssignment(
+      fixture.context,
+      {
+        scopeType: "portfolio",
+        scopeId: fixture.portfolioId,
+        membershipId: member.membershipId,
+        assignmentRole: "manager",
+        accessPurpose: "manage property evidence",
+        permissions: ["property:read", "evidence_item:create"],
+        dataDomains: ["property_identity", "evidence"],
+        expiresAt: "2026-08-01T13:00:00.000Z",
+      },
+    );
     await service.createAssignment(fixture.context, {
       scopeType: "case",
       scopeId: fixture.caseId,
@@ -112,7 +119,10 @@ describe("purpose-scoped production access control", () => {
       expiresAt: "2026-08-01T13:00:00.000Z",
     });
 
-    const identity = new IdentityService(productionDatabase(), () => currentTime);
+    const identity = new IdentityService(
+      productionDatabase(),
+      () => currentTime,
+    );
     const session = await identity.issueSession({
       profile: member.profile,
       activeOrganizationId: fixture.organizationId,
@@ -323,16 +333,20 @@ describe("purpose-scoped production access control", () => {
 
   test("returns a tenant-safe administrative workspace and records its purpose", async () => {
     const fixture = await createPortfolioAndCase("workspace");
+    const beta = await createPortfolioAndCase("workspace-beta");
     await createActiveMembership(productionDatabase(), {
       organizationId: fixture.organizationId,
       subject: fixture.context.actorSubject,
       role: "organization_owner",
     });
-    const service = new AccessControlService(
+    const queryService = new IdentityAccessWorkspaceQueryService(
       productionDatabase(),
+      new StorageObjectQueryService(productionDatabase()),
       () => currentTime,
     );
-    const workspace = await service.getWorkspace(fixture.context);
+    const workspace = await queryService.execute(
+      identityAccessWorkspaceQuery(fixture.context),
+    );
     expect(workspace.organization?.id).toBe(fixture.organizationId);
     expect(workspace.portfolios).toEqual(
       expect.arrayContaining([
@@ -348,16 +362,19 @@ describe("purpose-scoped production access control", () => {
       resourceType: "access_control_workspace",
       outcome: "allowed",
     });
+    expect(JSON.stringify(workspace)).not.toContain(beta.organizationId);
     await expect(
-      service.getWorkspace({
-        ...fixture.context,
-        actorSubject: "identity:scoped-manager",
-        role: "property_operator_administrator",
-        assignedPortfolioIds: [fixture.portfolioId],
-        assignedPortfolioScopes: {
-          [fixture.portfolioId]: ["portfolio_assignment:manage"],
-        },
-      }),
+      queryService.execute(
+        identityAccessWorkspaceQuery({
+          ...fixture.context,
+          actorSubject: "identity:scoped-manager",
+          role: "property_operator_administrator",
+          assignedPortfolioIds: [fixture.portfolioId],
+          assignedPortfolioScopes: {
+            [fixture.portfolioId]: ["portfolio_assignment:manage"],
+          },
+        }),
+      ),
     ).rejects.toBeInstanceOf(AuthorizationDeniedError);
   });
 

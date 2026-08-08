@@ -7,8 +7,13 @@ import { createHash } from "node:crypto";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import * as schema from "@/db/production/schema";
-import { getProductionAccessControlService } from "@/lib/production/access-control-http";
+import {
+  getProductionAccessControlService,
+  getProductionIdentityAccessWorkspaceQuery,
+  presentIdentityAccessWorkspace,
+} from "@/lib/production/access-control-http";
 import { AuthorizationDeniedError } from "@/lib/production/authorization";
+import { identityAccessWorkspaceQuery } from "@/lib/production/contexts/identity-access/workspace-query";
 import {
   encryptBackup,
   restoreBackup,
@@ -321,8 +326,10 @@ describe("M12 operational hardening", () => {
         headers: { cookie: `fortify_session=${ownerSession.token}` },
       }),
       async (principal, transaction) =>
-        getProductionAccessControlService(transaction).getWorkspace(
-          principal.authorization,
+        presentIdentityAccessWorkspace(
+          await getProductionIdentityAccessWorkspaceQuery(transaction).execute(
+            identityAccessWorkspaceQuery(principal.authorization),
+          ),
         ),
       productionDatabase,
     );
@@ -370,8 +377,10 @@ describe("M12 operational hardening", () => {
           },
         ),
         async (principal, transaction) =>
-          getProductionAccessControlService(transaction).getWorkspace(
-            principal.authorization,
+          presentIdentityAccessWorkspace(
+            await getProductionIdentityAccessWorkspaceQuery(
+              transaction,
+            ).execute(identityAccessWorkspaceQuery(principal.authorization)),
           ),
         productionDatabase,
       ),

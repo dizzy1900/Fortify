@@ -22,6 +22,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import type { IntegrationWorkspaceResponse } from "@/lib/contracts/integrations";
 
 type Tab = "connections" | "sync" | "webhooks" | "catalog";
 type Scenario =
@@ -30,32 +31,7 @@ type Scenario =
   | "rate_limited"
   | "dead_letter"
   | "disconnected";
-type Row = Record<string, unknown>;
-type Workspace = {
-  connections: Row[];
-  events: Row[];
-  schemas: Row[];
-  jobs: Row[];
-  attempts: Row[];
-  receipts: Row[];
-  endpoints: Row[];
-  deliveries: Row[];
-  healthChecks: Row[];
-  providerCatalog: Array<{
-    type: string;
-    label: string;
-    directions: readonly string[];
-    resources: string[];
-  }>;
-  boundaries: {
-    liveCredentialsAvailable: boolean;
-    fixtureModeExplicit: boolean;
-    inlineSecretsAllowed: boolean;
-    signedWebhooksRequired: boolean;
-    externalAcceptanceImplied: boolean;
-    providerRecordsRequireHumanReview: boolean;
-  };
-};
+type Workspace = IntegrationWorkspaceResponse;
 
 const fixture: Workspace = {
   connections: [
@@ -85,6 +61,7 @@ const fixture: Workspace = {
       dataClasses: ["property_specific_data", "customer_specific_playbook"],
       pageSize: 100,
       rateLimitPerMinute: 60,
+      lastHealthAt: null,
     },
     {
       id: "connection-model",
@@ -110,19 +87,19 @@ const fixture: Workspace = {
     { id: "schema-epic-v3", connectionId: "connection-epic", versionNumber: 3, schemaKey: "customer.epic-renewal-exchange", direction: "bidirectional", resourceKinds: ["client", "property", "policy", "activity"], sourceSchemaHash: "955b9ba739fd1d1d80c388447443b368631ec71bb6c4e6092889155523850de3", status: "active" },
   ],
   jobs: [
-    { id: "job-graph-page-2", connectionId: "connection-graph", resourceKind: "mail_message", direction: "pull", status: "succeeded", attemptCount: 1, maxAttempts: 3, cursorBefore: "page-1", requestedAt: "2026-08-02T12:04:00.000Z" },
-    { id: "job-graph-page-1", connectionId: "connection-graph", resourceKind: "mail_message", direction: "pull", status: "succeeded", attemptCount: 2, maxAttempts: 3, cursorBefore: null, requestedAt: "2026-08-02T12:02:00.000Z" },
-    { id: "job-model-retry", connectionId: "connection-model", resourceKind: "model_output", direction: "pull", status: "retry_scheduled", attemptCount: 1, maxAttempts: 3, cursorBefore: null, lastErrorCode: "provider_rate_limited", requestedAt: "2026-08-02T11:58:00.000Z" },
-    { id: "job-epic-dead", connectionId: "connection-epic", resourceKind: "activity", direction: "push", status: "dead_letter", attemptCount: 3, maxAttempts: 3, lastErrorCode: "fixture_terminal_failure", requestedAt: "2026-08-02T11:40:00.000Z" },
+    { id: "job-graph-page-2", connectionId: "connection-graph", resourceKind: "mail_message", direction: "pull", status: "succeeded", attemptCount: 1, maxAttempts: 3, cursorBefore: "page-1", lastErrorCode: null, requestedAt: "2026-08-02T12:04:00.000Z", supersedesJobId: null },
+    { id: "job-graph-page-1", connectionId: "connection-graph", resourceKind: "mail_message", direction: "pull", status: "succeeded", attemptCount: 2, maxAttempts: 3, cursorBefore: null, lastErrorCode: null, requestedAt: "2026-08-02T12:02:00.000Z", supersedesJobId: null },
+    { id: "job-model-retry", connectionId: "connection-model", resourceKind: "model_output", direction: "pull", status: "retry_scheduled", attemptCount: 1, maxAttempts: 3, cursorBefore: null, lastErrorCode: "provider_rate_limited", requestedAt: "2026-08-02T11:58:00.000Z", supersedesJobId: null },
+    { id: "job-epic-dead", connectionId: "connection-epic", resourceKind: "activity", direction: "push", status: "dead_letter", attemptCount: 3, maxAttempts: 3, cursorBefore: null, lastErrorCode: "fixture_terminal_failure", requestedAt: "2026-08-02T11:40:00.000Z", supersedesJobId: null },
   ],
   attempts: [
-    { id: "attempt-graph-1a", jobId: "job-graph-page-1", attemptNumber: 1, status: "failed_retryable", providerKey: "fortify-fixture-microsoft-graph-email", providerVersion: "2026-07-graph-v1", errorCode: "fixture_rate_limited", rateLimitRemaining: 0 },
-    { id: "attempt-graph-1b", jobId: "job-graph-page-1", attemptNumber: 2, status: "succeeded", providerKey: "fortify-fixture-microsoft-graph-email", providerVersion: "2026-07-graph-v1", recordsRead: 50, recordsWritten: 50, recordsRejected: 0, cursorAfter: "page-1", rateLimitRemaining: 949 },
-    { id: "attempt-graph-2", jobId: "job-graph-page-2", attemptNumber: 1, status: "succeeded", providerKey: "fortify-fixture-microsoft-graph-email", providerVersion: "2026-07-graph-v1", recordsRead: 18, recordsWritten: 18, recordsRejected: 0, cursorAfter: null, rateLimitRemaining: 931 },
+    { id: "attempt-graph-1a", jobId: "job-graph-page-1", attemptNumber: 1, status: "failed_retryable", providerKey: "fortify-fixture-microsoft-graph-email", providerVersion: "2026-07-graph-v1", recordsRead: 0, recordsWritten: 0, recordsRejected: 0, cursorAfter: null, errorCode: "fixture_rate_limited", rateLimitRemaining: 0, startedAt: "2026-08-02T12:02:00.000Z", finishedAt: "2026-08-02T12:02:01.000Z" },
+    { id: "attempt-graph-1b", jobId: "job-graph-page-1", attemptNumber: 2, status: "succeeded", providerKey: "fortify-fixture-microsoft-graph-email", providerVersion: "2026-07-graph-v1", recordsRead: 50, recordsWritten: 50, recordsRejected: 0, cursorAfter: "page-1", errorCode: null, rateLimitRemaining: 949, startedAt: "2026-08-02T12:03:00.000Z", finishedAt: "2026-08-02T12:03:01.000Z" },
+    { id: "attempt-graph-2", jobId: "job-graph-page-2", attemptNumber: 1, status: "succeeded", providerKey: "fortify-fixture-microsoft-graph-email", providerVersion: "2026-07-graph-v1", recordsRead: 18, recordsWritten: 18, recordsRejected: 0, cursorAfter: null, errorCode: null, rateLimitRemaining: 931, startedAt: "2026-08-02T12:04:00.000Z", finishedAt: "2026-08-02T12:04:01.000Z" },
   ],
   receipts: [
-    { id: "receipt-graph-1", jobId: "job-graph-page-1", receiptType: "pull_page", schemaVersion: "fortify.graph-mail-intake@2", cursorBefore: null, cursorAfter: "page-1", recordsRead: 50, recordsWritten: 50, recordsRejected: 0, payloadHash: "8eb81b1be35b879e4b407dfb6b768cfeff340270582bc0b8648ed31bf09afdea", sourceAuthority: "Fortify deterministic integration fixture", sourceReference: "fixture://microsoft_graph_email/mail_message?offset=0" },
-    { id: "receipt-graph-2", jobId: "job-graph-page-2", receiptType: "pull_page", schemaVersion: "fortify.graph-mail-intake@2", cursorBefore: "page-1", cursorAfter: null, recordsRead: 18, recordsWritten: 18, recordsRejected: 0, payloadHash: "7e5cfa22e79b7f10f0f3e9992799af57b68ec5a1346ba38f27ad9754ef50ad52", sourceAuthority: "Fortify deterministic integration fixture", sourceReference: "fixture://microsoft_graph_email/mail_message?offset=50" },
+    { id: "receipt-graph-1", jobId: "job-graph-page-1", receiptType: "pull_page", schemaVersion: "fortify.graph-mail-intake@2", cursorBefore: null, cursorAfter: "page-1", recordsRead: 50, recordsWritten: 50, recordsRejected: 0, payloadHash: "8eb81b1be35b879e4b407dfb6b768cfeff340270582bc0b8648ed31bf09afdea", sourceAuthority: "Fortify deterministic integration fixture", sourceReference: "fixture://microsoft_graph_email/mail_message?offset=0", completedAt: "2026-08-02T12:03:01.000Z" },
+    { id: "receipt-graph-2", jobId: "job-graph-page-2", receiptType: "pull_page", schemaVersion: "fortify.graph-mail-intake@2", cursorBefore: "page-1", cursorAfter: null, recordsRead: 18, recordsWritten: 18, recordsRejected: 0, payloadHash: "7e5cfa22e79b7f10f0f3e9992799af57b68ec5a1346ba38f27ad9754ef50ad52", sourceAuthority: "Fortify deterministic integration fixture", sourceReference: "fixture://microsoft_graph_email/mail_message?offset=50", completedAt: "2026-08-02T12:04:01.000Z" },
   ],
   endpoints: [
     { id: "endpoint-graph", connectionId: "connection-graph", endpointKey: "graph-message-events", eventTypes: ["message.created", "message.updated"], signatureAlgorithm: "hmac_sha256", toleranceSeconds: 300, status: "active", lastRotatedAt: "2026-08-02T11:50:00.000Z" },
@@ -131,8 +108,8 @@ const fixture: Workspace = {
     { id: "delivery-webhook-1", endpointId: "endpoint-graph", syncJobId: "job-webhook-1", externalEventId: "graph-event-fixture-108", eventType: "message.created", signatureValid: true, bodySha256: "3970d17284845c64669ec157ed0d2d8caec85b3830cac45d3c1ac41fe635a12c", receivedAt: "2026-08-02T12:06:00.000Z" },
   ],
   healthChecks: [
-    { id: "health-graph", connectionId: "connection-graph", status: "healthy", providerKey: "fortify-fixture-microsoft-graph-email", providerVersion: "2026-07-graph-v1", latencyMs: 0, rateLimitRemaining: 999, detail: "Deterministic provider fixture is available; no live system was contacted." },
-    { id: "health-model", connectionId: "connection-model", status: "degraded", providerKey: "fortify-fixture-model-boundary", providerVersion: "model-contract-v2", latencyMs: 0, rateLimitRemaining: 0, detail: "Fixture degraded state exercises rate-limit handling; no model provider was contacted." },
+    { id: "health-graph", connectionId: "connection-graph", status: "healthy", providerKey: "fortify-fixture-microsoft-graph-email", providerVersion: "2026-07-graph-v1", latencyMs: 0, rateLimitRemaining: 999, detail: "Deterministic provider fixture is available; no live system was contacted.", checkedAt: "2026-08-02T12:01:00.000Z" },
+    { id: "health-model", connectionId: "connection-model", status: "degraded", providerKey: "fortify-fixture-model-boundary", providerVersion: "model-contract-v2", latencyMs: 0, rateLimitRemaining: 0, detail: "Fixture degraded state exercises rate-limit handling; no model provider was contacted.", checkedAt: "2026-08-02T11:57:00.000Z" },
   ],
   providerCatalog: [
     { type: "microsoft_graph_email", label: "Microsoft Graph email intake", directions: ["pull"], resources: ["mail message", "mail attachment"] },

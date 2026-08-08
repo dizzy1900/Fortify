@@ -4,9 +4,10 @@ import {
   withAuthenticatedTenantRequest,
 } from "@/lib/production/http-auth";
 import {
-  getProductionDocumentPipelineService,
+  getProductionDocumentWorkspaceQuery,
   presentDocumentWorkspace,
 } from "@/lib/production/document-pipeline-http";
+import { documentWorkspaceQuery } from "@/lib/production/contexts/document-intelligence/workspace-query";
 import { requireProductionRuntime } from "@/lib/runtime";
 
 export async function GET(request: NextRequest) {
@@ -17,9 +18,9 @@ export async function GET(request: NextRequest) {
       async (principal, transaction) =>
         Response.json(
           presentDocumentWorkspace(
-            await getProductionDocumentPipelineService(
-              transaction,
-            ).getWorkspace(principal.authorization),
+            await getProductionDocumentWorkspaceQuery(transaction).execute(
+              documentWorkspaceQuery(principal.authorization),
+            ),
           ),
           { headers: { "Cache-Control": "no-store" } },
         ),

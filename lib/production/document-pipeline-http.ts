@@ -1,30 +1,48 @@
 import { getProductionDatabase } from "@/db/production/client";
+import type { DocumentWorkspaceResponse } from "@/lib/contracts/document-intelligence";
+import {
+  DocumentWorkspaceQueryService,
+  type DocumentWorkspace,
+} from "@/lib/production/contexts/document-intelligence/workspace-query";
+import { StorageObjectQueryService } from "@/lib/production/contexts/evidence-custody/storage-object-query-port";
 import { DocumentPipelineService } from "@/lib/production/document-pipeline-service";
 import { LocalSelectableTextProvider } from "@/lib/production/document-providers";
 import { getProductionObjectStorage } from "@/lib/production/object-storage-runtime";
 import type { ProductionDatabaseLike } from "@/lib/production/repository";
 
-type DocumentWorkspace = Awaited<
-  ReturnType<DocumentPipelineService["getWorkspace"]>
->;
-
-export function getProductionDocumentPipelineService(
-  database: ProductionDatabaseLike = getProductionDatabase() as unknown as ProductionDatabaseLike,
-) {
+function getConfiguredDocumentTextProvider() {
   const provider =
     process.env.FORTIFY_DOCUMENT_PROVIDER ?? "local-selectable-text";
   if (provider !== "local-selectable-text")
     throw new Error(
       `Document provider ${provider} is not configured in this deployment. Register a rights-approved provider adapter before enabling it.`,
     );
+  return new LocalSelectableTextProvider();
+}
+
+export function getProductionDocumentPipelineService(
+  database: ProductionDatabaseLike = getProductionDatabase() as unknown as ProductionDatabaseLike,
+) {
   return new DocumentPipelineService(
     database,
     getProductionObjectStorage(),
-    new LocalSelectableTextProvider(),
+    getConfiguredDocumentTextProvider(),
   );
 }
 
-export function presentDocumentWorkspace(workspace: DocumentWorkspace) {
+export function getProductionDocumentWorkspaceQuery(
+  database: ProductionDatabaseLike = getProductionDatabase() as unknown as ProductionDatabaseLike,
+) {
+  return new DocumentWorkspaceQueryService(
+    database,
+    getConfiguredDocumentTextProvider(),
+    new StorageObjectQueryService(database),
+  );
+}
+
+export function presentDocumentWorkspace(
+  workspace: DocumentWorkspace,
+): DocumentWorkspaceResponse {
   return {
     pipelineVersion: workspace.pipelineVersion,
     provider: workspace.provider,

@@ -6,6 +6,10 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import * as schema from "@/db/production/schema";
 import {
+  IntegrationWorkspaceQueryService,
+  integrationWorkspaceQuery,
+} from "@/lib/production/contexts/integrations/workspace-query";
+import {
   DeterministicIntegrationProvider,
   type IntegrationCredentialResolver,
   IntegrationProviderError,
@@ -344,7 +348,9 @@ describe("governed production integration control plane", () => {
       recordsRead: 1,
       cursorAfter: undefined,
     });
-    const workspace = await setup.service.getWorkspace(setup.tenant.context);
+    const workspace = await new IntegrationWorkspaceQueryService(db()).execute(
+      integrationWorkspaceQuery(setup.tenant.context),
+    );
     expect(workspace.receipts).toHaveLength(2);
     expect(workspace.attempts).toHaveLength(2);
     expect(workspace.boundaries).toMatchObject({
@@ -529,6 +535,12 @@ describe("governed production integration control plane", () => {
           occurredAt: "2026-08-02T13:00:00.000Z",
         }),
     ).rejects.toThrow(/same organization|tenant|organization/i);
+
+    const betaWorkspace = await new IntegrationWorkspaceQueryService(
+      db(),
+    ).execute(integrationWorkspaceQuery(beta.context));
+    expect(betaWorkspace.connections).toHaveLength(0);
+    expect(betaWorkspace.events).toHaveLength(0);
   });
 
   test("records provider health without converting fixture availability into live validation", async () => {
@@ -543,7 +555,9 @@ describe("governed production integration control plane", () => {
       rateLimitRemaining: 999,
     });
     expect(health.detail).toContain("fixture");
-    const workspace = await setup.service.getWorkspace(setup.tenant.context);
+    const workspace = await new IntegrationWorkspaceQueryService(db()).execute(
+      integrationWorkspaceQuery(setup.tenant.context),
+    );
     expect(workspace.healthChecks).toHaveLength(1);
     expect(workspace.healthChecks[0].providerVersion).toBe(
       setup.provider.version,

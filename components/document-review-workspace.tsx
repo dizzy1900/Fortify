@@ -20,128 +20,13 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import type { DocumentWorkspaceResponse } from "@/lib/contracts/document-intelligence";
 
 type RuntimeMode = "sandbox" | "production";
-type SourceDocument = {
-  id: string;
-  caseId: string | null;
-  storageObjectId: string | null;
-  supersedesSourceDocumentId: string | null;
-  versionNumber: number;
-  documentType: string;
-  filename: string;
-  mimeType: string;
-  sha256: string | null;
-  processingStatus: string;
-  classifierKey: string | null;
-  classifierVersion: string | null;
-  classificationConfidence: string | null;
-  createdAt: string;
-};
-type ProcessingJob = {
-  id: string;
-  sourceDocumentId: string;
-  status: string;
-  attemptCount: number;
-  maxAttempts: number;
-  availableAt: string;
-  lastErrorCode: string | null;
-  lastErrorMessage: string | null;
-  createdAt: string;
-};
-type Passage = {
-  id: string;
-  sourceDocumentId: string;
-  extractionRunId: string | null;
-  pageNumber: number | null;
-  segment: string | null;
-  region: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    rotation?: number;
-  } | null;
-  passageKind: string;
-  textContent: string;
-  extractorVersion: string;
-};
-type Candidate = {
-  id: string;
-  sourceDocumentId: string;
-  extractionRunId: string;
-  sourcePassageId: string | null;
-  fieldKey: string;
-  fieldLabel: string;
-  candidateOrdinal: number;
-  value: string;
-  valueType: string;
-  confidence: string;
-  modelDerived: boolean;
-};
-type FieldReview = {
-  id: string;
-  extractedFieldId: string;
-  action: string;
-  reviewedValue: string | null;
-  reviewerSubject: string;
-  note: string | null;
-  reviewedAt: string;
-};
-type DocumentFact = {
-  id: string;
-  sourceDocumentId: string;
-  extractedFieldId: string;
-  sourcePassageId: string | null;
-  factKey: string;
-  value: string;
-  versionNumber: number;
-  supersedesFactId: string | null;
-  confirmedBy: string;
-  confirmedAt: string;
-  correctionReason: string | null;
-};
-type Workspace = {
-  pipelineVersion: string;
-  provider: { key: string; version: string; modelDerived: boolean };
-  cases: Array<{ id: string; title: string; status: string }>;
-  cleanObjects: Array<{
-    id: string;
-    filename: string;
-    mimeType: string;
-    sizeBytes: number;
-    sha256: string;
-    providerSupported: boolean;
-    createdAt: string;
-  }>;
-  documents: SourceDocument[];
-  jobs: ProcessingJob[];
-  attempts: Array<{
-    id: string;
-    jobId: string;
-    attemptNumber: number;
-    status: string;
-    providerKey: string | null;
-    providerVersion: string | null;
-    errorCode: string | null;
-    startedAt: string;
-  }>;
-  runs: Array<{
-    id: string;
-    sourceDocumentId: string;
-    providerKey: string;
-    providerVersion: string;
-    extractorKey: string;
-    extractorVersion: string;
-    modelDerived: boolean;
-    pageCount: number;
-    warnings: string[];
-  }>;
-  passages: Passage[];
-  candidates: Candidate[];
-  reviews: FieldReview[];
-  facts: DocumentFact[];
-};
+type Workspace = DocumentWorkspaceResponse;
+type Passage = Workspace["passages"][number];
+type FieldReview = Workspace["reviews"][number];
+type ProcessingJob = Workspace["jobs"][number];
 type ReviewDraft = {
   action: "confirmed" | "corrected" | "rejected";
   value: string;

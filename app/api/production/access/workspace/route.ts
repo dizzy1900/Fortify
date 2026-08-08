@@ -3,7 +3,11 @@ import {
   authenticationFailure,
   withAuthenticatedTenantRequest,
 } from "@/lib/production/http-auth";
-import { getProductionAccessControlService } from "@/lib/production/access-control-http";
+import {
+  getProductionIdentityAccessWorkspaceQuery,
+  presentIdentityAccessWorkspace,
+} from "@/lib/production/access-control-http";
+import { identityAccessWorkspaceQuery } from "@/lib/production/contexts/identity-access/workspace-query";
 import { requireProductionRuntime } from "@/lib/runtime";
 
 export async function GET(request: NextRequest) {
@@ -13,8 +17,10 @@ export async function GET(request: NextRequest) {
       request,
       async (principal, transaction) =>
         Response.json(
-          await getProductionAccessControlService(transaction).getWorkspace(
-            principal.authorization,
+          presentIdentityAccessWorkspace(
+            await getProductionIdentityAccessWorkspaceQuery(
+              transaction,
+            ).execute(identityAccessWorkspaceQuery(principal.authorization)),
           ),
           { headers: { "Cache-Control": "no-store" } },
         ),

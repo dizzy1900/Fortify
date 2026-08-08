@@ -433,16 +433,15 @@ test("portfolio import walkthrough preserves quarantine, confirmation, receipts,
     (document.activeElement as HTMLElement | null)?.blur();
     window.scrollTo(0, 0);
   });
-  if (testInfo.project.name === "chromium")
-    await page.screenshot({
-      path: "test-results/visual-inspection/portfolio-import-desktop.png",
-      fullPage: true,
-    });
-  else
-    await page.screenshot({
-      path: "test-results/visual-inspection/portfolio-import-mobile.png",
-      fullPage: true,
-    });
+  await page.screenshot({
+    path:
+      testInfo.project.name === "chromium"
+        ? "test-results/visual-inspection/portfolio-import-desktop.png"
+        : testInfo.project.name === "tablet"
+          ? "test-results/visual-inspection/portfolio-import-tablet.png"
+          : "test-results/visual-inspection/portfolio-import-mobile.png",
+    fullPage: true,
+  });
 });
 
 test("document workspace preserves provenance, human review, corrections, and dead-letter control", async ({ page }, testInfo) => {
@@ -508,7 +507,9 @@ test("document workspace preserves provenance, human review, corrections, and de
     path:
       testInfo.project.name === "chromium"
         ? "test-results/visual-inspection/document-review-desktop.png"
-        : "test-results/visual-inspection/document-review-mobile.png",
+        : testInfo.project.name === "tablet"
+          ? "test-results/visual-inspection/document-review-tablet.png"
+          : "test-results/visual-inspection/document-review-mobile.png",
     fullPage: true,
   });
 });
@@ -592,10 +593,9 @@ test("California source register preserves publication gates and successor impac
   expect(overflow).toBe(false);
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({
-    path:
-      testInfo.project.name === "chromium"
-        ? "test-results/visual-inspection/source-register-desktop.png"
-        : "test-results/visual-inspection/source-register-mobile.png",
+    path: `test-results/visual-inspection/source-register-${
+      testInfo.project.name === "chromium" ? "desktop" : testInfo.project.name
+    }.png`,
     fullPage: true,
   });
 });

@@ -11,6 +11,8 @@ import { createHash } from "node:crypto";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import * as schema from "@/db/production/schema";
+import { AuthorizationDeniedError } from "@/lib/production/authorization";
+import { StorageObjectQueryService } from "@/lib/production/contexts/evidence-custody/storage-object-query-port";
 import {
   DeterministicObjectStorageAdapter,
   S3CompatibleStorageAdapter,
@@ -23,7 +25,10 @@ import {
   StorageGrantError,
   StorageValidationError,
 } from "@/lib/production/storage-service";
-import type { ProductionDatabaseLike } from "@/lib/production/repository";
+import {
+  tenantRecord,
+  type ProductionDatabaseLike,
+} from "@/lib/production/repository";
 import { createTenantFixture } from "./factories/production";
 
 let client: PGlite;
@@ -46,6 +51,79 @@ describe("secure production object storage", () => {
 
   afterEach(async () => {
     await client.close();
+  });
+
+  test("projects tenant-scoped, purpose-limited storage reads and enforces read authority", async () => {
+    const alpha = await createTenantFixture(
+      productionDatabase(),
+      "query-alpha",
+    );
+    const beta = await createTenantFixture(productionDatabase(), "query-beta");
+    const at = currentTime.toISOString();
+    const object = (
+      id: string,
+      context: typeof alpha.context,
+      mimeType: string,
+      state: "clean" | "quarantined",
+      scanStatus: "clean" | "pending",
+    ) => ({
+      id,
+      ...tenantRecord(context, at),
+      provider: "test-private-storage",
+      bucket: "private-tenant-bucket",
+      objectKey: `tenants/${context.organizationId}/${id}`,
+      originalFilename: `${id}.${mimeType === "text/csv" ? "csv" : "pdf"}`,
+      mimeType,
+      sizeBytes: 128,
+      sha256: id.padEnd(64, "0").slice(0, 64),
+      encryptionMode: "AES256" as const,
+      state,
+      scanStatus,
+    });
+    await productionDatabase()
+      .insert(schema.storageObjects)
+      .values([
+        object("alpha-csv", alpha.context, "text/csv", "clean", "clean"),
+        object("alpha-pdf", alpha.context, "application/pdf", "clean", "clean"),
+        object(
+          "alpha-quarantine",
+          alpha.context,
+          "application/pdf",
+          "quarantined",
+          "pending",
+        ),
+        object("beta-csv", beta.context, "text/csv", "clean", "clean"),
+      ]);
+
+    const query = new StorageObjectQueryService(productionDatabase());
+    await expect(query.summarizeCustody(alpha.context)).resolves.toEqual({
+      encryptedObjectCount: 3,
+      quarantinedObjectCount: 1,
+      cleanObjectCount: 2,
+    });
+    await expect(
+      query.listPortfolioImportObjects(alpha.context),
+    ).resolves.toEqual([
+      expect.objectContaining({ id: "alpha-csv", filename: "alpha-csv.csv" }),
+    ]);
+    await expect(
+      query.listDocumentIntakeObjects(
+        {
+          ...alpha.context,
+          assignedCaseIds: ["assigned-case"],
+          actorSubject: "another-alpha-user",
+        },
+        ["alpha-pdf"],
+      ),
+    ).resolves.toEqual([
+      expect.objectContaining({ id: "alpha-pdf", filename: "alpha-pdf.pdf" }),
+    ]);
+    await expect(
+      query.listPortfolioImportObjects({
+        ...alpha.context,
+        role: "independent_verifier",
+      }),
+    ).rejects.toBeInstanceOf(AuthorizationDeniedError);
   });
 
   test("quarantines exact uploads, promotes clean bytes, registers immutable evidence, and restores backup bytes", async () => {

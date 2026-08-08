@@ -7,6 +7,7 @@ import {
   getProductionPropertyGraphService,
   presentPropertyGraphWorkspace,
 } from "@/lib/production/property-graph-http";
+import { propertyGraphWorkspaceQuery } from "@/lib/production/property-graph-service";
 import { requireProductionRuntime } from "@/lib/runtime";
 
 export async function GET(request: NextRequest) {
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
         Response.json(
           presentPropertyGraphWorkspace(
             await getProductionPropertyGraphService(transaction).getWorkspace(
-              principal.authorization,
+              propertyGraphWorkspaceQuery(principal.authorization),
             ),
           ),
           { headers: { "Cache-Control": "no-store" } },

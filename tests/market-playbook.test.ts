@@ -11,6 +11,7 @@ import {
   PlaybookStateError,
 } from "@/lib/production/market-playbook-service";
 import { GovernedSourceService } from "@/lib/production/governed-source-service";
+import { presentMarketPlaybookWorkspace } from "@/lib/production/market-playbook-http";
 import {
   tenantRecord,
   type ProductionDatabaseLike,
@@ -526,5 +527,57 @@ describe("versioned market playbooks and destination readiness", () => {
         linkedBy: beta.context.actorSubject,
       }),
     ).rejects.toThrow();
+  });
+
+  test("fails the shared response contract closed for unsupported governed enums", () => {
+    const emptyWorkspace = {
+      markets: [],
+      programs: [],
+      requirementVersions: [],
+      publishedSourceVersions: [],
+      playbooks: [],
+      versions: [],
+      requirements: [],
+      rules: [],
+      reviews: [],
+      cases: [],
+      links: [],
+    };
+    expect(() =>
+      presentMarketPlaybookWorkspace({
+        ...emptyWorkspace,
+        requirements: [
+          {
+            id: "requirement-invalid-importance",
+            playbookVersionId: "version-1",
+            requirementVersionId: "requirement-version-1",
+            position: 1,
+            importance: "optional",
+            blocking: false,
+            acceptedEvidenceTypes: [],
+            freshnessDays: null,
+            requiredScopeType: "property",
+            acceptedSourceTypes: [],
+            requiredReviewStatus: "human_confirmed",
+            caveat: null,
+          },
+        ],
+      } as unknown as Parameters<typeof presentMarketPlaybookWorkspace>[0]),
+    ).toThrow("importance is unsupported");
+    expect(() =>
+      presentMarketPlaybookWorkspace({
+        ...emptyWorkspace,
+        reviews: [
+          {
+            id: "review-invalid-decision",
+            playbookVersionId: "version-1",
+            decision: "accepted",
+            reviewerSubject: "reviewer-1",
+            note: "Invalid fixture decision.",
+            reviewedAt: at,
+          },
+        ],
+      } as unknown as Parameters<typeof presentMarketPlaybookWorkspace>[0]),
+    ).toThrow("review decision is unsupported");
   });
 });

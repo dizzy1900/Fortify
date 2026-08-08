@@ -14,6 +14,11 @@ import {
   BrokerageCaseService,
   BrokerageCaseStateError,
 } from "@/lib/production/brokerage-case-service";
+import { presentBrokerageWorkspace } from "@/lib/production/brokerage-case-http";
+import {
+  BrokerageWorkspaceQueryService,
+  brokerageWorkspaceQuery,
+} from "@/lib/production/contexts/case-workflow/workspace-query";
 import { AuthorizationDeniedError } from "@/lib/production/authorization";
 import { DocumentPipelineService } from "@/lib/production/document-pipeline-service";
 import {
@@ -37,12 +42,24 @@ let client: PGlite;
 let database: PgliteDatabase<typeof schema>;
 
 const clock = () => new Date("2026-08-01T12:00:00.000Z");
-const productionDatabase = () =>
-  database as unknown as ProductionDatabaseLike;
+const productionDatabase = () => database as unknown as ProductionDatabaseLike;
 const digest = (body: Uint8Array) =>
   createHash("sha256").update(body).digest("hex");
 const fixturePath = (name: string) =>
   path.resolve(process.cwd(), "tests", "fixtures", "import", name);
+
+function collectKeys(value: unknown, keys = new Set<string>()) {
+  if (Array.isArray(value)) {
+    for (const item of value) collectKeys(item, keys);
+    return keys;
+  }
+  if (!value || typeof value !== "object") return keys;
+  for (const [key, nested] of Object.entries(value)) {
+    keys.add(key);
+    collectKeys(nested, keys);
+  }
+  return keys;
+}
 
 const workerContext = (organizationId: string): TenantContext => ({
   organizationId,
@@ -190,7 +207,10 @@ async function buildImportedAppealCase(
     .where(
       and(
         eq(schema.propertyIdentifiers.organizationId, fixture.organizationId),
-        eq(schema.propertyIdentifiers.source, genericAmsCsvAdapter.sourceSystem),
+        eq(
+          schema.propertyIdentifiers.source,
+          genericAmsCsvAdapter.sourceSystem,
+        ),
         eq(schema.propertyIdentifiers.value, "PROP-CA-100"),
       ),
     );
@@ -207,7 +227,10 @@ async function buildImportedAppealCase(
       schema.communities,
       eq(schema.properties.communityId, schema.communities.id),
     )
-    .innerJoin(schema.policies, eq(schema.policies.propertyId, schema.properties.id))
+    .innerJoin(
+      schema.policies,
+      eq(schema.policies.propertyId, schema.properties.id),
+    )
     .where(
       and(
         eq(schema.properties.organizationId, fixture.organizationId),
@@ -355,7 +378,8 @@ async function addRequest(
           required: true,
           scopeType: "community",
           scopeReference: fixture.communityId,
-          guidance: "Include building labels, dates, and the source organization.",
+          guidance:
+            "Include building labels, dates, and the source organization.",
         },
       ],
       humanConfirmation: true,
@@ -407,7 +431,9 @@ describe("production brokerage case and packet workflow", () => {
       },
     );
 
-    const workspace = await service.getWorkspace(fixture.context);
+    const workspace = await new BrokerageWorkspaceQueryService(
+      productionDatabase(),
+    ).execute(brokerageWorkspaceQuery(fixture.context));
     const importedCase = workspace.cases.find(
       (candidate) => candidate.id === fixture.caseId,
     );
@@ -432,7 +458,9 @@ describe("production brokerage case and packet workflow", () => {
     const importRows = await database
       .select()
       .from(schema.importRows)
-      .where(eq(schema.importRows.portfolioImportId, fixture.portfolioImportId));
+      .where(
+        eq(schema.importRows.portfolioImportId, fixture.portfolioImportId),
+      );
     expect(importRows).toHaveLength(2);
     expect(importRows.every((row) => row.status === "committed")).toBe(true);
     const artifactOutputDirectory = path.resolve(
@@ -449,7 +477,10 @@ describe("production brokerage case and packet workflow", () => {
         .from(schema.submissionArtifacts)
         .innerJoin(
           schema.storageObjects,
-          eq(schema.submissionArtifacts.storageObjectId, schema.storageObjects.id),
+          eq(
+            schema.submissionArtifacts.storageObjectId,
+            schema.storageObjects.id,
+          ),
         )
         .where(
           and(
@@ -465,7 +496,10 @@ describe("production brokerage case and packet workflow", () => {
       expect(bytes.byteLength).toBe(artifact.sizeBytes);
       expect(digest(bytes)).toBe(artifact.sha256);
       if (process.env.FORTIFY_WRITE_BROKERAGE_FIXTURE === "1")
-        await writeFile(path.join(artifactOutputDirectory, artifact.filename), bytes);
+        await writeFile(
+          path.join(artifactOutputDirectory, artifact.filename),
+          bytes,
+        );
     }
   });
 
@@ -493,9 +527,9 @@ describe("production brokerage case and packet workflow", () => {
       `packet-${fixture.caseId}`,
       input,
     );
-    expect(generated.artifacts.map((artifact) => artifact.artifactType).sort()).toEqual(
-      ["letter", "manifest", "pdf", "zip"],
-    );
+    expect(
+      generated.artifacts.map((artifact) => artifact.artifactType).sort(),
+    ).toEqual(["letter", "manifest", "pdf", "zip"]);
     const replay = await service.generatePacket(
       fixture.context,
       `packet-${fixture.caseId}`,
@@ -504,14 +538,23 @@ describe("production brokerage case and packet workflow", () => {
     expect(replay).toEqual(generated);
 
     const rows = await database
-      .select({ artifact: schema.submissionArtifacts, object: schema.storageObjects })
+      .select({
+        artifact: schema.submissionArtifacts,
+        object: schema.storageObjects,
+      })
       .from(schema.submissionArtifacts)
       .innerJoin(
         schema.storageObjects,
-        eq(schema.submissionArtifacts.storageObjectId, schema.storageObjects.id),
+        eq(
+          schema.submissionArtifacts.storageObjectId,
+          schema.storageObjects.id,
+        ),
       )
       .where(
-        eq(schema.submissionArtifacts.submissionVersionId, generated.submissionVersionId),
+        eq(
+          schema.submissionArtifacts.submissionVersionId,
+          generated.submissionVersionId,
+        ),
       );
     expect(rows).toHaveLength(4);
     for (const { artifact, object } of rows) {
@@ -521,11 +564,19 @@ describe("production brokerage case and packet workflow", () => {
       expect(object.state).toBe("clean");
       expect(object.scanStatus).toBe("clean");
     }
-    const pdfRow = rows.find(({ artifact }) => artifact.artifactType === "pdf")!;
-    const pdf = await PDFDocument.load(await storage.read(pdfRow.object.objectKey));
+    const pdfRow = rows.find(
+      ({ artifact }) => artifact.artifactType === "pdf",
+    )!;
+    const pdf = await PDFDocument.load(
+      await storage.read(pdfRow.object.objectKey),
+    );
     expect(pdf.getPageCount()).toBeGreaterThanOrEqual(5);
-    const zipRow = rows.find(({ artifact }) => artifact.artifactType === "zip")!;
-    const zip = await JSZip.loadAsync(await storage.read(zipRow.object.objectKey));
+    const zipRow = rows.find(
+      ({ artifact }) => artifact.artifactType === "zip",
+    )!;
+    const zip = await JSZip.loadAsync(
+      await storage.read(zipRow.object.objectKey),
+    );
     expect(Object.keys(zip.files)).toEqual(
       expect.arrayContaining([
         "manifest.json",
@@ -533,7 +584,9 @@ describe("production brokerage case and packet workflow", () => {
         "exhibits/E01-fictional-roof-schedule.pdf",
       ]),
     );
-    const manifest = JSON.parse(await zip.file("manifest.json")!.async("string")) as {
+    const manifest = JSON.parse(
+      await zip.file("manifest.json")!.async("string"),
+    ) as {
       synthetic: boolean;
       notice: { facts: Array<{ key: string }> };
       evidence: Array<{ sha256: string }>;
@@ -559,9 +612,16 @@ describe("production brokerage case and packet workflow", () => {
     await expect(
       database
         .delete(schema.evidenceRequestVersions)
-        .where(eq(schema.evidenceRequestVersions.organizationId, fixture.organizationId)),
+        .where(
+          eq(
+            schema.evidenceRequestVersions.organizationId,
+            fixture.organizationId,
+          ),
+        ),
     ).rejects.toThrow();
-    const workspace = await service.getWorkspace(fixture.context);
+    const workspace = await new BrokerageWorkspaceQueryService(
+      productionDatabase(),
+    ).execute(brokerageWorkspaceQuery(fixture.context));
     expect(workspace.cases[0].gates).toMatchObject({
       noticeFactsConfirmed: true,
       evidenceRequestRecorded: true,
@@ -592,6 +652,55 @@ describe("production brokerage case and packet workflow", () => {
       .from(schema.submissions)
       .where(eq(schema.submissions.organizationId, fixture.organizationId));
     expect(submissions[0].value).toBe(0);
+  });
+
+  test("projects only tenant-assigned brokerage cases through the shared minimized contract", async () => {
+    const alpha = await buildCase("brokerage-query-alpha");
+    const beta = await buildCase("brokerage-query-beta");
+    const query = new BrokerageWorkspaceQueryService(productionDatabase());
+
+    const workspace = await query.execute(
+      brokerageWorkspaceQuery(alpha.context),
+    );
+    expect(workspace.cases.map((caseRecord) => caseRecord.id)).toEqual([
+      alpha.caseId,
+    ]);
+    expect(workspace.cases).not.toContainEqual(
+      expect.objectContaining({ id: beta.caseId }),
+    );
+
+    const noAssignments = await query.execute(
+      brokerageWorkspaceQuery({ ...alpha.context, assignedCaseIds: [] }),
+    );
+    expect(noAssignments.cases).toEqual([]);
+
+    const response = presentBrokerageWorkspace(workspace);
+    const keys = collectKeys(response);
+    for (const forbidden of [
+      "organizationId",
+      "createdBy",
+      "updatedBy",
+      "updatedAt",
+      "revision",
+      "lifecycleStatus",
+      "storageObjectId",
+      "objectKey",
+      "currentVersionId",
+    ])
+      expect(keys.has(forbidden), forbidden).toBe(false);
+
+    await expect(
+      query.execute(
+        brokerageWorkspaceQuery({
+          ...alpha.context,
+          role: "contractor_evidence_contributor",
+          assignedCaseIds: [alpha.caseId],
+          assignedCaseScopes: {
+            [alpha.caseId]: ["renewal_case:read"],
+          },
+        }),
+      ),
+    ).rejects.toBeInstanceOf(AuthorizationDeniedError);
   });
 
   test("enforces case-role authority and database tenant guards for every new resource", async () => {

@@ -2,6 +2,12 @@ import { and, eq, inArray } from "drizzle-orm";
 import * as schema from "@/db/production/schema";
 import { assertAuthorized } from "@/lib/production/authorization";
 import {
+  defineCommand,
+  defineQuery,
+  type CommandOperation,
+  type QueryOperation,
+} from "@/lib/production/kernel/operations";
+import {
   appendAudit,
   digest,
   IdempotencyConflictError,
@@ -131,6 +137,42 @@ export type PropertyGraphRegistration = {
 export type PropertyGraphWorkspace = Awaited<
   ReturnType<PropertyGraphService["getWorkspace"]>
 >;
+
+export type PropertyGraphRegisterCommand = CommandOperation<
+  "property_graph.register",
+  TenantContext,
+  PropertyGraphRegistration
+>;
+
+export type PropertyGraphWorkspaceQuery = QueryOperation<
+  "property_graph.workspace",
+  TenantContext
+>;
+
+export function propertyGraphRegisterCommand(
+  context: TenantContext,
+  idempotencyKey: string,
+  input: PropertyGraphRegistration,
+): PropertyGraphRegisterCommand {
+  return defineCommand({
+    boundedContext: "portfolio_property",
+    name: "property_graph.register",
+    context,
+    idempotencyKey,
+    input,
+  });
+}
+
+export function propertyGraphWorkspaceQuery(
+  context: TenantContext,
+): PropertyGraphWorkspaceQuery {
+  return defineQuery({
+    boundedContext: "portfolio_property",
+    name: "property_graph.workspace",
+    context,
+    input: undefined,
+  });
+}
 
 export class PropertyGraphValidationError extends Error {
   constructor(message: string) {
@@ -266,11 +308,9 @@ async function requireTenantIds(
 export class PropertyGraphService {
   constructor(readonly database: ProductionDatabaseLike) {}
 
-  async register(
-    context: TenantContext,
-    idempotencyKey: string,
-    input: PropertyGraphRegistration,
-  ) {
+  async register(command: PropertyGraphRegisterCommand) {
+    const { context, idempotencyKey } = command;
+    let { input } = command;
     input = parsePropertyGraphRegistration(input);
     authorizeGraph(context, "create");
     requireText(idempotencyKey, "Idempotency key");
@@ -536,7 +576,8 @@ export class PropertyGraphService {
     });
   }
 
-  async getWorkspace(context: TenantContext) {
+  async getWorkspace(query: PropertyGraphWorkspaceQuery) {
+    const { context } = query;
     authorizeGraph(context, "read");
     const organizationFilter = eq(
       schema.organizations.id,

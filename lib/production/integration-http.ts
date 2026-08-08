@@ -1,4 +1,9 @@
 import { getProductionDatabase } from "@/db/production/client";
+import type { IntegrationWorkspaceResponse } from "@/lib/contracts/integrations";
+import {
+  IntegrationWorkspaceQueryService,
+  type IntegrationWorkspace,
+} from "@/lib/production/contexts/integrations/workspace-query";
 import {
   UnavailableCredentialResolver,
   UnavailableIntegrationProvider,
@@ -20,11 +25,13 @@ export const getProductionIntegrationService = (
     new UnavailableCredentialResolver(),
   );
 
-type IntegrationWorkspace = Awaited<
-  ReturnType<IntegrationService["getWorkspace"]>
->;
+export const getProductionIntegrationWorkspaceQuery = (
+  database: ProductionDatabaseLike = getProductionDatabase() as unknown as ProductionDatabaseLike,
+) => new IntegrationWorkspaceQueryService(database);
 
-export function presentIntegrationWorkspace(workspace: IntegrationWorkspace) {
+export function presentIntegrationWorkspace(
+  workspace: IntegrationWorkspace,
+): IntegrationWorkspaceResponse {
   return {
     connections: workspace.connections.map((connection) => ({
       id: connection.id,

@@ -1,4 +1,5 @@
 import { getProductionDatabase } from "@/db/production/client";
+import type { PropertyGraphWorkspaceResponse } from "@/lib/contracts/property-graph";
 import {
   PropertyGraphService,
   type PropertyGraphWorkspace,
@@ -31,7 +32,7 @@ function presentGovernedRecord(record: {
 
 export function presentPropertyGraphWorkspace(
   workspace: PropertyGraphWorkspace,
-) {
+): PropertyGraphWorkspaceResponse {
   return {
     organization: workspace.organization
       ? {
