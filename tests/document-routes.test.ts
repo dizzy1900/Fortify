@@ -74,8 +74,9 @@ function collectKeys(value: unknown, keys = new Set<string>()) {
 async function seedDocumentTenant(
   database: ProductionDatabaseLike,
   key: string,
+  existingFixture?: TenantFixture,
 ): Promise<DocumentTenant> {
-  const fixture = await createTenantFixture(database, key);
+  const fixture = existingFixture ?? (await createTenantFixture(database, key));
   const owned = tenantRecord(fixture.context, at);
   const caseId = `case-${key}`;
   const storageObjectId = `storage-document-${key}`;
@@ -108,7 +109,7 @@ async function seedDocumentTenant(
       ...owned,
       provider: "test-private-storage",
       bucket: "secret-tenant-bucket",
-      objectKey: `tenants/${fixture.organizationId}/documents/source.pdf`,
+      objectKey: `tenants/${fixture.organizationId}/documents/${key}-source.pdf`,
       originalFilename: `${key}-source.pdf`,
       mimeType: "application/pdf",
       sizeBytes: 128,
@@ -123,7 +124,7 @@ async function seedDocumentTenant(
       ...owned,
       provider: "test-private-storage",
       bucket: "secret-tenant-bucket",
-      objectKey: `tenants/${fixture.organizationId}/documents/intake.pdf`,
+      objectKey: `tenants/${fixture.organizationId}/documents/${key}-intake.pdf`,
       originalFilename: `${key}-intake.pdf`,
       mimeType: "application/pdf",
       sizeBytes: 256,
@@ -287,6 +288,34 @@ describe("document request binding", () => {
     });
   }
 
+  async function issueAssignedSession(
+    fixture: DocumentTenant,
+    key: string,
+    caseId: string,
+  ) {
+    const subject = `document-route-${key}`;
+    const membership = await createActiveMembership(productionDatabase, {
+      organizationId: fixture.organizationId,
+      subject,
+      role: "broker",
+    });
+    await productionDatabase.insert(schema.caseAssignments).values({
+      id: `case-assignment-${key}`,
+      ...tenantRecord(fixture.context, at),
+      caseId,
+      membershipId: membership.membershipId,
+      assignmentRole: "owner",
+      accessPurpose: "Document workspace case assignment",
+      permissions: ["*"],
+      dataDomains: ["document_intelligence"],
+    });
+    return new IdentityService(productionDatabase).issueSession({
+      profile: membership.profile,
+      activeOrganizationId: fixture.organizationId,
+      ttlSeconds: 3_600,
+    });
+  }
+
   test("returns a tenant-only minimized workspace and queues only tenant-owned clean objects", async () => {
     const alpha = await seedDocumentTenant(
       productionDatabase,
@@ -433,6 +462,105 @@ describe("document request binding", () => {
         ),
       );
     expect(betaDocuments).toEqual([]);
+  }, 30_000);
+
+  test("limits document lineage to assigned cases and denies incomplete read authority", async () => {
+    const alpha = await seedDocumentTenant(
+      productionDatabase,
+      "document-assignment-alpha",
+    );
+    const sibling = await seedDocumentTenant(
+      productionDatabase,
+      "document-assignment-sibling",
+      alpha,
+    );
+    const assignedSession = await issueAssignedSession(
+      alpha,
+      "assigned-broker",
+      alpha.caseId,
+    );
+    const assignedUploadId = "storage-document-assigned-upload";
+    await productionDatabase.insert(schema.storageObjects).values({
+      id: assignedUploadId,
+      ...tenantRecord(
+        {
+          ...alpha.context,
+          actorSubject: "test-oidc:document-route-assigned-broker",
+        },
+        at,
+      ),
+      provider: "test-private-storage",
+      bucket: "secret-tenant-bucket",
+      objectKey: `tenants/${alpha.organizationId}/documents/assigned-upload.pdf`,
+      originalFilename: "assigned-upload.pdf",
+      mimeType: "application/pdf",
+      sizeBytes: 512,
+      sha256: "a".repeat(64),
+      encryptionMode: "aws:kms",
+      encryptionKeyId: "secret-kms-key",
+      state: "clean",
+      scanStatus: "clean",
+    });
+
+    const assignedResponse = await getDocumentWorkspace(
+      requestWithSession(
+        "https://fortify.test/api/production/documents/workspace",
+        assignedSession.token,
+      ),
+    );
+    expect(assignedResponse.status).toBe(200);
+    const assigned = (await assignedResponse.json()) as {
+      cases: Array<{ id: string }>;
+      cleanObjects: Array<{ id: string }>;
+      documents: Array<{ id: string }>;
+      jobs: Array<{ id: string }>;
+      attempts: Array<{ jobId: string }>;
+      runs: Array<{ sourceDocumentId: string }>;
+      passages: Array<{ sourceDocumentId: string }>;
+      candidates: Array<{ sourceDocumentId: string }>;
+    };
+    expect(assigned.cases.map((item) => item.id)).toEqual([alpha.caseId]);
+    expect(assigned.cleanObjects.map((item) => item.id).toSorted()).toEqual(
+      [alpha.storageObjectId, assignedUploadId].toSorted(),
+    );
+    expect(assigned.documents.map((item) => item.id)).toEqual([
+      alpha.sourceDocumentId,
+    ]);
+    expect(assigned.jobs.map((item) => item.id)).toEqual([alpha.jobId]);
+    expect(assigned.attempts.map((item) => item.jobId)).toEqual([alpha.jobId]);
+    expect(assigned.runs.map((item) => item.sourceDocumentId)).toEqual([
+      alpha.sourceDocumentId,
+    ]);
+    expect(assigned.passages.map((item) => item.sourceDocumentId)).toEqual([
+      alpha.sourceDocumentId,
+    ]);
+    expect(assigned.candidates.map((item) => item.sourceDocumentId)).toEqual([
+      alpha.sourceDocumentId,
+    ]);
+    expect(JSON.stringify(assigned)).not.toContain(sibling.caseId);
+    expect(JSON.stringify(assigned)).not.toContain(sibling.sourceDocumentId);
+    expect(JSON.stringify(assigned)).not.toContain(alpha.intakeStorageObjectId);
+
+    const narrowCredential = await new IdentityService(
+      productionDatabase,
+    ).createServiceAccount(alpha.context, {
+      name: "Narrow document reader",
+      scopes: ["source_document:read"],
+    });
+    const denied = await getDocumentWorkspace(
+      new NextRequest(
+        "https://fortify.test/api/production/documents/workspace",
+        {
+          headers: {
+            authorization: `Bearer ${narrowCredential.token}`,
+          },
+        },
+      ),
+    );
+    expect(denied.status).toBe(403);
+    expect(await denied.json()).toEqual({
+      error: "The active principal is not authorized for this resource.",
+    });
   }, 30_000);
 
   test("rejects cross-tenant and read-only review/retry while returning minimized receipts", async () => {
