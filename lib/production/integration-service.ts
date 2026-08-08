@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { createHash, randomUUID } from "node:crypto";
 import * as schema from "@/db/production/schema";
 import { assertAuthorized } from "@/lib/production/authorization";
@@ -9,7 +9,6 @@ import {
   IntegrationProviderError,
   type IntegrationProviderType,
   type IntegrationRecord,
-  providerBoundaryCatalog,
   verifyIntegrationWebhook,
 } from "@/lib/production/integration-providers";
 import type { ObjectStorageAdapter } from "@/lib/production/object-storage";
@@ -1422,52 +1421,4 @@ export class IntegrationService {
     return { body, receipt: rows[0].receipt };
   }
 
-  async getWorkspace(context: TenantContext) {
-    assertAuthorized(context, {
-      action: "read",
-      resource: "integration_connection",
-      resourceOrganizationId: context.organizationId,
-    });
-    const [
-      connections,
-      events,
-      schemas,
-      jobs,
-      attempts,
-      receipts,
-      endpoints,
-      deliveries,
-      healthChecks,
-    ] = await Promise.all([
-      this.database.select().from(schema.integrationConnections).where(eq(schema.integrationConnections.organizationId, context.organizationId)).orderBy(asc(schema.integrationConnections.name)),
-      this.database.select().from(schema.integrationConnectionEvents).where(eq(schema.integrationConnectionEvents.organizationId, context.organizationId)).orderBy(desc(schema.integrationConnectionEvents.occurredAt)),
-      this.database.select().from(schema.integrationSchemaVersions).where(eq(schema.integrationSchemaVersions.organizationId, context.organizationId)).orderBy(desc(schema.integrationSchemaVersions.versionNumber)),
-      this.database.select().from(schema.integrationSyncJobs).where(eq(schema.integrationSyncJobs.organizationId, context.organizationId)).orderBy(desc(schema.integrationSyncJobs.requestedAt)),
-      this.database.select().from(schema.integrationSyncAttempts).where(eq(schema.integrationSyncAttempts.organizationId, context.organizationId)).orderBy(desc(schema.integrationSyncAttempts.startedAt)),
-      this.database.select().from(schema.integrationSyncReceipts).where(eq(schema.integrationSyncReceipts.organizationId, context.organizationId)).orderBy(desc(schema.integrationSyncReceipts.completedAt)),
-      this.database.select().from(schema.integrationWebhookEndpoints).where(eq(schema.integrationWebhookEndpoints.organizationId, context.organizationId)).orderBy(asc(schema.integrationWebhookEndpoints.endpointKey)),
-      this.database.select().from(schema.integrationWebhookDeliveries).where(eq(schema.integrationWebhookDeliveries.organizationId, context.organizationId)).orderBy(desc(schema.integrationWebhookDeliveries.receivedAt)),
-      this.database.select().from(schema.integrationProviderHealthChecks).where(eq(schema.integrationProviderHealthChecks.organizationId, context.organizationId)).orderBy(desc(schema.integrationProviderHealthChecks.checkedAt)),
-    ]);
-    return {
-      connections,
-      events,
-      schemas,
-      jobs,
-      attempts,
-      receipts,
-      endpoints,
-      deliveries,
-      healthChecks,
-      providerCatalog: providerBoundaryCatalog,
-      boundaries: {
-        liveCredentialsAvailable: false,
-        fixtureModeExplicit: true,
-        inlineSecretsAllowed: false,
-        signedWebhooksRequired: true,
-        externalAcceptanceImplied: false,
-        providerRecordsRequireHumanReview: true,
-      },
-    };
-  }
 }

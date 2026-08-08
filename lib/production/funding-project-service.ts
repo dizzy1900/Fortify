@@ -2,7 +2,7 @@ import { and, asc, desc, eq } from "drizzle-orm";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import * as schema from "@/db/production/schema";
 import { assertAuthorized } from "@/lib/production/authorization";
-import { hashOpaqueSecret } from "@/lib/production/identity-service";
+import { hashOpaqueSecret } from "@/lib/production/kernel/opaque-secret";
 import {
   appendAudit,
   tenantRecord,

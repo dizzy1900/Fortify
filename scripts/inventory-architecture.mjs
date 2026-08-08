@@ -293,9 +293,13 @@ for (const route of routes) {
 }
 requireComplete("Route", routes, routeOwnership);
 
-const serviceFiles = filesUnder("lib/production").filter((file) =>
+const legacyServiceFiles = filesUnder("lib/production").filter((file) =>
   /-(service|http)\.ts$/.test(file),
 );
+const contextModuleFiles = filesUnder("lib/production/contexts").filter(
+  (file) => file.endsWith(".ts"),
+);
+const serviceFiles = [...legacyServiceFiles, ...contextModuleFiles].sort();
 const servicePrefixContexts = {
   "access-control": "identity_access",
   community: "portfolio_property",
@@ -317,12 +321,50 @@ const servicePrefixContexts = {
 };
 const serviceOwnership = new Map();
 for (const file of serviceFiles) {
+  const contextModule = file.match(/^lib\/production\/contexts\/([^/]+)\//);
   const name = path.basename(file).replace(/-(service|http)\.ts$/, "");
-  const context = servicePrefixContexts[name];
+  const context = contextModule
+    ? contextModule[1].replaceAll("-", "_")
+    : servicePrefixContexts[name];
   if (!context) throw new Error(`No service owner for ${file}.`);
+  if (!boundedContextIds.includes(context))
+    throw new Error(`Unknown bounded context ${context} for ${file}.`);
   assign(serviceOwnership, context, [file]);
 }
 requireComplete("Service", serviceFiles, serviceOwnership);
+
+const directCrossContextDependencies = [];
+const crossContextPortDependencies = [];
+const dependencySourceFiles = serviceFiles.filter(
+  (file) => !file.endsWith("-http.ts"),
+);
+for (const file of dependencySourceFiles) {
+  const sourceContext = serviceOwnership.get(file);
+  const source = read(file);
+  for (const match of source.matchAll(/from\s+["'](@\/[^"']+)["']/g)) {
+    const candidate = `${match[1].slice(2)}.ts`;
+    const targetContext = serviceOwnership.get(candidate);
+    if (!targetContext || targetContext === sourceContext) continue;
+    const dependency = {
+      source: file,
+      sourceContext,
+      target: candidate,
+      targetContext,
+    };
+    if (/\/contexts\/[^/]+\/[^/]+-port\.ts$/.test(candidate))
+      crossContextPortDependencies.push(dependency);
+    else directCrossContextDependencies.push(dependency);
+  }
+}
+if (directCrossContextDependencies.length)
+  throw new Error(
+    `Direct cross-context service dependencies are forbidden. Depend on an explicit port instead: ${directCrossContextDependencies
+      .map(
+        (item) =>
+          `${item.source} (${item.sourceContext}) -> ${item.target} (${item.targetContext})`,
+      )
+      .join(", ")}.`,
+  );
 
 const componentContexts = {
   "access-control-workspace.tsx": "identity_access",
@@ -349,14 +391,14 @@ for (const [component, context] of Object.entries(componentContexts)) {
     /(?:type|interface)\s+(\w*Workspace\w*)\s*(?:=|\{)/g,
   )) {
     const excerpt = source.slice(match.index, match.index + 160);
-    const sharedContract = /PropertyGraphWorkspaceResponse/.test(excerpt);
+    const sharedContract = /\w+WorkspaceResponse/.test(excerpt);
     dtoInventory.push({
       file,
       name: match[1],
       context,
       decision: sharedContract ? "keep_shared_contract" : "merge",
       target: sharedContract
-        ? "lib/contracts/property-graph.ts"
+        ? `lib/contracts/${context === "portfolio_property" ? "property-graph" : context.replaceAll("_", "-")}.ts`
         : `lib/contracts/${context.replaceAll("_", "-")}.ts`,
     });
   }
@@ -456,8 +498,9 @@ const lines = [
   `- ${tables.length} PostgreSQL tables: ${tableOwnership.size}/${tables.length} have exactly one bounded-context owner.`,
   `- ${resources.length} authorization resources: ${resourceOwnership.size}/${resources.length} have exactly one bounded-context owner.`,
   `- ${routes.length} API routes: ${routeOwnership.size}/${routes.length} have exactly one bounded-context owner, including isolated sandbox compatibility routes.`,
-  `- ${serviceFiles.length} production service/HTTP modules: ${serviceOwnership.size}/${serviceFiles.length} have exactly one bounded-context owner.`,
+  `- ${serviceFiles.length} production service/HTTP/context modules: ${serviceOwnership.size}/${serviceFiles.length} have exactly one bounded-context owner.`,
   `- ${dtoInventory.length} client workspace DTO declarations: ${dtoInventory.length - duplicateDtos.length} use a shared contract and ${duplicateDtos.length} are explicit merge work.`,
+  `- ${directCrossContextDependencies.length} direct cross-context service dependencies; ${crossContextPortDependencies.length} explicit cross-context port dependency.`,
   "",
   "This inventory is architecture evidence, not a claim that C1 is complete. It creates the fail-closed ownership baseline required before schema or route additions. A new artifact that lacks exactly one owner fails validation.",
   "",
@@ -487,7 +530,7 @@ const lines = [
   "",
   "## DTO convergence decisions",
   "",
-  "The property-graph presenter and client now compile against `lib/contracts/property-graph.ts`. Remaining client-owned workspace DTOs must merge into bounded-context contracts; none may become a second authority.",
+  "The property-graph and integration presenters and clients now compile against bounded-context contracts in `lib/contracts`. Remaining client-owned workspace DTOs must merge into bounded-context contracts; none may become a second authority.",
   "",
   "| Client declaration | Owner | Decision | Contract target |",
   "| --- | --- | --- | --- |",
@@ -495,6 +538,17 @@ const lines = [
     (item) =>
       `| \`${item.file}:${item.name}\` | ${item.context} | ${item.decision} | \`${item.target}\` |`,
   ),
+  "",
+  "## Dependency boundaries",
+  "",
+  "Context-owned service modules may not import another context's service implementation. Cross-context collaboration must target an explicit `-port.ts` contract and be composed by an HTTP/runtime adapter. The gate currently proves zero direct implementation dependencies and records the following explicit port edges:",
+  "",
+  ...(crossContextPortDependencies.length
+    ? crossContextPortDependencies.map(
+        (item) =>
+          `- \`${item.source}\` (${item.sourceContext}) -> \`${item.target}\` (${item.targetContext})`,
+      )
+    : ["- None."]),
   "",
   "## Service split order",
   "",
@@ -515,7 +569,7 @@ if (process.argv.includes("--check")) {
     process.exit(1);
   }
   console.log(
-    `Architecture inventory passed: ${tables.length} tables, ${resources.length} resources, ${routes.length} routes, ${serviceFiles.length} service/HTTP modules, ${dtoInventory.length} workspace DTO declarations.`,
+    `Architecture inventory passed: ${tables.length} tables, ${resources.length} resources, ${routes.length} routes, ${serviceFiles.length} service/HTTP/context modules, ${dtoInventory.length} workspace DTO declarations, ${directCrossContextDependencies.length} direct cross-context dependencies.`,
   );
 } else {
   process.stdout.write(lines);

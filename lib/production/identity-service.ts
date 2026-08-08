@@ -1,6 +1,5 @@
 import { and, eq, gt, inArray, isNull, or } from "drizzle-orm";
 import {
-  createHash,
   randomBytes,
   randomUUID,
   timingSafeEqual,
@@ -16,6 +15,8 @@ import type {
   AuthenticationAttemptMaterial,
   VerifiedIdentityProfile,
 } from "./identity-provider";
+import type { ExternalCaseAccessIssuer } from "./contexts/identity-access/external-case-access-port";
+import { hashOpaqueSecret } from "./kernel/opaque-secret";
 import {
   appendAudit,
   tenantRecord,
@@ -59,9 +60,7 @@ function hasExpired(value: string, now: Date) {
   return new Date(value).getTime() <= now.getTime();
 }
 
-export function hashOpaqueSecret(secret: string) {
-  return createHash("sha256").update(secret).digest("hex");
-}
+export { hashOpaqueSecret } from "./kernel/opaque-secret";
 
 function opaqueSecret(prefix: string) {
   return `${prefix}_${randomBytes(32).toString("base64url")}`;
@@ -140,7 +139,7 @@ export interface ResolvedPrincipal {
   expiresAt: string;
 }
 
-export class IdentityService {
+export class IdentityService implements ExternalCaseAccessIssuer {
   constructor(
     readonly database: ProductionDatabaseLike,
     private readonly clock: () => Date = () => new Date(),

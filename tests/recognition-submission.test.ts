@@ -472,6 +472,7 @@ describe("recognition submission, reviewer, and outcome governance", () => {
       db(),
       setup.storage,
       new DeterministicMarketDeliveryProvider(),
+      new IdentityService(db(), () => new Date(now)),
       () => new Date(now),
     );
     const prepared = await service.prepareSubmission(
@@ -505,6 +506,7 @@ describe("recognition submission, reviewer, and outcome governance", () => {
       db(),
       setup.storage,
       new UnavailableMarketDeliveryProvider(),
+      new IdentityService(db(), () => new Date(now)),
       () => new Date(now),
     );
     await expect(
@@ -578,6 +580,7 @@ describe("recognition submission, reviewer, and outcome governance", () => {
       db(),
       setup.storage,
       new DeterministicMarketDeliveryProvider(),
+      new IdentityService(db(), () => new Date(now)),
       () => new Date(now),
     );
     await service.prepareSubmission(

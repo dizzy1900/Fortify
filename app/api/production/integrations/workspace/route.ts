@@ -4,9 +4,10 @@ import {
   withAuthenticatedTenantRequest,
 } from "@/lib/production/http-auth";
 import {
-  getProductionIntegrationService,
+  getProductionIntegrationWorkspaceQuery,
   presentIntegrationWorkspace,
 } from "@/lib/production/integration-http";
+import { integrationWorkspaceQuery } from "@/lib/production/contexts/integrations/workspace-query";
 import { requireProductionRuntime } from "@/lib/runtime";
 
 export async function GET(request: NextRequest) {
@@ -17,8 +18,8 @@ export async function GET(request: NextRequest) {
       async (principal, transaction) =>
         Response.json(
           presentIntegrationWorkspace(
-            await getProductionIntegrationService(transaction).getWorkspace(
-              principal.authorization,
+            await getProductionIntegrationWorkspaceQuery(transaction).execute(
+              integrationWorkspaceQuery(principal.authorization),
             ),
           ),
           { headers: { "Cache-Control": "no-store" } },

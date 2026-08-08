@@ -2,7 +2,8 @@ import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { createHash, randomUUID } from "node:crypto";
 import * as schema from "@/db/production/schema";
 import { assertAuthorized } from "@/lib/production/authorization";
-import { hashOpaqueSecret, IdentityService } from "@/lib/production/identity-service";
+import type { ExternalCaseAccessIssuer } from "@/lib/production/contexts/identity-access/external-case-access-port";
+import { hashOpaqueSecret } from "@/lib/production/kernel/opaque-secret";
 import type { MarketDeliveryProvider } from "@/lib/production/market-delivery";
 import type { ObjectStorageAdapter } from "@/lib/production/object-storage";
 import {
@@ -50,14 +51,13 @@ const member = (context: TenantContext, confirmed: boolean, action: string) => {
 const sha256 = (body: Uint8Array) => createHash("sha256").update(body).digest("hex");
 
 export class RecognitionSubmissionService {
-  private readonly identity: IdentityService;
-
   constructor(
     private readonly database: ProductionDatabaseLike,
     private readonly storage: ObjectStorageAdapter,
     private readonly deliveryProvider: MarketDeliveryProvider,
+    private readonly identity: ExternalCaseAccessIssuer,
     private readonly clock: () => Date = () => new Date(),
-  ) { this.identity = new IdentityService(database, clock); }
+  ) {}
 
   async prepareSubmission(context: TenantContext, idempotencyKey: string, input: {
     submissionVersionId: string;

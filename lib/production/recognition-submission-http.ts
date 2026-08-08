@@ -1,4 +1,5 @@
 import { getProductionDatabase } from "@/db/production/client";
+import { IdentityService } from "@/lib/production/identity-service";
 import {
   DeterministicMarketDeliveryProvider,
   type MarketDeliveryProvider,
@@ -12,7 +13,13 @@ export const getProductionRecognitionSubmissionService = (
   database: ProductionDatabaseLike = getProductionDatabase(),
   storage: ObjectStorageAdapter = getProductionObjectStorage(),
   deliveryProvider: MarketDeliveryProvider = new DeterministicMarketDeliveryProvider(),
-) => new RecognitionSubmissionService(database, storage, deliveryProvider);
+) =>
+  new RecognitionSubmissionService(
+    database,
+    storage,
+    deliveryProvider,
+    new IdentityService(database),
+  );
 
 type Workspace = Awaited<
   ReturnType<RecognitionSubmissionService["getWorkspace"]>
