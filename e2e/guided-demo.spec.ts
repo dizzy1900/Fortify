@@ -593,10 +593,9 @@ test("California source register preserves publication gates and successor impac
   expect(overflow).toBe(false);
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({
-    path:
-      testInfo.project.name === "chromium"
-        ? "test-results/visual-inspection/source-register-desktop.png"
-        : "test-results/visual-inspection/source-register-mobile.png",
+    path: `test-results/visual-inspection/source-register-${
+      testInfo.project.name === "chromium" ? "desktop" : testInfo.project.name
+    }.png`,
     fullPage: true,
   });
 });

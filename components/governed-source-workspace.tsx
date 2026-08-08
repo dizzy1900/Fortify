@@ -20,101 +20,14 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { SourceGovernanceWorkspaceResponse } from "@/lib/contracts/source-governance";
 
 type RuntimeMode = "sandbox" | "production";
-type Source = {
-  id: string;
-  canonicalKey: string;
-  sourceClass: string;
-  issuingAuthority: string;
-  title: string;
-  jurisdiction: string;
-  officialUrl: string;
-  authorityTier: string;
-  reviewOwnerSubject: string;
-};
-type SourceVersion = {
-  id: string;
-  sourceId: string;
-  versionNumber: number;
-  versionLabel: string;
-  publicationDate: string | null;
-  effectiveFrom: string | null;
-  effectiveTo: string | null;
-  retrievalDate: string;
-  sourceHash: string;
-  snapshotState: string;
-  rightsStatus: string;
-  redistributionAllowed: boolean;
-  useRestrictions: string;
-  structuredSummary: Record<string, string>;
-  verifyCurrentStatus: string;
-  nextReviewDate: string;
-  extractionMethod: string;
-  humanConfirmed: boolean;
-  authorSubject: string;
-  changeSummary: string;
-  supersedesVersionId: string | null;
-};
-type Review = {
-  id: string;
-  sourceVersionId: string;
-  decision: "approved" | "changes_requested";
-  reviewerSubject: string;
-  note: string;
-  sourceCompared: boolean;
-  rightsConfirmed: boolean;
-  reviewedAt: string;
-};
-type Publication = {
-  id: string;
-  sourceVersionId: string;
-  decision: "published" | "rejected";
-  publisherSubject: string;
-  note: string;
-  publishedAt: string;
-};
-type Dependency = {
-  id: string;
-  sourceVersionId: string;
-  consumerType: "playbook_version" | "renewal_case" | "target_profile_version" | "external_model_version" | "market_commitment_version" | "analytics_report";
-  consumerId: string;
-  relationship: "relied_on" | "reference_only" | "input_lineage";
-  rationale: string;
-  pinnedAt: string;
-};
-type ImpactSnapshot = {
-  affected: {
-    playbooks: Array<{ id: string; versionId: string; name: string }>;
-    cases: Array<{ id: string; title: string; renewalDate: string }>;
-    profiles: { state: string; items: Array<{ id: string; versionId: string; name: string }> };
-    reports: { state: string; items: Array<{ id: string; title: string; reportType: string }> };
-  };
-  limitations: string[];
-};
-type Alert = {
-  id: string;
-  sourceId: string;
-  fromVersionId: string;
-  toVersionId: string;
-  impactSnapshot: ImpactSnapshot;
-  ownerSubject: string;
-  createdAtEvent: string;
-};
-type Workspace = {
-  sources: Source[];
-  versions: SourceVersion[];
-  reviews: Review[];
-  publications: Publication[];
-  dependencies: Dependency[];
-  alerts: Alert[];
-  unavailableImpactTargets: { reports: string };
-  doctrine: {
-    extractedRulesAutomaticallyOperative: false;
-    publicationRequiresHumanConfirmation: true;
-    publicationRequiresIndependentReview: true;
-  };
-};
+type Workspace = SourceGovernanceWorkspaceResponse;
+type Source = Workspace["sources"][number];
+type SourceVersion = Workspace["versions"][number];
+type Review = Workspace["reviews"][number];
+type Publication = Workspace["publications"][number];
 
 const fixtureSources: Source[] = [
   {

@@ -1,19 +1,37 @@
 import { getProductionDatabase } from "@/db/production/client";
+import type { SourceGovernanceWorkspaceResponse } from "@/lib/contracts/source-governance";
+import {
+  SourceGovernanceWorkspaceQueryService,
+  type SourceGovernanceWorkspace,
+} from "@/lib/production/contexts/source-governance/workspace-query";
 import { GovernedSourceService } from "@/lib/production/governed-source-service";
 import type { SourceImpactReport } from "@/lib/production/governed-source-service";
 import type { ProductionDatabaseLike } from "@/lib/production/repository";
 
-type GovernedSourceWorkspace = Awaited<
-  ReturnType<GovernedSourceService["getWorkspace"]>
->;
 type GovernedSourcePublication = Awaited<
   ReturnType<GovernedSourceService["publishVersion"]>
 >;
+
+function requireContractValue<const T extends readonly string[]>(
+  value: string,
+  allowed: T,
+  field: string,
+): T[number] {
+  if (!allowed.includes(value))
+    throw new Error(`Unsupported persisted ${field} value.`);
+  return value as T[number];
+}
 
 export function getProductionGovernedSourceService(
   database: ProductionDatabaseLike = getProductionDatabase() as unknown as ProductionDatabaseLike,
 ) {
   return new GovernedSourceService(database);
+}
+
+export function getProductionSourceGovernanceWorkspaceQuery(
+  database: ProductionDatabaseLike = getProductionDatabase() as unknown as ProductionDatabaseLike,
+) {
+  return new SourceGovernanceWorkspaceQueryService(database);
 }
 
 function presentImpactSnapshot(impact: SourceImpactReport) {
@@ -51,8 +69,8 @@ function presentImpactSnapshot(impact: SourceImpactReport) {
 }
 
 export function presentGovernedSourceWorkspace(
-  workspace: GovernedSourceWorkspace,
-) {
+  workspace: SourceGovernanceWorkspace,
+): SourceGovernanceWorkspaceResponse {
   return {
     sources: workspace.sources.map((source) => ({
       id: source.id,
@@ -91,7 +109,11 @@ export function presentGovernedSourceWorkspace(
     reviews: workspace.reviews.map((review) => ({
       id: review.id,
       sourceVersionId: review.sourceVersionId,
-      decision: review.decision,
+      decision: requireContractValue(
+        review.decision,
+        ["approved", "changes_requested"] as const,
+        "source review decision",
+      ),
       reviewerSubject: review.reviewerSubject,
       note: review.note,
       sourceCompared: review.sourceCompared,
@@ -101,7 +123,11 @@ export function presentGovernedSourceWorkspace(
     publications: workspace.publications.map((publication) => ({
       id: publication.id,
       sourceVersionId: publication.sourceVersionId,
-      decision: publication.decision,
+      decision: requireContractValue(
+        publication.decision,
+        ["published", "rejected"] as const,
+        "source publication decision",
+      ),
       publisherSubject: publication.publisherSubject,
       note: publication.note,
       publishedAt: publication.publishedAt,
@@ -109,9 +135,24 @@ export function presentGovernedSourceWorkspace(
     dependencies: workspace.dependencies.map((dependency) => ({
       id: dependency.id,
       sourceVersionId: dependency.sourceVersionId,
-      consumerType: dependency.consumerType,
+      consumerType: requireContractValue(
+        dependency.consumerType,
+        [
+          "playbook_version",
+          "renewal_case",
+          "target_profile_version",
+          "external_model_version",
+          "market_commitment_version",
+          "analytics_report",
+        ] as const,
+        "source dependency consumer type",
+      ),
       consumerId: dependency.consumerId,
-      relationship: dependency.relationship,
+      relationship: requireContractValue(
+        dependency.relationship,
+        ["relied_on", "reference_only", "input_lineage"] as const,
+        "source dependency relationship",
+      ),
       rationale: dependency.rationale,
       pinnedAt: dependency.pinnedAt,
     })),

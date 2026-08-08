@@ -6,6 +6,12 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import * as schema from "@/db/production/schema";
 import {
+  SourceGovernanceWorkspaceQueryService,
+  type SourceGovernanceWorkspace,
+  sourceGovernanceWorkspaceQuery,
+} from "@/lib/production/contexts/source-governance/workspace-query";
+import { presentGovernedSourceWorkspace } from "@/lib/production/governed-source-http";
+import {
   GovernedSourceService,
   GovernedSourceStateError,
 } from "@/lib/production/governed-source-service";
@@ -279,12 +285,40 @@ describe("governed California source register", () => {
         pinnedBy: beta.context.actorSubject,
       }),
     ).rejects.toThrow();
-    const workspace = await service.getWorkspace(alpha.context);
+    const workspace = await new SourceGovernanceWorkspaceQueryService(
+      productionDatabase(),
+    ).execute(sourceGovernanceWorkspaceQuery(alpha.context));
+    expect(sourceGovernanceWorkspaceQuery(alpha.context)).toMatchObject({
+      kind: "query",
+      boundedContext: "source_governance",
+      name: "source_governance.workspace",
+      context: alpha.context,
+      input: undefined,
+    });
     expect(workspace.doctrine).toEqual({
       extractedRulesAutomaticallyOperative: false,
       publicationRequiresHumanConfirmation: true,
       publicationRequiresIndependentReview: true,
     });
     expect(workspace.publications).toHaveLength(0);
+
+    const unsupportedPersistedReview = {
+      ...workspace,
+      reviews: [
+        {
+          id: "unsupported-review",
+          sourceVersionId: pendingRights.sourceVersionId,
+          decision: "implicitly_approved",
+          reviewerSubject: "invalid-fixture",
+          note: "Must never project as an accepted contract value.",
+          sourceCompared: false,
+          rightsConfirmed: false,
+          reviewedAt: at,
+        },
+      ],
+    } as unknown as SourceGovernanceWorkspace;
+    expect(() =>
+      presentGovernedSourceWorkspace(unsupportedPersistedReview),
+    ).toThrow("Unsupported persisted source review decision value.");
   });
 });

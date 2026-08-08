@@ -4,9 +4,10 @@ import {
   withAuthenticatedTenantRequest,
 } from "@/lib/production/http-auth";
 import {
-  getProductionGovernedSourceService,
+  getProductionSourceGovernanceWorkspaceQuery,
   presentGovernedSourceWorkspace,
 } from "@/lib/production/governed-source-http";
+import { sourceGovernanceWorkspaceQuery } from "@/lib/production/contexts/source-governance/workspace-query";
 import { requireProductionRuntime } from "@/lib/runtime";
 
 export async function GET(request: NextRequest) {
@@ -17,9 +18,9 @@ export async function GET(request: NextRequest) {
       async (principal, transaction) =>
         Response.json(
           presentGovernedSourceWorkspace(
-            await getProductionGovernedSourceService(transaction).getWorkspace(
-              principal.authorization,
-            ),
+            await getProductionSourceGovernanceWorkspaceQuery(
+              transaction,
+            ).execute(sourceGovernanceWorkspaceQuery(principal.authorization)),
           ),
           { headers: { "Cache-Control": "no-store" } },
         ),
