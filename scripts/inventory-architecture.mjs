@@ -479,6 +479,9 @@ const resourcesByContext = grouped(resources, resourceOwnership);
 const routesByContext = grouped(routes, routeOwnership);
 const servicesByContext = grouped(serviceFiles, serviceOwnership);
 const duplicateDtos = dtoInventory.filter((item) => item.decision === "merge");
+const sharedDtoContexts = dtoInventory
+  .filter((item) => item.decision === "keep_shared_contract")
+  .map((item) => item.context.replaceAll("_", "-"));
 const decisionRows = [...tableDecisions]
   .filter(
     ([, value]) =>
@@ -531,7 +534,7 @@ const inventoryMarkdown = [
   "",
   "## DTO convergence decisions",
   "",
-  "The property-graph, integration, and identity-access presenters and clients now compile against bounded-context contracts in `lib/contracts`. Remaining client-owned workspace DTOs must merge into bounded-context contracts; none may become a second authority.",
+  `Shared presenters and clients for ${sharedDtoContexts.join(", ")} now compile against bounded-context contracts in \`lib/contracts\`. Remaining client-owned workspace DTOs must merge into bounded-context contracts; none may become a second authority.`,
   "",
   "| Client declaration | Owner | Decision | Contract target |",
   "| --- | --- | --- | --- |",

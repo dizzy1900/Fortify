@@ -4,9 +4,10 @@ import {
   withAuthenticatedTenantRequest,
 } from "@/lib/production/http-auth";
 import {
-  getProductionMarketPlaybookService,
+  getProductionMarketPlaybookWorkspaceQuery,
   presentMarketPlaybookWorkspace,
 } from "@/lib/production/market-playbook-http";
+import { marketPlaybookWorkspaceQuery } from "@/lib/production/contexts/market-playbooks/workspace-query";
 import { requireProductionRuntime } from "@/lib/runtime";
 
 export async function GET(request: NextRequest) {
@@ -17,9 +18,9 @@ export async function GET(request: NextRequest) {
       async (principal, transaction) =>
         Response.json(
           presentMarketPlaybookWorkspace(
-            await getProductionMarketPlaybookService(transaction).getWorkspace(
-              principal.authorization,
-            ),
+            await getProductionMarketPlaybookWorkspaceQuery(
+              transaction,
+            ).execute(marketPlaybookWorkspaceQuery(principal.authorization)),
           ),
           { headers: { "Cache-Control": "no-store" } },
         ),

@@ -1,10 +1,11 @@
 import { getProductionDatabase } from "@/db/production/client";
+import type { MarketPlaybookWorkspaceResponse } from "@/lib/contracts/market-playbooks";
+import {
+  MarketPlaybookWorkspaceQueryService,
+  type MarketPlaybookWorkspace,
+} from "@/lib/production/contexts/market-playbooks/workspace-query";
 import { MarketPlaybookService } from "@/lib/production/market-playbook-service";
 import type { ProductionDatabaseLike } from "@/lib/production/repository";
-
-type MarketPlaybookWorkspace = Awaited<
-  ReturnType<MarketPlaybookService["getWorkspace"]>
->;
 
 export function getProductionMarketPlaybookService(
   database: ProductionDatabaseLike = getProductionDatabase() as unknown as ProductionDatabaseLike,
@@ -12,9 +13,27 @@ export function getProductionMarketPlaybookService(
   return new MarketPlaybookService(database);
 }
 
+export function getProductionMarketPlaybookWorkspaceQuery(
+  database: ProductionDatabaseLike = getProductionDatabase() as unknown as ProductionDatabaseLike,
+) {
+  return new MarketPlaybookWorkspaceQueryService(database);
+}
+
+function presentImportance(value: string): "required" | "recommended" {
+  if (value === "required" || value === "recommended") return value;
+  throw new Error("The saved playbook requirement importance is unsupported.");
+}
+
+function presentReviewDecision(
+  value: string,
+): "approved" | "changes_requested" {
+  if (value === "approved" || value === "changes_requested") return value;
+  throw new Error("The saved playbook review decision is unsupported.");
+}
+
 export function presentMarketPlaybookWorkspace(
   workspace: MarketPlaybookWorkspace,
-) {
+): MarketPlaybookWorkspaceResponse {
   return {
     markets: workspace.markets.map((market) => ({
       id: market.id,
@@ -84,7 +103,7 @@ export function presentMarketPlaybookWorkspace(
       playbookVersionId: requirement.playbookVersionId,
       requirementVersionId: requirement.requirementVersionId,
       position: requirement.position,
-      importance: requirement.importance,
+      importance: presentImportance(requirement.importance),
       blocking: requirement.blocking,
       acceptedEvidenceTypes: [...requirement.acceptedEvidenceTypes],
       freshnessDays: requirement.freshnessDays,
@@ -104,7 +123,7 @@ export function presentMarketPlaybookWorkspace(
     reviews: workspace.reviews.map((review) => ({
       id: review.id,
       playbookVersionId: review.playbookVersionId,
-      decision: review.decision,
+      decision: presentReviewDecision(review.decision),
       reviewerSubject: review.reviewerSubject,
       note: review.note,
       reviewedAt: review.reviewedAt,

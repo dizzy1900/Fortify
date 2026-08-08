@@ -25,117 +25,20 @@ import {
   XCircle,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import type {
+  MarketPlaybookRequirementResponse,
+  MarketPlaybookRequirementVersionResponse,
+  MarketPlaybookReviewResponse,
+  MarketPlaybookVersionResponse,
+  MarketPlaybookWorkspaceResponse,
+} from "@/lib/contracts/market-playbooks";
 
 type RuntimeMode = "sandbox" | "production";
-type Market = { id: string; name: string; marketType: string };
-type Program = {
-  id: string;
-  marketId: string;
-  name: string;
-  peril: string;
-  jurisdiction: string;
-  propertyClass: string;
-};
-type RequirementVersion = {
-  id: string;
-  version: string;
-  summary: string;
-  sourceUrl: string;
-  requirementId: string;
-  code: string;
-  title: string;
-  scopeType: string;
-};
-type PublishedSourceVersion = {
-  id: string;
-  sourceId: string;
-  title: string;
-  issuingAuthority: string;
-  officialUrl: string;
-  versionLabel: string;
-  verifyCurrentStatus: string;
-  publishedAt: string;
-};
-type Playbook = { id: string; name: string; description: string };
-type Version = {
-  id: string;
-  playbookId: string;
-  versionNumber: number;
-  marketId: string;
-  programId: string | null;
-  jurisdiction: string;
-  peril: string;
-  propertyClass: string;
-  policyForm: string | null;
-  effectiveFrom: string;
-  effectiveTo: string | null;
-  governedSourceVersionId: string | null;
-  sourceName: string;
-  sourceUrl: string;
-  sourceVersion: string;
-  sourceCitation: string;
-  verifyCurrent: boolean;
-  changeSummary: string;
-  contentHash: string;
-  authorSubject: string;
-  supersedesVersionId: string | null;
-};
-type PlaybookRequirement = {
-  id: string;
-  playbookVersionId: string;
-  requirementVersionId: string;
-  position: number;
-  importance: "required" | "recommended";
-  blocking: boolean;
-  acceptedEvidenceTypes: string[];
-  freshnessDays: number | null;
-  requiredScopeType: string;
-  acceptedSourceTypes: string[];
-  requiredReviewStatus: string;
-  caveat: string | null;
-};
-type Review = {
-  id: string;
-  playbookVersionId: string;
-  decision: "approved" | "changes_requested";
-  reviewerSubject: string;
-  note: string;
-  reviewedAt: string;
-};
-type Workspace = {
-  markets: Market[];
-  programs: Program[];
-  requirementVersions: RequirementVersion[];
-  publishedSourceVersions: PublishedSourceVersion[];
-  playbooks: Playbook[];
-  versions: Version[];
-  requirements: PlaybookRequirement[];
-  rules: Array<{
-    id: string;
-    playbookRequirementId: string;
-    position: number;
-    field: string;
-    operator: string;
-    expectedValues: string[];
-  }>;
-  reviews: Review[];
-  cases: Array<{
-    id: string;
-    title: string;
-    renewalDate: string;
-    peril: string;
-    jurisdiction: string;
-    propertyClass: string;
-  }>;
-  links: Array<{
-    id: string;
-    caseId: string;
-    playbookVersionId: string;
-    destinationMarketId: string;
-    linkedAt: string;
-    supersedesLinkId: string | null;
-  }>;
-};
+type RequirementVersion = MarketPlaybookRequirementVersionResponse;
+type Version = MarketPlaybookVersionResponse;
+type PlaybookRequirement = MarketPlaybookRequirementResponse;
+type Review = MarketPlaybookReviewResponse;
+type Workspace = MarketPlaybookWorkspaceResponse;
 type RequirementResult = {
   requirementId: string;
   code: string;
