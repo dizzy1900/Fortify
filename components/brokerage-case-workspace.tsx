@@ -29,130 +29,17 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import type {
+  BrokerageCaseResponse as BrokerageCase,
+  BrokerageEvidenceRequestResponse as EvidenceRequest,
+  BrokerageNoticeFactResponse as NoticeFact,
+  BrokerageSubmissionResponse as Submission,
+  BrokerageWorkspaceResponse,
+} from "@/lib/contracts/case-workflow";
 
 type RuntimeMode = "sandbox" | "production";
 type Tab = "case" | "notice" | "requests" | "packet";
-type NoticeFact = {
-  id: string;
-  key: string;
-  value: string;
-  versionNumber: number;
-  confirmedBy: string;
-  confirmedAt: string;
-  sourcePassageId: string | null;
-};
-type RequestedItem = {
-  evidenceType: string;
-  label: string;
-  required: boolean;
-  scopeType: string;
-  scopeReference?: string;
-  guidance: string;
-};
-type EvidenceRequest = {
-  id: string;
-  recipientType: string;
-  recipientLabel: string;
-  status: string;
-  issuedAt: string | null;
-  expiresAt: string | null;
-  externalAccessState: string;
-  version: {
-    id: string;
-    versionNumber: number;
-    purpose: string;
-    instructions: string;
-    dueAt: string;
-    requestedItems: RequestedItem[];
-    confirmedBy: string;
-    confirmedAt: string;
-  } | null;
-};
-type Submission = {
-  id: string;
-  purpose: string;
-  status: string;
-  version: {
-    id: string;
-    versionNumber: number;
-    confirmedBy: string | null;
-    confirmedAt: string | null;
-    manifestHash: string | null;
-  } | null;
-  artifacts: Array<{
-    id: string;
-    artifactType: string;
-    filename: string;
-    mimeType: string;
-    sizeBytes: number;
-    sha256: string;
-    generatedAt: string;
-  }>;
-};
-type BrokerageCase = {
-  id: string;
-  title: string;
-  status: string;
-  caseType: string;
-  peril: string;
-  jurisdiction: string;
-  propertyClass: string;
-  renewalDate: string;
-  appealDeadline: string | null;
-  client: { id: string; name: string };
-  community: { id: string; name: string };
-  property: {
-    id: string;
-    name: string;
-    unitCount: number | null;
-    buildingCount: number | null;
-    address: string;
-  };
-  policy: {
-    id: string;
-    policyNumber: string;
-    effectiveDate: string | null;
-    expirationDate: string;
-    marketName: string | null;
-    sourceAuthority: string;
-  };
-  notice: {
-    id: string;
-    filename: string;
-    sha256: string | null;
-    receivedAt: string;
-    facts: NoticeFact[];
-    missingRequiredFacts: string[];
-  } | null;
-  evidenceRequests: EvidenceRequest[];
-  evidence: Array<{
-    itemId: string;
-    versionId: string;
-    evidenceType: string;
-    filename: string;
-    sha256: string;
-    sourceType: string;
-    scopeType: string;
-    scopeReference: string | null;
-    reviewStatus: string;
-  }>;
-  submissions: Submission[];
-  gates: {
-    noticeFactsConfirmed: boolean;
-    evidenceRequestRecorded: boolean;
-    openContradictionCount: number;
-    packetGenerated: boolean;
-  };
-};
-type Workspace = {
-  organization: {
-    id: string;
-    name: string;
-    environment: string;
-    synthetic: boolean;
-  };
-  cases: BrokerageCase[];
-};
+type Workspace = BrokerageWorkspaceResponse;
 
 const fixtureFacts: NoticeFact[] = [
   ["market", "Fictional California Property Market"],
